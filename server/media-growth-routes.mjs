@@ -7,7 +7,8 @@ import { storeImageDataUrl } from './storage.mjs';
 const FREE_DAILY_LIMITS = { image_jobs: 20, ad_drafts: 10, assistant_messages: 40 };
 export function consumeDailyUsage(tenantId, userId, key) {
   const day = nowIso().slice(0, 10);
-  const limit = FREE_DAILY_LIMITS[key] || 20;\n  const result = db.prepare('INSERT INTO daily_usage(id,tenant_id,user_id,usage_date,action_key,used_count) VALUES(?,?,?,?,?,1) ON CONFLICT(tenant_id,user_id,usage_date,action_key) DO UPDATE SET used_count=used_count+1 WHERE used_count < ?').run(randomUUID(),tenantId,userId,day,key,limit);\n  if (!result.changes) throw Object.assign(new Error('وصلت إلى الحد اليومي المجاني لهذه المهمة. حاول غداً.'), { code: 'daily_limit_reached' });
+  const limit = FREE_DAILY_LIMITS[key] || 20;
+  const result = db.prepare('INSERT INTO daily_usage(id,tenant_id,user_id,usage_date,action_key,used_count) VALUES(?,?,?,?,?,1) ON CONFLICT(tenant_id,user_id,usage_date,action_key) DO UPDATE SET used_count=used_count+1 WHERE used_count < ?').run(randomUUID(),tenantId,userId,day,key,limit);\n  if (!result.changes) throw Object.assign(new Error('وصلت إلى الحد اليومي المجاني لهذه المهمة. حاول غداً.'), { code: 'daily_limit_reached' });
 }
 export function registerMediaAndGrowthRoutes(app) {
   app.get('/api/usage', requireAuth, (req, res) => {
