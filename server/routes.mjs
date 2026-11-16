@@ -19,6 +19,7 @@ export function registerRoutes(app) {
     const { vehicleId }=req.body||{};
     if(typeof vehicleId!=='string')return res.status(400).json({error:'vehicle_id_required'});
     try{
+      consumeDailyUsage(req.user.tenantId,req.user.id,'ad_drafts');
       const workflow=await executeWorkflow({workflowId:req.params.workflowId,tenantId:req.user.tenantId,userId:req.user.id,input:{vehicleId}});
       return res.status(workflow.status==='succeeded'?200:422).json({workflow});
     }catch(error){return res.status(error.code==='daily_limit_reached'?429:error.code==='vehicle_not_found'?404:400).json({error:error.code||'workflow_failed',message:error.message});}
@@ -75,6 +76,7 @@ export function registerRoutes(app) {
     const { skillId, input:rawInput } = req.body || {};
     if (typeof skillId !== 'string' || !rawInput || typeof rawInput !== 'object' || Array.isArray(rawInput)) return res.status(400).json({ error:'invalid_task' });
     try {
+      if(['image-optimize','license-plate-blur-region'].includes(skillId)) consumeDailyUsage(req.user.tenantId,req.user.id,'image_jobs');
       const manifest=getSkills().find(skill=>skill.id===skillId);
       if(!manifest) return res.status(404).json({error:'skill_not_found'});
       if(manifest.runtime==='browser') return res.status(400).json({error:'skill_requires_browser_runtime'});
