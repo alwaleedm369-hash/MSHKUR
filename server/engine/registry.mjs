@@ -67,7 +67,7 @@ const handlers = {
 
 const registryPath = new URL('../../skills/registry.json', import.meta.url);
 const declaredSkills = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
-export const skillManifests = declaredSkills.map(skill => ({ ...skill, executable: typeof handlers[skill.id] === 'function' }));
+export const skillManifests = declaredSkills.map(skill => ({ ...skill, executable: typeof handlers[skill.id] === 'function', available: typeof handlers[skill.id] === 'function' || skill.runtime === 'browser' }));
 export async function executeSkill(skillId, input, context) {
   const handler = handlers[skillId];
   if (!handler) throw Object.assign(new Error('Skill is not installed or not executable'), { code: 'skill_unavailable' });
