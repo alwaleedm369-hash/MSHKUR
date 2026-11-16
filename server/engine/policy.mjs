@@ -7,7 +7,9 @@ export function requiresApproval(actionType){ return externalActions.has(actionT
 export function createApproval({tenantId,userId,actionType,payload}){
   if(!requiresApproval(actionType)) throw Object.assign(new Error('Unknown or non-external action type'),{code:'invalid_action_type'});
   if(!payload || typeof payload!=='object' || Array.isArray(payload)) throw Object.assign(new Error('Action payload must be an object'),{code:'invalid_payload'});
-  const id=randomUUID(), payloadJson=stable(payload), payloadHash=createHash('sha256').update(payloadJson).digest('hex'), now=nowIso();
+  const id=randomUUID(), payloadJson=stable(payload);
+  if(payloadJson.length>32_000) throw Object.assign(new Error('Approval payload is too large'),{code:'payload_too_large'});
+  const payloadHash=createHash('sha256').update(payloadJson).digest('hex'), now=nowIso();
   db.prepare(`INSERT INTO approvals(id,tenant_id,user_id,action_type,payload_json,payload_hash,status,created_at)
     VALUES(?,?,?,?,?,?,?,?)`).run(id,tenantId,userId,actionType,payloadJson,payloadHash,'pending',now);
   audit({tenantId,actorUserId:userId,eventType:'approval.created',resourceType:'approval',resourceId:id,details:{actionType,payloadHash}});
