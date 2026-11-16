@@ -63,6 +63,22 @@ test('vehicle records are isolated between tenants', async () => {
   assert.equal((await updated.json()).vehicle.price,81000);
 });
 
+test('vehicle ad workflow validates the saved record before drafting copy', async () => {
+  const cookie=await register('workflow@example.test','معرض سير العمل');
+  const created=await json('/api/vehicles',{method:'POST',headers:{cookie},body:JSON.stringify({make:'Honda',model:'Accord',year:2021,city:'جدة'})});
+  assert.equal(created.status,201);
+  const vehicleId=(await created.json()).vehicle.id;
+  const response=await json('/api/workflows/vehicle-ad-draft/run',{method:'POST',headers:{cookie},body:JSON.stringify({vehicleId})});
+  assert.equal(response.status,200);
+  const {workflow}=await response.json();
+  assert.equal(workflow.status,'succeeded');
+  assert.equal(workflow.steps.length,2);
+  assert.equal(workflow.steps[0].skill_id,'vehicle-validate');
+  assert.equal(workflow.steps[1].skill_id,'vehicle-ad-copy');
+  assert.match(workflow.output.adDraft.description,/Honda Accord/);
+  assert.ok(workflow.output.validation.missingFields.includes('price'));
+});
+
 test('vehicle ad skill creates a draft only from supplied facts', async () => {
   const cookie = await register('copy@example.test','معرض الإعلانات');
   const response = await json('/api/tasks',{method:'POST',headers:{cookie},body:JSON.stringify({skillId:'vehicle-ad-copy',input:{make:'Toyota',model:'Camry',year:2022,city:'جدة'}})});
