@@ -78,6 +78,8 @@ export function registerMediaAndGrowthRoutes(app) {
     const placeholders=assetIds.map(()=>'?').join(',');
     const assets=db.prepare('SELECT id,file_id,sort_order FROM vehicle_assets WHERE tenant_id=? AND vehicle_id=? AND id IN ('+placeholders+') AND asset_role IN (\'gallery\',\'cover\') ORDER BY sort_order').all(req.user.tenantId,vehicle.id,...assetIds);
     if(assets.length!==assetIds.length)return res.status(400).json({error:'invalid_assets'});
+    const used=db.prepare('SELECT used_count FROM daily_usage WHERE tenant_id=? AND user_id=? AND usage_date=? AND action_key=?').get(req.user.tenantId,req.user.id,nowIso().slice(0,10),'image_jobs')?.used_count||0;
+    if(assets.length>FREE_DAILY_LIMITS.image_jobs-used)return res.status(429).json({error:'daily_limit_reached',message:'الحد المجاني اليومي هو 3 صور. اختر صوراً أقل أو أكمل المعالجة غداً.'});
     const runId=randomUUID(),now=nowIso();
     const tx=db.transaction(()=>{
       db.prepare("INSERT INTO photo_batch_runs(id,tenant_id,vehicle_id,user_id,status,total_items,created_at,updated_at) VALUES(?,?,?,?,'queued',?,?,?)").run(runId,req.user.tenantId,vehicle.id,req.user.id,assets.length,now,now);
