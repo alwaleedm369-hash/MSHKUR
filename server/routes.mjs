@@ -88,8 +88,8 @@ export function registerRoutes(app) {
     if(next.price!==undefined && next.price!==null && (typeof next.price!=='number'||next.price<0)) return res.status(400).json({error:'invalid_price'});
     if(next.mileage!==undefined && next.mileage!==null && (typeof next.mileage!=='number'||next.mileage<0)) return res.status(400).json({error:'invalid_mileage'});
     const merged={...current,...next,updated_at:nowIso()};
-    db.prepare(`UPDATE vehicles SET make=@make,model=@model,trim=@trim,year=@year,mileage=@mileage,fuel=@fuel,transmission=@transmission,color=@color,price=@price,city=@city,notes=@notes,updated_at=@updated_at WHERE id=@id AND tenant_id=@tenant_id`)
-      .run({...merged,id:current.id,tenant_id:req.user.tenantId});
+    const params={id:current.id,tenant_id:req.user.tenantId,make:merged.make,model:merged.model,trim:merged.trim,year:merged.year,mileage:merged.mileage,fuel:merged.fuel,transmission:merged.transmission,color:merged.color,price:merged.price,city:merged.city,notes:merged.notes,updated_at:merged.updated_at};
+    db.prepare(`UPDATE vehicles SET make=@make,model=@model,trim=@trim,year=@year,mileage=@mileage,fuel=@fuel,transmission=@transmission,color=@color,price=@price,city=@city,notes=@notes,updated_at=@updated_at WHERE id=@id AND tenant_id=@tenant_id`).run(params);
     audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'vehicle.updated',resourceType:'vehicle',resourceId:current.id});
     return res.json({vehicle:db.prepare('SELECT id,make,model,trim,year,mileage,fuel,transmission,color,price,currency,city,status,notes,created_at,updated_at FROM vehicles WHERE id=? AND tenant_id=?').get(current.id,req.user.tenantId)});
   });
@@ -109,6 +109,8 @@ export function registerRoutes(app) {
     if (typeof record.make !== 'string' || !record.make.trim() || typeof record.model !== 'string' || !record.model.trim()) return res.status(400).json({ error:'make_and_model_required' });
     if (record.year !== undefined && (!Number.isInteger(record.year) || record.year < 1950 || record.year > new Date().getFullYear()+1)) return res.status(400).json({ error:'invalid_year' });
     if (record.price !== undefined && (typeof record.price !== 'number' || record.price < 0)) return res.status(400).json({ error:'invalid_price' });
+    if (record.mileage !== undefined && (typeof record.mileage !== 'number' || record.mileage < 0)) return res.status(400).json({ error:'invalid_mileage' });
+    if (record.trim !== undefined && (typeof record.trim !== 'string' || record.trim.length > 80)) return res.status(400).json({ error:'invalid_trim' });
     const id = randomUUID(), now = nowIso();
     db.prepare(`INSERT INTO vehicles(id,tenant_id,created_by,make,model,trim,year,mileage,fuel,transmission,color,price,city,notes,created_at,updated_at)
       VALUES(@id,@tenant_id,@created_by,@make,@model,@trim,@year,@mileage,@fuel,@transmission,@color,@price,@city,@notes,@created_at,@updated_at)`)
