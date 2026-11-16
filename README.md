@@ -66,6 +66,7 @@ Google OAuth، خرائط تفاعلية مدمجة، كشف اللوحات تل
 - [مختبر النماذج والضغط](docs/MODEL_LAB_AR.md)
 - [مراجعة التراخيص](docs/LICENCE_REVIEW_AR.md)
 - [دليل REA](tools/rea/README_AR.md)
+- [خادم MCP المحلي](tools/mcp/README_AR.md)
 - [مختبر النماذج وأدوات الضغط](tools/model-lab/README_AR.md)
 - [خارطة التنفيذ](docs/ROADMAP_AR.md)
 - [خدمات Google الاختيارية](docs/GOOGLE_SERVICES_AR.md)
