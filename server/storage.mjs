@@ -13,6 +13,8 @@ export function storeImageDataUrl(dataUrl,{tenantId,userId}){
   if(!match) throw Object.assign(new Error('Unsupported image data URL'),{code:'invalid_image'});
   const buffer=Buffer.from(match[2],'base64');
   if(!buffer.length||buffer.length>maxBytes) throw Object.assign(new Error('Image must be smaller than 12 MB'),{code:'image_too_large'});
+  const signatureOk = match[1]==='image/png' ? buffer.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])) : match[1]==='image/jpeg' ? buffer[0]===0xff&&buffer[1]===0xd8 : buffer.subarray(0,4).toString()==='RIFF'&&buffer.subarray(8,12).toString()==='WEBP';
+  if(!signatureOk) throw Object.assign(new Error('Image content does not match its declared type'),{code:'invalid_image'});
   return storeImageBuffer(buffer,match[1],{tenantId,userId});
 }
 export function storeImageBuffer(buffer,mimeType,{tenantId,userId}){
