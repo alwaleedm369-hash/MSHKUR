@@ -105,6 +105,20 @@ CREATE TABLE IF NOT EXISTS conversation_messages (
   body TEXT NOT NULL, metadata_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON conversation_messages(conversation_id, created_at);
+CREATE TABLE IF NOT EXISTS photo_batch_runs (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
+  vehicle_id TEXT NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id), status TEXT NOT NULL,
+  total_items INTEGER NOT NULL, completed_items INTEGER NOT NULL DEFAULT 0,
+  failed_items INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS photo_batch_items (
+  id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES photo_batch_runs(id) ON DELETE CASCADE,
+  tenant_id TEXT NOT NULL REFERENCES tenants(id), source_asset_id TEXT NOT NULL,
+  source_file_id TEXT NOT NULL, output_file_id TEXT, status TEXT NOT NULL,
+  error_message TEXT, sort_order INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_photo_batch_items ON photo_batch_items(run_id, sort_order);
 CREATE TABLE IF NOT EXISTS daily_usage (
   id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
   user_id TEXT NOT NULL REFERENCES users(id), usage_date TEXT NOT NULL,
