@@ -19,6 +19,7 @@ export async function executeWorkflow({workflowId,tenantId,userId,input}){
   if(definition.runtime!=='server'||definition.externalSideEffects)throw Object.assign(new Error('Workflow is not approved for local execution'),{code:'workflow_not_allowed'});
   const vehicle=db.prepare('SELECT * FROM vehicles WHERE id=? AND tenant_id=?').get(input?.vehicleId,tenantId);
   if(!vehicle)throw Object.assign(new Error('Vehicle not found in this tenant'),{code:'vehicle_not_found'});
+  const vehicleData=Object.fromEntries(Object.entries(vehicle).filter(([,value])=>value!==null));
   const id=randomUUID(),now=nowIso();
   db.prepare('INSERT INTO workflow_runs(id,tenant_id,user_id,workflow_id,status,input_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)')
     .run(id,tenantId,userId,workflowId,'running',JSON.stringify(input),now,now);
@@ -29,7 +30,7 @@ export async function executeWorkflow({workflowId,tenantId,userId,input}){
       const stepId=randomUUID(),started=nowIso();
       db.prepare('INSERT INTO workflow_steps(id,run_id,tenant_id,step_key,skill_id,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)')
         .run(stepId,id,tenantId,step.key,step.skillId,'queued',started,started);
-      const job=createJob({tenantId,userId,skillId:step.skillId,input:vehicle});
+      const job=createJob({tenantId,userId,skillId:step.skillId,input:vehicleData});
       db.prepare("UPDATE workflow_steps SET status='running',job_id=?,updated_at=? WHERE id=?").run(job.id,nowIso(),stepId);
       await runJob(job.id);
       const task=getJobForTenant(job.id,tenantId);
