@@ -1,10 +1,31 @@
 import { registerAuthRoutes, requireAuth } from './auth.mjs';
 import { db, nowIso, audit } from './db.mjs';
 import { createJob, getJobForTenant, getSkills, listJobsForTenant, runJob } from './engine/maestro.mjs';
+import { classifyIntent } from './engine/intent.mjs';
+import { getLocalModelStatus } from './engine/model-router.mjs';
+import { listAgents } from './agents/registry.mjs';
+import { createApproval, decideApproval, listApprovals } from './engine/policy.mjs';
 
 export function registerRoutes(app) {
   registerAuthRoutes(app);
   app.get('/api/skills', requireAuth, (_req,res) => res.json({ skills:getSkills() }));
+  app.get('/api/agents', requireAuth, (_req,res) => res.json({ agents:listAgents() }));
+  app.get('/api/assistant/status', requireAuth, (_req,res) => res.json({ orchestration:'deterministic-local', model:getLocalModelStatus(), paidFallback:false }));
+  app.post('/api/assistant/plan', requireAuth, (req,res) => {
+    const { request } = req.body || {};
+    if (typeof request !== 'string' || request.length > 2000) return res.status(400).json({ error:'invalid_request' });
+    const intent=classifyIntent(request);
+    return res.json({ intent, agents:listAgents().filter(agent => !intent.skillId || agent.skills.includes(intent.skillId)) });
+  });
+  app.get('/api/approvals', requireAuth, (req,res) => res.json({ approvals:listApprovals(req.user.tenantId) }));
+  app.post('/api/approvals', requireAuth, (req,res) => {
+    try { return res.status(201).json({ approval:createApproval({tenantId:req.user.tenantId,userId:req.user.id,actionType:req.body?.actionType,payload:req.body?.payload}) }); }
+    catch(error){ return res.status(400).json({ error:error.code || 'approval_rejected', message:error.message }); }
+  });
+  app.post('/api/approvals/:id/decision', requireAuth, (req,res) => {
+    try { const result=decideApproval({tenantId:req.user.tenantId,userId:req.user.id,role:req.user.role,approvalId:req.params.id,decision:req.body?.decision}); return result ? res.json({approval:result}) : res.status(404).json({error:'not_found'}); }
+    catch(error){ return res.status(error.code==='forbidden'?403:400).json({error:error.code || 'decision_failed',message:error.message}); }
+  });
   app.post('/api/tasks', requireAuth, (req,res) => {
     const { skillId, input } = req.body || {};
     if (typeof skillId !== 'string' || !input || typeof input !== 'object' || Array.isArray(input)) return res.status(400).json({ error:'invalid_task' });
@@ -23,6 +44,30 @@ export function registerRoutes(app) {
     const rows = db.prepare('SELECT id,make,model,trim,year,mileage,fuel,transmission,color,price,currency,city,status,notes,created_at,updated_at FROM vehicles WHERE tenant_id=? ORDER BY created_at DESC').all(req.user.tenantId);
     res.json({ vehicles:rows });
   });
+  app.put('/api/vehicles/:id', requireAuth, (req,res) => {
+    const current=db.prepare('SELECT * FROM vehicles WHERE id=? AND tenant_id=?').get(req.params.id,req.user.tenantId);
+    if(!current) return res.status(404).json({error:'not_found'});
+    const v=req.body||{};
+    const fields=['make','model','trim','year','mileage','fuel','transmission','color','price','city','notes'];
+    const next={};
+    for(const key of fields) if(v[key]!==undefined) next[key]=v[key];
+    if(next.year!==undefined && next.year!==null && (!Number.isInteger(next.year)||next.year<1950||next.year>new Date().getFullYear()+1)) return res.status(400).json({error:'invalid_year'});
+    if(next.price!==undefined && next.price!==null && (typeof next.price!=='number'||next.price<0)) return res.status(400).json({error:'invalid_price'});
+    if(next.mileage!==undefined && next.mileage!==null && (typeof next.mileage!=='number'||next.mileage<0)) return res.status(400).json({error:'invalid_mileage'});
+    const merged={...current,...next,updated_at:nowIso()};
+    db.prepare(`UPDATE vehicles SET make=@make,model=@model,trim=@trim,year=@year,mileage=@mileage,fuel=@fuel,transmission=@transmission,color=@color,price=@price,city=@city,notes=@notes,updated_at=@updated_at WHERE id=@id AND tenant_id=@tenant_id`)
+      .run({...merged,id:current.id,tenant_id:req.user.tenantId});
+    audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'vehicle.updated',resourceType:'vehicle',resourceId:current.id});
+    return res.json({vehicle:db.prepare('SELECT id,make,model,trim,year,mileage,fuel,transmission,color,price,currency,city,status,notes,created_at,updated_at FROM vehicles WHERE id=? AND tenant_id=?').get(current.id,req.user.tenantId)});
+  });
+  app.delete('/api/vehicles/:id', requireAuth, (req,res) => {
+    if(!['owner','admin'].includes(req.user.role)) return res.status(403).json({error:'forbidden'});
+    const result=db.prepare('DELETE FROM vehicles WHERE id=? AND tenant_id=?').run(req.params.id,req.user.tenantId);
+    if(!result.changes) return res.status(404).json({error:'not_found'});
+    audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'vehicle.deleted',resourceType:'vehicle',resourceId:req.params.id});
+    return res.status(204).end();
+  });
+
   app.post('/api/vehicles', requireAuth, (req,res) => {
     const v = req.body || {};
     const allowed = ['make','model','trim','year','mileage','fuel','transmission','color','price','city','notes'];
