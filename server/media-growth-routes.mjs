@@ -5,7 +5,7 @@ import { requireAuth } from './auth.mjs';
 import { storeImageDataUrl } from './storage.mjs';
 import { executeSkill } from './engine/registry.mjs';
 
-const FREE_DAILY_LIMITS = { image_jobs: 20, ad_drafts: 10, assistant_messages: 40 };
+const FREE_DAILY_LIMITS = { image_jobs: 3, ad_drafts: 10, assistant_messages: 40 };
 export function consumeDailyUsage(tenantId, userId, key) {
   const day = nowIso().slice(0, 10);
   const limit = FREE_DAILY_LIMITS[key] || 20;
