@@ -221,6 +221,33 @@ test('free daily ad draft quota is enforced and visible to the owner', async () 
   assert.equal(usage.usage.ad_drafts.remaining,0);
 });
 
+
+test('vehicle photo batch runs sequentially and keeps originals plus optimized derivatives', async () => {
+  const cookie=await register('batch@example.test','معرض المعالجة');
+  const created=await json('/api/vehicles',{method:'POST',headers:{cookie},body:JSON.stringify({make:'Nissan',model:'Patrol'})});
+  const vehicleId=(await created.json()).vehicle.id;
+  const png=await sharp({create:{width:96,height:72,channels:3,background:'#b4c0b4'}}).png().toBuffer();
+  const assetIds=[];
+  for(let i=0;i<2;i++){
+    const response=await json('/api/vehicles/'+vehicleId+'/assets',{method:'POST',headers:{cookie},body:JSON.stringify({imageBase64:'data:image/png;base64,'+png.toString('base64')})});
+    assetIds.push((await response.json()).asset.id);
+  }
+  const started=await json('/api/vehicles/'+vehicleId+'/photo-batch',{method:'POST',headers:{cookie},body:JSON.stringify({assetIds})});
+  assert.equal(started.status,202);
+  const {runId}=await started.json();
+  let state;
+  for(let i=0;i<100;i++){
+    await new Promise(resolve=>setTimeout(resolve,30));
+    state=await (await json('/api/photo-batches/'+runId,{headers:{cookie}})).json();
+    if(['succeeded','completed_with_errors'].includes(state.run.status))break;
+  }
+  assert.equal(state.run.status,'succeeded');
+  assert.equal(state.run.completed_items,2);
+  const gallery=(await (await json('/api/vehicles/'+vehicleId+'/assets',{headers:{cookie}})).json()).assets;
+  assert.equal(gallery.filter(a=>a.asset_role==='gallery').length,2);
+  assert.equal(gallery.filter(a=>a.asset_role==='derived').length,2);
+});
+
 test.after(async()=>{
   await new Promise(resolve=>server.close(resolve));
   db.close();
