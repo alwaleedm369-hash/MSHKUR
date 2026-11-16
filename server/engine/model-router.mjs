@@ -31,7 +31,8 @@ export async function generateWithLocalModel({messages,temperature=0.2,maxTokens
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),Number(process.env.LOCAL_LLM_TIMEOUT_MS||30000));
   try{
-    const response=await fetch(endpoint+'/v1/chat/completions',{
+    const chatUrl=endpoint.endsWith('/v1')?endpoint+'/chat/completions':endpoint+'/v1/chat/completions';
+    const response=await fetch(chatUrl,{
       method:'POST',
       headers:{'content-type':'application/json'},
       body:JSON.stringify({model:process.env.LOCAL_LLM_MODEL||'local-model',messages,temperature,max_tokens:maxTokens,stream:false}),
