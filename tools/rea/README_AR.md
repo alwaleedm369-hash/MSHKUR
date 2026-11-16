@@ -11,6 +11,14 @@ REA (Reverse Engineer Anything) أداة MCP للتحليل العكسي. ليس
 
 ## الإعداد الاختياري
 
+لإضافة تعليمات المهارة فقط إلى بيئة الوكيل:
+
+```bash
+npx skills add morluto/rea --skill reverse-engineer-anything
+```
+
+هذا يضيف التعليمات ولا يسجل MCP server. لربط أدوات REA عبر MCP:
+
 ```bash
 npx rea-agents setup
 ```
