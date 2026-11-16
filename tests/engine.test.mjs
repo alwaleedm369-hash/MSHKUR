@@ -177,6 +177,50 @@ test('logout revokes the session', async () => {
   assert.equal(me.status,401);
 });
 
+
+test('a vehicle can keep multiple tenant-scoped original photos in its library', async () => {
+  const cookie=await register('gallery@example.test','معرض الألبوم');
+  const created=await json('/api/vehicles',{method:'POST',headers:{cookie},body:JSON.stringify({make:'Toyota',model:'Land Cruiser'})});
+  const vehicleId=(await created.json()).vehicle.id;
+  const png=await sharp({create:{width:48,height:36,channels:3,background:'#aabbcc'}}).png().toBuffer();
+  for(let i=0;i<3;i++){
+    const uploaded=await json('/api/vehicles/'+vehicleId+'/assets',{method:'POST',headers:{cookie},body:JSON.stringify({imageBase64:'data:image/png;base64,'+png.toString('base64')})});
+    assert.equal(uploaded.status,201);
+  }
+  const gallery=await json('/api/vehicles/'+vehicleId+'/assets',{headers:{cookie}});
+  const assets=(await gallery.json()).assets;
+  assert.equal(assets.length,3);
+  assert.equal(assets[0].mime_type,'image/png');
+  const outsider=await register('gallery-outsider@example.test','معرض آخر');
+  const denied=await json('/api/vehicles/'+vehicleId+'/assets',{headers:{cookie:outsider}});
+  assert.equal(denied.status,404);
+});
+
+test('public website chat creates a stored conversation and returns a safe handoff reply', async () => {
+  const cookie=await register('webchat@example.test','معرض الدردشة');
+  const me=await (await json('/api/auth/me',{headers:{cookie}})).json();
+  const response=await json('/api/public/chat/'+me.user.tenantSlug,{method:'POST',body:JSON.stringify({message:'أين موقع المعرض؟'})});
+  assert.equal(response.status,200);
+  const result=await response.json();
+  assert.equal(result.channel,'web');
+  assert.equal(result.humanFollowUp,true);
+  assert.match(result.reply,/فريق المعرض/);
+  const inbox=await json('/api/inbox',{headers:{cookie}});
+  assert.equal((await inbox.json()).conversations.length,1);
+});
+
+test('free daily ad draft quota is enforced and visible to the owner', async () => {
+  const cookie=await register('quota@example.test','معرض الحدود');
+  for(let i=0;i<10;i++){
+    await json('/api/workflows/vehicle-ad-draft/run',{method:'POST',headers:{cookie},body:JSON.stringify({vehicleId:'00000000-0000-4000-8000-000000000000'})});
+  }
+  const blocked=await json('/api/workflows/vehicle-ad-draft/run',{method:'POST',headers:{cookie},body:JSON.stringify({vehicleId:'00000000-0000-4000-8000-000000000000'})});
+  assert.equal(blocked.status,429);
+  const usage=await (await json('/api/usage',{headers:{cookie}})).json();
+  assert.equal(usage.usage.ad_drafts.used,10);
+  assert.equal(usage.usage.ad_drafts.remaining,0);
+});
+
 test.after(async()=>{
   await new Promise(resolve=>server.close(resolve));
   db.close();
