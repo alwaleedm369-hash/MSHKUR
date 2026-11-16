@@ -3,7 +3,7 @@ import { registerAuthRoutes, requireAuth } from './auth.mjs';
 import { db, nowIso, audit } from './db.mjs';
 import { createJob, getJobForTenant, getSkills, listJobsForTenant, runJob } from './engine/maestro.mjs';
 import { classifyIntent } from './engine/intent.mjs';
-import { getLocalModelStatus } from './engine/model-router.mjs';
+import { generateWithLocalModel, getLocalModelStatus } from './engine/model-router.mjs';
 import { listAgents } from './agents/registry.mjs';
 import { createApproval, decideApproval, listApprovals } from './engine/policy.mjs';
 import { readImageFile, storeImageDataUrl } from './storage.mjs';
@@ -13,6 +13,17 @@ export function registerRoutes(app) {
   app.get('/api/skills', requireAuth, (_req,res) => res.json({ skills:getSkills() }));
   app.get('/api/agents', requireAuth, (_req,res) => res.json({ agents:listAgents() }));
   app.get('/api/assistant/status', requireAuth, (_req,res) => res.json({ orchestration:'deterministic-local', model:getLocalModelStatus(), paidFallback:false }));
+  app.post('/api/assistant/chat', requireAuth, async (req,res) => {
+    const { message } = req.body || {};
+    if(typeof message!=='string'||!message.trim()||message.length>6000) return res.status(400).json({error:'invalid_message'});
+    try {
+      const result=await generateWithLocalModel({messages:[{role:'system',content:'أنت مساعد مشكور. لا تخترع حقائق عن السيارات أو المستخدم. لا تنفذ إجراءات خارجية. أجب بالعربية بوضوح.'},{role:'user',content:message.trim()}]});
+      audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'assistant.local_model',resourceType:'conversation',details:{model:result.model}});
+      return res.json({reply:result.content,provider:result.provider,model:result.model});
+    } catch(error) {
+      return res.status(error.code==='local_model_not_configured'?503:502).json({error:error.code||'local_model_error',message:error.message});
+    }
+  });
   app.post('/api/assistant/plan', requireAuth, (req,res) => {
     const { request } = req.body || {};
     if (typeof request !== 'string' || request.length > 2000) return res.status(400).json({ error:'invalid_request' });
