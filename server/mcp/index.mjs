@@ -30,7 +30,7 @@ server.registerTool('mshkur_status',{
 
 server.registerTool('mshkur_list_skills',{
   description:'List installed MSHKUR skills and their execution runtimes. Read-only.',
-  inputSchema:{}
+  inputSchema:z.object({})
 },async()=>textResult({skills:getSkills()}));
 
 server.registerTool('mshkur_list_agents',{
