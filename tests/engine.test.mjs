@@ -199,14 +199,14 @@ test('a vehicle can keep multiple tenant-scoped original photos in its library',
 test('public website chat creates a stored conversation and returns a safe handoff reply', async () => {
   const cookie=await register('webchat@example.test','معرض الدردشة');
   const me=await (await json('/api/auth/me',{headers:{cookie}})).json();
-  const response=await json('/api/public/chat/'+me.user.tenantSlug,{method:'POST',body:JSON.stringify({message:'أين موقع المعرض؟'})});
+  const response=await json('/api/public/chat/'+me.user.tenantSlug,{method:'POST',body:JSON.stringify({message:'أين موقع المعرض؟',name:'عميل تجريبي',phone:'+966500000000'})});
   assert.equal(response.status,200);
   const result=await response.json();
   assert.equal(result.channel,'web');
   assert.equal(result.humanFollowUp,true);
   assert.match(result.reply,/فريق المعرض/);
   const inbox=await json('/api/inbox',{headers:{cookie}});
-  assert.equal((await inbox.json()).conversations.length,1);
+  const inboxData=await inbox.json();\n  assert.equal(inboxData.conversations.length,1);\n  assert.equal(inboxData.leads.length,1);
 });
 
 test('free daily ad draft quota is enforced and visible to the owner', async () => {
