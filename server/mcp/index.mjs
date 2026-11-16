@@ -25,7 +25,7 @@ const errorResult=message=>({isError:true,content:[{type:'text',text:message}]})
 
 server.registerTool('mshkur_status',{
   description:'Return local MSHKUR engine status. Read-only.',
-  inputSchema:{}
+  inputSchema:z.object({})
 },async()=>textResult({service:'MSHKUR OS',status:'local',tenantScoped:true,externalActionsEnabled:false}));
 
 server.registerTool('mshkur_list_skills',{
@@ -40,7 +40,7 @@ server.registerTool('mshkur_list_agents',{
 
 server.registerTool('mshkur_list_vehicles',{
   description:'List vehicles belonging only to the configured MSHKUR tenant. Read-only.',
-  inputSchema:{limit:z.number().int().min(1).max(100).default(50)}
+  inputSchema:z.object({limit:z.number().int().min(1).max(100).default(50)})
 },async({limit})=>{
   const vehicles=db.prepare('SELECT id,make,model,trim,year,mileage,fuel,transmission,color,price,currency,city,status,notes,created_at,updated_at FROM vehicles WHERE tenant_id=? ORDER BY created_at DESC LIMIT ?').all(tenantId,limit);
   return textResult({vehicles});
@@ -48,12 +48,12 @@ server.registerTool('mshkur_list_vehicles',{
 
 server.registerTool('mshkur_list_tasks',{
   description:'List recent tasks for the configured MSHKUR tenant. Read-only.',
-  inputSchema:{limit:z.number().int().min(1).max(100).default(30)}
+  inputSchema:z.object({limit:z.number().int().min(1).max(100).default(30)})
 },async({limit})=>textResult({tasks:listJobsForTenant(tenantId,limit)}));
 
 server.registerTool('mshkur_get_task',{
   description:'Get a task and its result by ID, scoped to the configured tenant.',
-  inputSchema:{taskId:z.string().uuid()}
+  inputSchema:z.object({taskId:z.string().uuid()})
 },async({taskId})=>{
   const task=getJobForTenant(taskId,tenantId);
   return task?textResult({task}):errorResult('Task not found in this tenant.');
@@ -61,7 +61,7 @@ server.registerTool('mshkur_get_task',{
 
 server.registerTool('mshkur_run_skill',{
   description:'Run an installed local server skill. Does not publish, send messages, purchase, or call external services.',
-  inputSchema:{skillId:z.string().min(2).max(100),input:z.record(z.string(),z.unknown())}
+  inputSchema:z.object({skillId:z.string().min(2).max(100),input:z.record(z.string(),z.unknown())})
 },async({skillId,input})=>{
   const skill=getSkills().find(item=>item.id===skillId);
   if(!skill)return errorResult('Unknown skill.');
@@ -84,10 +84,10 @@ server.registerTool('mshkur_list_approvals',{
 
 server.registerTool('mshkur_create_approval',{
   description:'Create a pending approval record for an external action. This does not execute that action.',
-  inputSchema:{
+  inputSchema:z.object({
     actionType:z.enum(['send_message','publish_listing','share_data','delete_resource','purchase','modify_external_record']),
     payload:z.record(z.string(),z.unknown())
-  }
+  })
 },async({actionType,payload})=>{
   try{return textResult({approval:createApproval({tenantId,userId,actionType,payload})});}
   catch(error){return errorResult(error.message||'Could not create approval.');}
