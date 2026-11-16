@@ -21,7 +21,7 @@ export function registerRoutes(app) {
     try{
       const workflow=await executeWorkflow({workflowId:req.params.workflowId,tenantId:req.user.tenantId,userId:req.user.id,input:{vehicleId}});
       return res.status(workflow.status==='succeeded'?200:422).json({workflow});
-    }catch(error){return res.status(error.code==='vehicle_not_found'?404:400).json({error:error.code||'workflow_failed',message:error.message});}
+    }catch(error){return res.status(error.code==='daily_limit_reached'?429:error.code==='vehicle_not_found'?404:400).json({error:error.code||'workflow_failed',message:error.message});}
   });
   app.get('/api/workflows/:id', requireAuth, (req,res) => {
     const workflow=getWorkflowForTenant(req.params.id,req.user.tenantId);
@@ -91,7 +91,7 @@ export function registerRoutes(app) {
       const job = createJob({ tenantId:req.user.tenantId, userId:req.user.id, skillId, input });
       runJob(job.id).catch(() => {});
       return res.status(202).json(job);
-    } catch (error) { return res.status(400).json({ error:error.code || 'task_rejected', message:error.message }); }
+    } catch (error) { return res.status(error.code==='daily_limit_reached'?429:400).json({ error:error.code || 'task_rejected', message:error.message }); }
   });
   app.get('/api/tasks', requireAuth, (req,res) => res.json({ tasks:listJobsForTenant(req.user.tenantId) }));
   app.get('/api/tasks/:id', requireAuth, (req,res) => {
