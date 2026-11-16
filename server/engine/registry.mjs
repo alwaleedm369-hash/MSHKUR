@@ -70,8 +70,8 @@ export const skillManifests = [
   { id:'image-optimize', name:'تحسين وضغط الصورة', category:'image', version:'1.0.0', description:'تصحيح الاتجاه وتحويل الصورة إلى WebP مع ضبط الحجم والجودة.', input:'image-file', output:'optimized-image', permissions:['image:process'], cost:'local' },
   { id:'license-plate-blur-region', name:'طمس منطقة اللوحة يدوياً', category:'image', version:'1.0.0', description:'تمويه منطقة مستطيلة يحددها المستخدم، دون ادعاء كشف تلقائي.', input:'image-file-region', output:'blurred-image', permissions:['image:process'], cost:'local' },
 ];
-export async function executeSkill(skillId, input) {
+export async function executeSkill(skillId, input, context) {
   const handler = handlers[skillId];
   if (!handler) throw Object.assign(new Error('Skill is not installed or not executable'), { code: 'skill_unavailable' });
-  return handler(input);
+  return handler(input, context);
 }
