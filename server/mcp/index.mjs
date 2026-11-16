@@ -26,11 +26,13 @@ const errorResult=message=>({isError:true,content:[{type:'text',text:message}]})
 
 server.registerTool('mshkur_status',{
   description:'Return local MSHKUR engine status. Read-only.',
+  annotations:{readOnlyHint:true,openWorldHint:false},
   inputSchema:z.object({})
 },async()=>textResult({service:'MSHKUR OS',status:'local',tenantScoped:true,externalActionsEnabled:false}));
 
 server.registerTool('mshkur_list_skills',{
   description:'List installed MSHKUR skills and their execution runtimes. Read-only.',
+  annotations:{readOnlyHint:true,openWorldHint:false},
   inputSchema:z.object({})
 },async()=>textResult({skills:getSkills()}));
 
@@ -41,6 +43,7 @@ server.registerTool('mshkur_list_agents',{
 
 server.registerTool('mshkur_list_vehicles',{
   description:'List vehicles belonging only to the configured MSHKUR tenant. Read-only.',
+  annotations:{readOnlyHint:true,openWorldHint:false},
   inputSchema:z.object({limit:z.number().int().min(1).max(100).default(50)})
 },async({limit})=>{
   const vehicles=db.prepare('SELECT id,make,model,trim,year,mileage,fuel,transmission,color,price,currency,city,status,notes,created_at,updated_at FROM vehicles WHERE tenant_id=? ORDER BY created_at DESC LIMIT ?').all(tenantId,limit);
@@ -49,11 +52,13 @@ server.registerTool('mshkur_list_vehicles',{
 
 server.registerTool('mshkur_list_tasks',{
   description:'List recent tasks for the configured MSHKUR tenant. Read-only.',
+  annotations:{readOnlyHint:true,openWorldHint:false},
   inputSchema:z.object({limit:z.number().int().min(1).max(100).default(30)})
 },async({limit})=>textResult({tasks:listJobsForTenant(tenantId,limit)}));
 
 server.registerTool('mshkur_get_task',{
   description:'Get a task and its result by ID, scoped to the configured tenant.',
+  annotations:{readOnlyHint:true,openWorldHint:false},
   inputSchema:z.object({taskId:z.string().uuid()})
 },async({taskId})=>{
   const task=getJobForTenant(taskId,tenantId);
@@ -62,10 +67,12 @@ server.registerTool('mshkur_get_task',{
 
 server.registerTool('mshkur_run_skill',{
   description:'Run an installed local server skill. Does not publish, send messages, purchase, or call external services.',
+  annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false},
   inputSchema:z.object({skillId:z.string().min(2).max(100),input:z.record(z.string(),z.unknown())})
 },async({skillId,input})=>{
   const skill=getSkills().find(item=>item.id===skillId);
   if(!skill)return errorResult('Unknown skill.');
+  if(JSON.stringify(input).length>32000)return errorResult('Skill input is too large.');
   if(skill.runtime==='browser')return errorResult('This skill runs in the browser and cannot be executed by the local server MCP tool.');
   if(['image-optimize','license-plate-blur-region'].includes(skillId)){
     if(typeof input.imageFileId!=='string')return errorResult('Provide an imageFileId already uploaded to this tenant.');
@@ -85,6 +92,7 @@ server.registerTool('mshkur_list_approvals',{
 
 server.registerTool('mshkur_create_approval',{
   description:'Create a pending approval record for an external action. This does not execute that action.',
+  annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false},
   inputSchema:z.object({
     actionType:z.enum(['send_message','publish_listing','share_data','delete_resource','purchase','modify_external_record']),
     payload:z.record(z.string(),z.unknown())
