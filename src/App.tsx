@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { askLocalModel } from './localModel';
 import {
@@ -49,6 +49,9 @@ export default function App(){
   const [imageFile,setImageFile]=useState<File|null>(null);
   const [optimizedImage,setOptimizedImage]=useState('');
   const [removedImage,setRemovedImage]=useState('');
+  const [blurredImage,setBlurredImage]=useState('');
+  const [blurBusy,setBlurBusy]=useState(false);
+  const [selectedRegion,setSelectedRegion]=useState({left:0.3,top:0.55,width:0.4,height:0.18});
   const [imageBusy,setImageBusy]=useState(false);
   const [bgBusy,setBgBusy]=useState(false);
   const [bgProgress,setBgProgress]=useState({progress:0,message:''});
@@ -97,7 +100,7 @@ export default function App(){
     if(!file)return;
     if(!file.type.startsWith('image/')){setError('اختر ملف صورة صالحاً.');return;}
     if(file.size>12*1024*1024){setError('حجم الصورة يجب ألا يتجاوز 12 ميجابايت.');return;}
-    const reader=new FileReader();reader.onload=()=>{setImageFile(file);setImageData(String(reader.result));setOptimizedImage('');if(removedImage)URL.revokeObjectURL(removedImage);setRemovedImage('');setBgProgress({progress:0,message:''});setError('');};reader.readAsDataURL(file);
+    const reader=new FileReader();reader.onload=()=>{setImageFile(file);setImageData(String(reader.result));setOptimizedImage('');setBlurredImage('');if(removedImage)URL.revokeObjectURL(removedImage);setRemovedImage('');setSelectedRegion({left:0.3,top:0.55,width:0.4,height:0.18});setBgProgress({progress:0,message:''});setError('');};reader.readAsDataURL(file);
   }
   async function optimizeImage(){
     if(!imageData)return;setImageBusy(true);setError('');setMessage('');
@@ -114,6 +117,17 @@ export default function App(){
     try{const result=await askLocalModel(assistantRequest);setAssistantReply(result.reply+'\n\n— '+result.model);}
     catch(e){const message=e instanceof Error?e.message:'تعذر الوصول إلى النموذج المحلي';setAssistantReply(message.includes('لم يتم إعداد نموذج محلي')?'لم يتم إعداد نموذج محلي بعد. لا يتصل مشكور بأي نموذج مدفوع كبديل.':'تعذر الوصول إلى النموذج المحلي. تحقق من إعداد النموذج المحلي.');}
     finally{setAssistantModelBusy(false);}
+  }
+  async function blurSelectedRegion(){
+    if(!imageData)return;
+    setBlurBusy(true);setError('');setMessage('');
+    try{
+      const task=await runTask('license-plate-blur-region',{imageBase64:imageData,...selectedRegion});
+      if(task.status!=='succeeded')throw new Error(task.error_message||'فشل طمس المنطقة');
+      setBlurredImage('/api/files/'+task.output.imageFileId);
+      setMessage('تم طمس المنطقة التي حددتها. راجع النتيجة قبل استخدامها.');
+    }catch(e){setError(e instanceof Error?e.message:'تعذر طمس المنطقة');}
+    finally{setBlurBusy(false);}
   }
   async function planAssistant(e:FormEvent){
     e.preventDefault();setAssistantPlan(null);setError('');setBusy(true);
@@ -172,12 +186,48 @@ export default function App(){
           {adDraft&&<div className="draft-panel"><div className="draft-head"><div><span className="draft-tag">مسودة إعلان</span><b>تم تجهيز النص من بيانات السيارة</b></div><button onClick={()=>navigator.clipboard?.writeText(adDraft)}><ArrowDownToLine size={15}/> نسخ النص</button></div><pre>{adDraft}</pre><small>هذه مسودة فقط. راجع البيانات قبل نشرها على أي منصة.</small></div>}
           {vehicles.length===0?<div className="empty-inventory"><div className="empty-car"><CarFront size={27}/></div><b>مخزونك فارغ حالياً</b><span>أضف أول سيارة حتى تبدأ تجهيز إعلاناتها.</span><button className="button-outline" onClick={()=>setShowVehicleForm(true)}><Plus size={16}/> إضافة سيارة</button></div>:<div className="vehicle-grid">{vehicles.map(v=><VehicleCard key={v.id} vehicle={v} onAd={()=>generateAd(v)} busy={busy&&selectedVehicle===v.id}/>)}</div>}
         </>}
-        {screen==='studio'&&<><section className="page-intro"><div><div className="overline"><span/> معالجة محلية</div><h1>استوديو الصور</h1><p>جهّز صور السيارة دون إرسالها إلى خدمة ذكاء اصطناعي مدفوعة.</p></div></section><div className="studio-panel"><div className="studio-header"><div className="tile-icon tile-lilac"><ImagePlus size={22}/></div><div><b>أدوات تجهيز الصورة</b><small>اختر الصورة ثم نفّذ المهمة التي تحتاجها.</small></div><span className="local-chip"><i/> محلي</span></div><label className="upload-zone">{imageData?<img src={imageData} alt="الصورة الأصلية"/>:<><div className="upload-symbol"><Upload size={24}/></div><b>اختر صورة السيارة</b><span>PNG أو JPG أو WebP · حتى 12 ميجابايت</span></>}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>chooseImage(e.target.files?.[0])} hidden/></label><div className="tool-options"><div className="tool-option"><div><b>إزالة الخلفية</b><small>BiRefNet · يعمل على جهازك · تنزيل أول مرة نحو 98 ميجابايت</small></div><button className="button-primary" disabled={!imageFile||bgBusy} onClick={removeBackgroundLocal}>{bgBusy?<LoaderCircle className="spin" size={16}/>:<WandSparkles size={16}/>} إزالة الخلفية</button></div><div className="tool-option"><div><b>تحسين وضغط الصورة</b><small>تصحيح الاتجاه وتحويل WebP على خادمك الخاص.</small></div><button className="button-outline" disabled={!imageData||imageBusy} onClick={optimizeImage}>{imageBusy?<LoaderCircle className="spin" size={16}/>:<ImagePlus size={16}/>} تحسين الصورة</button></div></div>{bgBusy&&<div className="model-progress"><div><span>{bgProgress.message||'جارٍ تجهيز النموذج...'}</span><b>{Math.round(bgProgress.progress*100)}%</b></div><div className="progress-track"><i style={{width:Math.round(bgProgress.progress*100)+'%'}}/></div></div>}{(optimizedImage||removedImage)&&<div className={`image-result ${removedImage?'image-result-three':''}`}><div><span>الأصل</span><img src={imageData} alt="الأصل"/></div>{removedImage&&<div><span>خلفية شفافة</span><img className="transparent-preview" src={removedImage} alt="السيارة بعد إزالة الخلفية"/></div>}{optimizedImage&&<div><span>WebP محسن</span><img src={optimizedImage} alt="الصورة المحسنة"/></div>}</div>}<div className="studio-actions">{removedImage&&<a className="button-outline" href={removedImage} download="mshkur-background-removed.png"><ArrowDownToLine size={16}/> تنزيل PNG شفاف</a>}{optimizedImage&&<a className="button-outline" href={optimizedImage} download="mshkur-optimized.webp"><ArrowDownToLine size={16}/> تنزيل WebP</a>}</div><p className="studio-foot"><ShieldCheck size={15}/> إزالة الخلفية تتم داخل المتصفح. تحسين WebP يتم على خادم مشكور. الأصل لا يُستبدل في الحالتين.</p></div></>}
+        {screen==='studio'&&<><section className="page-intro"><div><div className="overline"><span/> معالجة محلية</div><h1>استوديو الصور</h1><p>جهّز صور السيارة دون إرسالها إلى خدمة ذكاء اصطناعي مدفوعة.</p></div></section><div className="studio-panel"><div className="studio-header"><div className="tile-icon tile-lilac"><ImagePlus size={22}/></div><div><b>أدوات تجهيز الصورة</b><small>اختر الصورة ثم نفّذ المهمة التي تحتاجها.</small></div><span className="local-chip"><i/> محلي</span></div><label className="upload-zone">{imageData?<img src={imageData} alt="الصورة الأصلية"/>:<><div className="upload-symbol"><Upload size={24}/></div><b>اختر صورة السيارة</b><span>PNG أو JPG أو WebP · حتى 12 ميجابايت</span></>}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>chooseImage(e.target.files?.[0])} hidden/></label>{imageData&&<div className="region-selector-wrap"><div><b>حدد منطقة الطمس</b><small>اسحب فوق اللوحة أو أي منطقة تريد إخفاءها.</small></div><ImageRegionSelector src={imageData} onSelect={setSelectedRegion}/></div>}<div className="tool-options"><div className="tool-option"><div><b>إزالة الخلفية</b><small>BiRefNet · يعمل على جهازك · تنزيل أول مرة نحو 98 ميجابايت</small></div><button className="button-primary" disabled={!imageFile||bgBusy} onClick={removeBackgroundLocal}>{bgBusy?<LoaderCircle className="spin" size={16}/>:<WandSparkles size={16}/>} إزالة الخلفية</button></div><div className="tool-option"><div><b>تحسين وضغط الصورة</b><small>تصحيح الاتجاه وتحويل WebP على خادمك الخاص.</small></div><button className="button-outline" disabled={!imageData||imageBusy} onClick={optimizeImage}>{imageBusy?<LoaderCircle className="spin" size={16}/>:<ImagePlus size={16}/>} تحسين الصورة</button></div><div className="tool-option"><div><b>طمس اللوحة أو منطقة محددة</b><small>حدد المستطيل يدوياً فوق الصورة؛ لا يوجد كشف تلقائي حتى الآن.</small></div><button className="button-outline" disabled={!imageData||blurBusy} onClick={blurSelectedRegion}>{blurBusy?<LoaderCircle className="spin" size={16}/>:<ShieldCheck size={16}/>} طمس المنطقة</button></div></div>{bgBusy&&<div className="model-progress"><div><span>{bgProgress.message||'جارٍ تجهيز النموذج...'}</span><b>{Math.round(bgProgress.progress*100)}%</b></div><div className="progress-track"><i style={{width:Math.round(bgProgress.progress*100)+'%'}}/></div></div>}{(optimizedImage||removedImage||blurredImage)&&<div className={`image-result ${removedImage||blurredImage?'image-result-three':''}`}><div><span>الأصل</span><img src={imageData} alt="الأصل"/></div>{removedImage&&<div><span>خلفية شفافة</span><img className="transparent-preview" src={removedImage} alt="السيارة بعد إزالة الخلفية"/></div>}{optimizedImage&&<div><span>WebP محسن</span><img src={optimizedImage} alt="الصورة المحسنة"/></div>}{blurredImage&&<div><span>بعد الطمس</span><img src={blurredImage} alt="الصورة بعد طمس المنطقة"/></div>}</div>}<div className="studio-actions">{removedImage&&<a className="button-outline" href={removedImage} download="mshkur-background-removed.png"><ArrowDownToLine size={16}/> تنزيل PNG شفاف</a>}{optimizedImage&&<a className="button-outline" href={optimizedImage} download="mshkur-optimized.webp"><ArrowDownToLine size={16}/> تنزيل WebP</a>}{blurredImage&&<a className="button-outline" href={blurredImage} download="mshkur-blurred.png"><ArrowDownToLine size={16}/> تنزيل الصورة المطموسة</a>}</div><p className="studio-foot"><ShieldCheck size={15}/> إزالة الخلفية تتم داخل المتصفح. تحسين WebP يتم على خادم مشكور. الأصل لا يُستبدل في الحالتين.</p></div></>}
         {screen==='assistant'&&<><section className="page-intro"><div><div className="overline"><span/> مدير المهام</div><h1>مساعد مشكور</h1><p>اكتب ما تريد إنجازه. سيقترح المحرك مهارة محلية مناسبة إن توفرت.</p></div></section><div className="assistant-panel"><div className="assistant-avatar"><Sparkles size={22}/></div><div className="assistant-greeting"><b>كيف أساعدك اليوم؟</b><p>أفهم طلبك وأبحث عن مهارة متاحة. لن أنفذ إجراءً خارجياً دون موافقتك.</p></div><form onSubmit={planAssistant}><textarea value={assistantRequest} onChange={e=>setAssistantRequest(e.target.value)} placeholder="مثلاً: جهّز إعلاناً لسيارة تويوتا كامري 2022..." rows={4}/><div className="assistant-buttons"><button className="button-primary" disabled={busy||!assistantRequest.trim()}>{busy?<LoaderCircle className="spin" size={16}/>:<Sparkles size={16}/>} حلّل الطلب</button><button type="button" className="button-outline" disabled={assistantModelBusy||!assistantRequest.trim()} onClick={chatWithLocalModel}>{assistantModelBusy?<LoaderCircle className="spin" size={16}/>:<Zap size={16}/>} اسأل النموذج المحلي</button></div></form>{assistantReply&&<div className="assistant-reply"><b>رد النموذج المحلي</b><p>{assistantReply}</p></div>}{assistantPlan&&<div className="plan-result">{assistantPlan.intent.matched?<><span className="plan-match"><Check size={15}/> وجدت مهارة مناسبة</span><b>{assistantPlan.intent.skillId}</b><p>المحرك يوصي بهذه المهارة. انتقل إلى القسم المناسب وأدخل بياناتها قبل التنفيذ.</p><button className="button-outline" onClick={()=>setScreen(assistantPlan.intent.skillId.includes('image')||assistantPlan.intent.skillId.includes('blur')?'studio':'cars')}>فتح الأداة <ArrowUpLeft size={15}/></button></>:<><b>لم أجد مهارة مطابقة بعد</b><p>{assistantPlan.intent.message}</p></>}</div>}</div><div className="assistant-note"><Zap size={16}/><span>المحرك يعمل حالياً بمهارات محلية محددة. النموذج المفتوح المصدر اختياري ولا يوجد fallback مدفوع.</span></div><div className="agent-roster"><div className="section-head"><div><h2>فريق التنفيذ</h2><p>تخصصات تعمل عند الحاجة إلى المهمة.</p></div><span className="tiny-note">{agents.length} مساعدين</span></div><div className="agent-grid">{agents.map(agent=><div className="agent-card" key={agent.id}><div className="agent-mark">{agent.id==='maestro'?<Sparkles size={19}/>:agent.id==='vehicle-specialist'?<CarFront size={19}/>:agent.id==='photo-specialist'?<ImagePlus size={19}/>:<ShieldCheck size={19}/>}</div><div><b>{agent.name}</b><small>{agent.title}</small><p>{agent.description}</p></div><span>{agent.skills.length} مهارات</span></div>)}</div></div></>}
         <footer className="page-footer">مشكور <span>مساحة عمل بسيطة، ونتائج حقيقية.</span><span className="version-label">BUILD 0.2</span></footer>
       </div>
     </main>
   </div>;
+}
+
+
+function ImageRegionSelector({src,onSelect}:{src:string;onSelect:(region:{left:number;top:number;width:number;height:number})=>void}){
+  const canvasRef=useRef<HTMLCanvasElement|null>(null);
+  const startRef=useRef<{x:number;y:number}|null>(null);
+  const [region,setRegion]=useState({left:0.3,top:0.55,width:0.4,height:0.18});
+  useEffect(()=>{
+    const image=new Image();
+    image.onload=()=>{
+      const canvas=canvasRef.current;if(!canvas)return;
+      canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+      const ctx=canvas.getContext('2d');if(!ctx)return;
+      ctx.drawImage(image,0,0);
+      const x=region.left*canvas.width,y=region.top*canvas.height,w=region.width*canvas.width,h=region.height*canvas.height;
+      ctx.fillStyle='rgba(220,70,70,.28)';ctx.fillRect(x,y,w,h);
+      ctx.strokeStyle='#e65f58';ctx.lineWidth=Math.max(2,canvas.width/500);ctx.strokeRect(x,y,w,h);
+    };
+    image.src=src;
+  },[src,region]);
+  function point(event:React.PointerEvent<HTMLCanvasElement>){
+    const rect=event.currentTarget.getBoundingClientRect();
+    return {x:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))};
+  }
+  function move(event:React.PointerEvent<HTMLCanvasElement>){
+    if(!startRef.current)return;
+    const p=point(event),s=startRef.current;
+    setRegion({left:Math.min(s.x,p.x),top:Math.min(s.y,p.y),width:Math.max(.01,Math.abs(p.x-s.x)),height:Math.max(.01,Math.abs(p.y-s.y))});
+  }
+  function end(event:React.PointerEvent<HTMLCanvasElement>){
+    if(!startRef.current)return;
+    const p=point(event),s=startRef.current;
+    const next={left:Math.min(s.x,p.x),top:Math.min(s.y,p.y),width:Math.max(.01,Math.abs(p.x-s.x)),height:Math.max(.01,Math.abs(p.y-s.y))};
+    startRef.current=null;setRegion(next);onSelect(next);
+  }
+  return <canvas ref={canvasRef} className="region-canvas" onPointerDown={event=>{startRef.current=point(event);event.currentTarget.setPointerCapture(event.pointerId);}} onPointerMove={move} onPointerUp={end} onPointerCancel={()=>{startRef.current=null;}} aria-label="اسحب لتحديد المنطقة المراد طمسها"/>;
 }
 
 function VehicleCard({vehicle,onAd,busy}:{vehicle:Vehicle;onAd:()=>void;busy:boolean}){
