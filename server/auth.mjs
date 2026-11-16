@@ -72,7 +72,7 @@ export function registerAuthRoutes(app) {
     if (typeof email !== 'string' || typeof password !== 'string' || email.length > 254 || password.length > 200) {
       return res.status(400).json({ error: 'invalid_credentials' });
     }
-    const row = db.prepare(`SELECT u.*, t.name AS tenant_name FROM users u JOIN tenants t ON t.id=u.tenant_id WHERE u.email=? COLLATE NOCASE`).get(email.trim());
+    const row = db.prepare(`SELECT u.*, t.name AS tenant_name,t.slug AS tenant_slug,t.tenant_type AS tenant_type FROM users u JOIN tenants t ON t.id=u.tenant_id WHERE u.email=? COLLATE NOCASE`).get(email.trim());
     if (!row || !verifyPassword(password, row.password_hash)) return res.status(401).json({ error: 'invalid_credentials', message: 'البريد أو كلمة المرور غير صحيحة.' });
     issueSession(row.id, res);
     audit({ tenantId: row.tenant_id, actorUserId: row.id, eventType: 'auth.login', resourceType: 'user', resourceId: row.id });
