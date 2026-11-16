@@ -35,6 +35,7 @@ export function registerRoutes(app) {
     const { message } = req.body || {};
     if(typeof message!=='string'||!message.trim()||message.length>6000) return res.status(400).json({error:'invalid_message'});
     try {
+      consumeDailyUsage(req.user.tenantId,req.user.id,'assistant_messages');
       const result=await generateWithLocalModel({messages:[{role:'system',content:'أنت مساعد مشكور. لا تخترع حقائق عن السيارات أو المستخدم. لا تنفذ إجراءات خارجية. أجب بالعربية بوضوح.'},{role:'user',content:message.trim()}]});
       audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'assistant.local_model',resourceType:'conversation',details:{model:result.model}});
       return res.json({reply:result.content,provider:result.provider,model:result.model});
