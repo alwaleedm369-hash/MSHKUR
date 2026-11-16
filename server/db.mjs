@@ -11,7 +11,7 @@ db.pragma('foreign_keys = ON');
 db.pragma('busy_timeout = 5000');
 db.exec(`
 CREATE TABLE IF NOT EXISTS tenants (
-  id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE,
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, tenant_type TEXT NOT NULL DEFAULT 'dealer',
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS users (
@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS daily_usage (
   UNIQUE(tenant_id,user_id,usage_date,action_key)
 );
 `);
+try { db.exec("ALTER TABLE tenants ADD COLUMN tenant_type TEXT NOT NULL DEFAULT 'dealer'"); } catch (error) { if (!String(error.message).includes('duplicate column')) throw error; }
 export function nowIso() { return new Date().toISOString(); }
 export function audit({ tenantId, actorUserId = null, eventType, resourceType = null, resourceId = null, details = {} }) {
   db.prepare(`INSERT INTO audit_events(id,tenant_id,actor_user_id,event_type,resource_type,resource_id,details_json,created_at)
