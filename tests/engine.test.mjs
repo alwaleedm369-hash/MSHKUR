@@ -20,6 +20,15 @@ const register = async (email, tenantName) => {
   assert.equal(response.status,201);
   return response.headers.get('set-cookie').split(';')[0];
 };
+const pollTask = async (id,cookie) => {
+  let task;
+  for(let i=0;i<40;i++){
+    await new Promise(resolve=>setTimeout(resolve,25));
+    task=(await (await json('/api/tasks/'+id,{headers:{cookie}})).json()).task;
+    if(task.status==='succeeded'||task.status==='failed') return task;
+  }
+  return task;
+};
 
 test('protected endpoints reject anonymous requests', async () => {
   const response = await json('/api/skills');
@@ -49,36 +58,47 @@ test('vehicle ad skill creates a draft only from supplied facts', async () => {
   const response = await json('/api/tasks',{method:'POST',headers:{cookie},body:JSON.stringify({skillId:'vehicle-ad-copy',input:{make:'Toyota',model:'Camry',year:2022,city:'جدة'}})});
   assert.equal(response.status,202);
   const { id } = await response.json();
-  let task;
-  for(let i=0;i<20;i++){
-    await new Promise(resolve=>setTimeout(resolve,20));
-    const current=await json('/api/tasks/'+id,{headers:{cookie}});
-    task=(await current.json()).task;
-    if(task.status==='succeeded'||task.status==='failed') break;
-  }
+  const task=await pollTask(id,cookie);
   assert.equal(task.status,'succeeded');
   assert.match(task.output.description,/Toyota Camry/);
   assert.equal(task.output.generatedBy,'deterministic-template');
 });
 
-test('image optimizer produces a real WebP derivative', async () => {
+test('image optimizer stores a real WebP derivative outside SQLite', async () => {
   const cookie = await register('image@example.test','معرض الصور');
   const png = await sharp({create:{width:80,height:60,channels:3,background:'#d0d0d0'}}).png().toBuffer();
   const response = await json('/api/tasks',{method:'POST',headers:{cookie},body:JSON.stringify({skillId:'image-optimize',input:{imageBase64:'data:image/png;base64,'+png.toString('base64'),maxWidth:64,quality:75}})});
   assert.equal(response.status,202);
   const {id}=await response.json();
-  let task;
-  for(let i=0;i<30;i++){
-    await new Promise(resolve=>setTimeout(resolve,30));
-    task=(await (await json('/api/tasks/'+id,{headers:{cookie}})).json()).task;
-    if(task.status==='succeeded'||task.status==='failed') break;
-  }
+  const task=await pollTask(id,cookie);
   assert.equal(task.status,'succeeded');
-  assert.match(task.output.imageBase64,/^data:image\/webp;base64,/);
+  assert.match(task.output.imageFileId,/^[0-9a-f-]{36}$/i);
   assert.equal(task.output.format,'webp');
+  const file=await fetch(base+'/api/files/'+task.output.imageFileId,{headers:{cookie}});
+  assert.equal(file.status,200);
+  assert.equal(file.headers.get('content-type'),'image/webp');
 });
 
-test('assistant intent planner routes Arabic tasks to an installed local skill', async () => {\n  const cookie=await register('planner@example.test','معرض المساعد');\n  const response=await json('/api/assistant/plan',{method:'POST',headers:{cookie},body:JSON.stringify({request:'جهز إعلان لسيارة كامري'})});\n  const body=await response.json();\n  assert.equal(body.intent.matched,true);\n  assert.equal(body.intent.skillId,'vehicle-ad-copy');\n});\n\ntest('external action approvals are stored pending and never executed automatically', async () => {\n  const cookie=await register('approval@example.test','معرض الموافقات');\n  const response=await json('/api/approvals',{method:'POST',headers:{cookie},body:JSON.stringify({actionType:'publish_listing',payload:{platform:'example',listingId:'draft-1'}})});\n  assert.equal(response.status,201);\n  const {approval}=await response.json();\n  assert.equal(approval.status,'pending');\n  const decision=await json('/api/approvals/'+approval.id+'/decision',{method:'POST',headers:{cookie},body:JSON.stringify({decision:'approved'})});\n  assert.equal(decision.status,200);\n  assert.equal((await decision.json()).approval.execution,'not_connected');\n});\n\ntest('logout revokes the session', async () => {
+test('assistant intent planner routes Arabic tasks to an installed local skill', async () => {
+  const cookie=await register('planner@example.test','معرض المساعد');
+  const response=await json('/api/assistant/plan',{method:'POST',headers:{cookie},body:JSON.stringify({request:'جهز إعلان لسيارة كامري'})});
+  const body=await response.json();
+  assert.equal(body.intent.matched,true);
+  assert.equal(body.intent.skillId,'vehicle-ad-copy');
+});
+
+test('external action approvals are stored pending and never executed automatically', async () => {
+  const cookie=await register('approval@example.test','معرض الموافقات');
+  const response=await json('/api/approvals',{method:'POST',headers:{cookie},body:JSON.stringify({actionType:'publish_listing',payload:{platform:'example',listingId:'draft-1'}})});
+  assert.equal(response.status,201);
+  const {approval}=await response.json();
+  assert.equal(approval.status,'pending');
+  const decision=await json('/api/approvals/'+approval.id+'/decision',{method:'POST',headers:{cookie},body:JSON.stringify({decision:'approved'})});
+  assert.equal(decision.status,200);
+  assert.equal((await decision.json()).approval.execution,'not_connected');
+});
+
+test('logout revokes the session', async () => {
   const cookie=await register('logout@example.test','معرض الخروج');
   const out=await json('/api/auth/logout',{method:'POST',headers:{cookie}});
   assert.equal(out.status,200);
