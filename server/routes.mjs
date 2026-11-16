@@ -58,6 +58,9 @@ export function registerRoutes(app) {
     const { skillId, input:rawInput } = req.body || {};
     if (typeof skillId !== 'string' || !rawInput || typeof rawInput !== 'object' || Array.isArray(rawInput)) return res.status(400).json({ error:'invalid_task' });
     try {
+      const manifest=getSkills().find(skill=>skill.id===skillId);
+      if(!manifest) return res.status(404).json({error:'skill_not_found'});
+      if(manifest.runtime==='browser') return res.status(400).json({error:'skill_requires_browser_runtime'});
       const input={...rawInput};
       if(['image-optimize','license-plate-blur-region'].includes(skillId)) {
         if(input.imageBase64) {
