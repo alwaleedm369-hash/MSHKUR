@@ -34,6 +34,13 @@ CREATE TABLE IF NOT EXISTS vehicles (
   notes TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_vehicles_tenant ON vehicles(tenant_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS files (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
+  user_id TEXT NOT NULL REFERENCES users(id), storage_key TEXT NOT NULL UNIQUE,
+  mime_type TEXT NOT NULL, size_bytes INTEGER NOT NULL, sha256 TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_files_tenant ON files(tenant_id, created_at DESC);
 CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
   user_id TEXT NOT NULL REFERENCES users(id), skill_id TEXT NOT NULL,
