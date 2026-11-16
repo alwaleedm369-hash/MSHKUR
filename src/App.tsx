@@ -62,7 +62,8 @@ export default function App(){
   const [assistantReply,setAssistantReply]=useState('');
   const [assistantModelBusy,setAssistantModelBusy]=useState(false);
   const [busy,setBusy]=useState(false);
-  const [menuOpen,setMenuOpen]=useState(false);\n  const [assetVehicleId,setAssetVehicleId]=useState('');\n  const [vehicleAssets,setVehicleAssets]=useState<any[]>([]);\n  const [assetUploadBusy,setAssetUploadBusy]=useState(false);
+  const [menuOpen,setMenuOpen]=useState(false);
+  const [assetVehicleId,setAssetVehicleId]=useState('');\n  const [vehicleAssets,setVehicleAssets]=useState<any[]>([]);\n  const [assetUploadBusy,setAssetUploadBusy]=useState(false);
 
   const loadVehicles=useCallback(async()=>{const data=await api<{vehicles:Vehicle[]}>('/api/vehicles');setVehicles(data.vehicles);},[]);\n  const loadVehicleAssets=useCallback(async(vehicleId:string)=>{if(!vehicleId){setVehicleAssets([]);return;}const data=await api<{assets:any[]}>('/api/vehicles/'+vehicleId+'/assets');setVehicleAssets(data.assets);},[]);\n  useEffect(()=>{if(vehicles.length&&!assetVehicleId)setAssetVehicleId(vehicles[0].id);},[vehicles,assetVehicleId]);\n  useEffect(()=>{if(assetVehicleId)loadVehicleAssets(assetVehicleId).catch(e=>setError(e.message));},[assetVehicleId,loadVehicleAssets]);
   useEffect(()=>{
