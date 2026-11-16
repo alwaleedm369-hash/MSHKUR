@@ -44,7 +44,8 @@
 - [x] ملفات موظفين متخصصين.
 - [ ] استخدام REA (Reverse Engineer Anything) كأداة MCP تطويرية للمشاريع المصرح بها، وليس كخدمة runtime.
 - [ ] Skill templates وdynamic registry مع إصدار وترخيص.
-- [ ] Workflow DAG، retries، idempotency، وجدولة.
+- [x] سير عمل متسلسل لمسودة إعلان السيارة (validation ثم draft) مع حفظ الخطوات والنتائج.
+- [ ] Workflow DAG عام، retries، idempotency، وجدولة.
 - [ ] Agent Factory لإنشاء مسودة موظف/مهارة ثم اختبار واعتماد.
 - [ ] Observability وتكلفة/زمن كل مهارة.
 - [ ] Queue/Workers منفصلة وقابلة للتوسع.
