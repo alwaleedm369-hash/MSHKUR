@@ -56,7 +56,8 @@
 - [ ] Benchmark لنماذج عربية Q4/Q5 على CPU/RAM المتاحة.
 - [ ] Google OAuth عند إعداد Client ID.
 - [ ] خرائط داخلية Leaflet/OSM أو Google Maps حسب التكلفة.
-- [ ] MCP registry مع allowlist ومراجعة أدوات.
+- [x] MCP stdio server محلي بأدوات محدودة وtenant-scoped.
+- [ ] MCP Streamable HTTP gateway للموصلات البعيدة بعد OAuth وauthorization ومراجعة الأمن.
 - [ ] Playwright ثم Stagehand عند الحاجة وبنطاقات مصرح بها.
 - [ ] WhatsApp Cloud API عند توافر بيانات الأعمال والموافقة.
 - [ ] قناة WhatsApp Web: لا أتمتة غير رسمية ولا تجاوز حماية.
