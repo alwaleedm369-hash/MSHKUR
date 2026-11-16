@@ -111,6 +111,20 @@ export default function App(){
     }catch(e){setError(e instanceof Error?e.message:'تعذر معالجة الصورة');}
     finally{setImageBusy(false);}
   }
+  async function removeBackgroundLocal(){
+    if(!imageFile)return;
+    setBgBusy(true);setError('');setMessage('');setBgProgress({progress:0,message:'تحميل أداة إزالة الخلفية...'});
+    try{
+      const [{removeBackground},{env}]=await Promise.all([import('@bg0/browser'),import('@huggingface/transformers')]);
+      env.backends.onnx.wasm.wasmPaths='/onnx/';
+      const result=await removeBackground(imageFile,{quality:'quality',model:'lite',onProgress:progress=>setBgProgress({progress:progress.progress,message:progress.message})});
+      const url=URL.createObjectURL(result.blob);
+      if(removedImage)URL.revokeObjectURL(removedImage);
+      setRemovedImage(url);
+      setMessage('أزيلت الخلفية محلياً داخل متصفحك. لم تُرسل الصورة إلى الخادم.');
+    }catch(e){setError(e instanceof Error?e.message:'تعذرت إزالة الخلفية. يمكنك إعادة المحاولة.');}
+    finally{setBgBusy(false);}
+  }
   async function chatWithLocalModel(){
     if(!assistantRequest.trim())return;
     setAssistantModelBusy(true);setAssistantReply('');setError('');
