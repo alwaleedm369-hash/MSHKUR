@@ -25,7 +25,7 @@ export async function runJob(jobId) {
   const now = nowIso();
   db.prepare("UPDATE jobs SET status='running',attempts=attempts+1,updated_at=? WHERE id=?").run(now, jobId);
   try {
-    const output = await executeSkill(job.skill_id, JSON.parse(job.input_json));
+    const output = await executeSkill(job.skill_id, JSON.parse(job.input_json), { tenantId:job.tenant_id, userId:job.user_id });
     db.prepare("UPDATE jobs SET status='succeeded',output_json=?,updated_at=? WHERE id=?").run(JSON.stringify(output), nowIso(), jobId);
     audit({ tenantId:job.tenant_id, actorUserId:job.user_id, eventType:'job.succeeded', resourceType:'job', resourceId:jobId, details:{ skillId:job.skill_id } });
   } catch (error) {
