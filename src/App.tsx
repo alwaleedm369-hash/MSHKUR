@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import {
   ArrowDownToLine, ArrowUpLeft, Bell, Check, ChevronLeft, CircleHelp, Clock3,
   ImagePlus, LayoutDashboard, LogOut, Menu, Plus, Search, Settings2, ShieldCheck,
@@ -55,7 +56,7 @@ export default function App(){
   },[]);
   useEffect(()=>{if(user)loadVehicles().catch(e=>setError(e.message));},[user,loadVehicles]);
 
-  async function submitAuth(e:React.FormEvent){
+  async function submitAuth(e:FormEvent){
     e.preventDefault();setError('');setAuthBusy(true);
     try{
       const body=authMode==='register'?auth:{email:auth.email,password:auth.password};
