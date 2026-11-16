@@ -248,6 +248,26 @@ test('vehicle photo batch runs sequentially and keeps originals plus optimized d
   assert.equal(gallery.filter(a=>a.asset_role==='derived').length,2);
 });
 
+
+test('individual accounts retain their account type and public showroom slug', async () => {
+  const response=await json('/api/auth/register',{method:'POST',body:JSON.stringify({name:'Individual User',tenantName:'مساحتي الفردية',tenantType:'individual',email:'individual@example.test',password:'StrongPassword!123'})});
+  assert.equal(response.status,201);
+  const body=await response.json();
+  assert.equal(body.user.tenantType,'individual');
+  assert.ok(body.user.tenantSlug);
+  const me=await json('/api/auth/me',{headers:{cookie:response.headers.get('set-cookie').split(';')[0]}});
+  assert.equal((await me.json()).user.tenantType,'individual');
+});
+
+test('map growth assistant returns a Google Maps search link without sending outreach', async () => {
+  const cookie=await register('map-growth@example.test','معرض التسويق');
+  const response=await json('/api/marketing/map-search',{method:'POST',headers:{cookie},body:JSON.stringify({city:'جدة',kind:'car_dealers'})});
+  assert.equal(response.status,200);
+  const result=await response.json();
+  assert.match(result.googleMapsUrl,/google\.com\/maps\/search/);
+  assert.match(result.note,/لا يتم جمع بيانات أشخاص/);
+});
+
 test.after(async()=>{
   await new Promise(resolve=>server.close(resolve));
   db.close();
