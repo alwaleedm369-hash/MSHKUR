@@ -73,6 +73,25 @@ export function registerMediaAndGrowthRoutes(app) {
     const conversations = db.prepare("SELECT c.*, (SELECT body FROM conversation_messages m WHERE m.conversation_id=c.id ORDER BY created_at DESC LIMIT 1) AS last_message FROM conversations c WHERE c.tenant_id=? ORDER BY c.updated_at DESC LIMIT 100").all(req.user.tenantId);
     return res.json({ leads, conversations });
   });
+  app.get('/api/admin/overview', requireAuth, (req, res) => {
+    if (!['owner', 'admin'].includes(req.user.role)) return res.status(403).json({ error: 'forbidden' });
+    const tenantId = req.user.tenantId;
+    const count = (sql) => db.prepare(sql).get(tenantId).n;
+    const summary = {
+      vehicles: count('SELECT COUNT(*) AS n FROM vehicles WHERE tenant_id=?'),
+      media: count('SELECT COUNT(*) AS n FROM vehicle_assets WHERE tenant_id=?'),
+      jobs: count('SELECT COUNT(*) AS n FROM jobs WHERE tenant_id=?'),
+      pendingApprovals: count("SELECT COUNT(*) AS n FROM approvals WHERE tenant_id=? AND status='pending'"),
+      leads: count('SELECT COUNT(*) AS n FROM leads WHERE tenant_id=?'),
+      conversations: count("SELECT COUNT(*) AS n FROM conversations WHERE tenant_id=? AND status='open'")
+    };
+    return res.json({ summary, usage: Object.fromEntries(Object.entries(FREE_DAILY_LIMITS).map(([key,limit]) => {
+      const used = db.prepare('SELECT used_count FROM daily_usage WHERE tenant_id=? AND user_id=? AND usage_date=? AND action_key=?')
+        .get(tenantId, req.user.id, nowIso().slice(0,10), key)?.used_count || 0;
+      return [key,{used,limit,remaining:Math.max(0,limit-used)}];
+    })) });
+  });
+
   app.post('/api/marketing/map-search', requireAuth, (req, res) => {
     const city = String(req.body?.city || '').trim().slice(0, 100);
     const kind = ['car_dealers', 'car_detailing', 'used_cars', 'service_centers'].includes(req.body?.kind) ? req.body.kind : 'car_dealers';
