@@ -7,6 +7,7 @@ const root=path.resolve(process.env.MSHKUR_STORAGE_DIR||'./storage');
 fs.mkdirSync(root,{recursive:true});
 const mimeToExt={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'};
 const maxBytes=12*1024*1024;
+const tenantQuota=Number(process.env.MSHKUR_TENANT_STORAGE_LIMIT_BYTES||536870912);
 
 export function storeImageDataUrl(dataUrl,{tenantId,userId}){
   const match=typeof dataUrl==='string'&&/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
@@ -20,6 +21,8 @@ export function storeImageDataUrl(dataUrl,{tenantId,userId}){
 export function storeImageBuffer(buffer,mimeType,{tenantId,userId}){
   const ext=mimeToExt[mimeType];
   if(!ext||!Buffer.isBuffer(buffer)||buffer.length>maxBytes) throw Object.assign(new Error('Invalid image payload'),{code:'invalid_image'});
+  const used=db.prepare('SELECT COALESCE(SUM(size_bytes),0) AS bytes FROM files WHERE tenant_id=?').get(tenantId).bytes;
+  if(used+buffer.length>tenantQuota) throw Object.assign(new Error('مساحة التخزين المسموحة للمعرض ممتلئة.'),{code:'storage_quota_exceeded'});
   const id=randomUUID(),storageKey=id+'.'+ext,sha256=createHash('sha256').update(buffer).digest('hex'),createdAt=nowIso();
   fs.writeFileSync(path.join(root,storageKey),buffer,{flag:'wx',mode:0o600});
   db.prepare('INSERT INTO files(id,tenant_id,user_id,storage_key,mime_type,size_bytes,sha256,created_at) VALUES(?,?,?,?,?,?,?,?)')
