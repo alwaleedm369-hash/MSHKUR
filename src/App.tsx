@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FormEvent } from 'react';
+import type { FormEvent, PointerEvent } from 'react';
 import { askLocalModel } from './localModel';
 import {
   ArrowDownToLine, ArrowUpLeft, Bell, Check, ChevronLeft, CircleHelp, Clock3,
@@ -212,7 +212,7 @@ function ImageRegionSelector({src,onSelect}:{src:string;onSelect:(region:{left:n
     };
     image.src=src;
   },[src,region]);
-  function point(event:React.PointerEvent<HTMLCanvasElement>){
+  function point(event:PointerEvent<HTMLCanvasElement>){
     const rect=event.currentTarget.getBoundingClientRect();
     return {x:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))};
   }
