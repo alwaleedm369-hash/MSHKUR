@@ -15,6 +15,12 @@ export function createApp({ serveWeb = process.env.NODE_ENV === 'production' } =
   app.use(helmet({ crossOriginEmbedderPolicy: false }));
   app.use(express.json({ limit: '20mb' }));
   app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false }));
+  app.use((req,res,next)=>{
+    if(!['POST','PUT','PATCH','DELETE'].includes(req.method)||!req.headers.origin||!process.env.APP_BASE_URL) return next();
+    try { if(new URL(req.headers.origin).origin!==new URL(process.env.APP_BASE_URL).origin) return res.status(403).json({error:'origin_not_allowed'}); }
+    catch { return res.status(403).json({error:'origin_not_allowed'}); }
+    return next();
+  });
 
   app.get('/api/health', (_req, res) => {
     res.set('Cache-Control', 'no-store');
