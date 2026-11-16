@@ -39,7 +39,7 @@ export function registerRoutes(app) {
       audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'assistant.local_model',resourceType:'conversation',details:{model:result.model}});
       return res.json({reply:result.content,provider:result.provider,model:result.model});
     } catch(error) {
-      return res.status(error.code==='local_model_not_configured'?503:502).json({error:error.code||'local_model_error',message:error.message});
+      return res.status(error.code==='daily_limit_reached'?429:error.code==='local_model_not_configured'?503:502).json({error:error.code||'local_model_error',message:error.message});
     }
   });
   app.post('/api/assistant/plan', requireAuth, (req,res) => {
