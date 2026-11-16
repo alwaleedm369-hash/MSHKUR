@@ -110,9 +110,12 @@ export default function App(){
     }catch(e){setError(e instanceof Error?e.message:'تعذر إنشاء الإعلان');}
     finally{setBusy(false);}
   }
-  async function uploadVehiclePhotos(files:FileList|null){\n    if(!files||!assetVehicleId)return;
+  async function uploadVehiclePhotos(files:FileList|null){
+    if(!files||!assetVehicleId)return;
     setAssetUploadBusy(true);setError('');setMessage('');
-    try{\n      for(const file of Array.from(files)){\n        if(!file.type.startsWith('image/')||file.size>12*1024*1024)throw new Error('كل صورة يجب أن تكون صورة PNG أو JPG أو WebP وأقل من 12 ميجابايت.');
+    try{
+      for(const file of Array.from(files)){
+        if(!file.type.startsWith('image/')||file.size>12*1024*1024)throw new Error('كل صورة يجب أن تكون صورة PNG أو JPG أو WebP وأقل من 12 ميجابايت.');
         const dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('تعذرت قراءة الصورة'));reader.readAsDataURL(file);});
         await api('/api/vehicles/'+assetVehicleId+'/assets',{method:'POST',body:JSON.stringify({imageBase64:dataUrl})});
       }
