@@ -31,7 +31,12 @@ const pollTask = async (id,cookie) => {
   return task;
 };
 
-test('state-changing requests reject a foreign browser origin', async () => {\n  const response=await json('/api/auth/register',{method:'POST',headers:{origin:'http://evil.test'},body:JSON.stringify({name:'Bad Origin',tenantName:'Bad',email:'origin@example.test',password:'StrongPassword!123'})});\n  assert.equal(response.status,403);\n});\n\ntest('protected endpoints reject anonymous requests', async () => {
+test('state-changing requests reject a foreign browser origin', async () => {
+  const response=await json('/api/auth/register',{method:'POST',headers:{origin:'http://evil.test'},body:JSON.stringify({name:'Bad Origin',tenantName:'Bad',email:'origin@example.test',password:'StrongPassword!123'})});
+  assert.equal(response.status,403);
+});
+
+test('protected endpoints reject anonymous requests', async () => {
   const response = await json('/api/skills');
   assert.equal(response.status,401);
 });
@@ -106,7 +111,13 @@ test('external action approvals are stored pending and never executed automatica
   assert.equal((await decision.json()).approval.execution,'not_connected');
 });
 
-test('local model endpoint refuses to call a paid fallback when no local model is configured', async () => {\n  const cookie=await register('model@example.test','معرض النموذج');\n  const response=await json('/api/assistant/chat',{method:'POST',headers:{cookie},body:JSON.stringify({message:'اكتب وصفاً'})});\n  assert.equal(response.status,503);\n});\n\ntest('logout revokes the session', async () => {
+test('local model endpoint refuses to call a paid fallback when no local model is configured', async () => {
+  const cookie=await register('model@example.test','معرض النموذج');
+  const response=await json('/api/assistant/chat',{method:'POST',headers:{cookie},body:JSON.stringify({message:'اكتب وصفاً'})});
+  assert.equal(response.status,503);
+});
+
+test('logout revokes the session', async () => {
   const cookie=await register('logout@example.test','معرض الخروج');
   const out=await json('/api/auth/logout',{method:'POST',headers:{cookie}});
   assert.equal(out.status,200);
