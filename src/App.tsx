@@ -94,7 +94,7 @@ export default function App(){
     try{
       const task=await runTask('image-optimize',{imageBase64:imageData,maxWidth:2048,quality:84});
       if(task.status!=='succeeded')throw new Error(task.error_message||'فشل تحسين الصورة');
-      setOptimizedImage(task.output.imageBase64);setMessage('تم تحسين الصورة محلياً على خادم مشكور. الأصل لم يتغير.');
+      setOptimizedImage('/api/files/'+task.output.imageFileId);setMessage('تم تحسين الصورة محلياً على خادم مشكور. الأصل لم يتغير.');
     }catch(e){setError(e instanceof Error?e.message:'تعذر معالجة الصورة');}
     finally{setImageBusy(false);}
   }
