@@ -63,6 +63,7 @@ Google OAuth، خرائط تفاعلية مدمجة، التخزين الدائ�
 - [REA وMCP](docs/REA_MCP_AR.md)
 - [مختبر النماذج والضغط](docs/MODEL_LAB_AR.md)
 - [مراجعة التراخيص](docs/LICENCE_REVIEW_AR.md)
+- [مختبر النماذج وأدوات الضغط](tools/model-lab/README_AR.md)
 - [خارطة التنفيذ](docs/ROADMAP_AR.md)
 - [خدمات Google الاختيارية](docs/GOOGLE_SERVICES_AR.md)
 
