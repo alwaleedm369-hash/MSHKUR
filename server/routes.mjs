@@ -30,6 +30,11 @@ export function registerRoutes(app) {
     const intent=classifyIntent(request);
     return res.json({ intent, agents:listAgents().filter(agent => !intent.skillId || agent.skills.includes(intent.skillId)) });
   });
+  app.get('/api/audit', requireAuth, (req,res) => {
+    if(!['owner','admin'].includes(req.user.role)) return res.status(403).json({error:'forbidden'});
+    const events=db.prepare('SELECT id,actor_user_id,event_type,resource_type,resource_id,details_json,created_at FROM audit_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 100').all(req.user.tenantId).map(row=>({...row,details:JSON.parse(row.details_json),details_json:undefined}));
+    return res.json({events});
+  });
   app.get('/api/approvals', requireAuth, (req,res) => res.json({ approvals:listApprovals(req.user.tenantId) }));
   app.post('/api/approvals', requireAuth, (req,res) => {
     try { return res.status(201).json({ approval:createApproval({tenantId:req.user.tenantId,userId:req.user.id,actionType:req.body?.actionType,payload:req.body?.payload}) }); }
