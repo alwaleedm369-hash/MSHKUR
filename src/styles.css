@@ -42,3 +42,15 @@
 .vehicle-photo-thumb span{font-size:8px;color:#789080}
 .photo-library-empty{font-size:10px;color:#9aa69d;margin:12px 0 2px}
 @media(max-width:760px){.photo-library-controls{align-items:stretch;flex-direction:column}.photo-multi-upload{justify-content:center;min-height:42px}.vehicle-photo-thumb{flex-basis:84px}.vehicle-photo-thumb img{width:72px;height:62px}}
+
+.ops-panel{max-width:900px;margin:0 auto;background:#fff;border:1px solid #e8ede9;border-radius:15px;padding:20px}
+.ops-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}
+.ops-heading>div{display:grid;gap:4px}.ops-heading span{font-size:10px;color:#6b9479}.ops-heading h2{font-size:19px;margin:0;color:#23372c}.ops-heading small{font-size:10px;color:#98a39b}
+.ops-heading>button{display:flex;align-items:center;gap:6px;border:1px solid #e6ece7;background:#fff;border-radius:8px;padding:9px 12px;font:inherit;font-size:10px;color:#64766a}
+.ops-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ops-metric{display:grid;gap:7px;padding:13px;border:1px solid #edf1ee;border-radius:10px;background:#fbfcfb}.ops-metric svg{color:#71927c}.ops-metric small{font-size:10px;color:#8a988e}.ops-metric b{font-size:22px;color:#30483a}
+.ops-panel h3{font-size:12px;margin:22px 0 12px;color:#405448}.ops-quotas{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.ops-quotas>div{display:grid;gap:7px;font-size:10px;color:#748278}.ops-quotas b{color:#4b6253}.ops-quotas i{height:6px;background:#eef2ef;border-radius:9px;overflow:hidden}.ops-quotas em{display:block;height:100%;background:#7da58a;border-radius:9px}
+.growth-form{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}.growth-form label{display:grid;gap:6px;font-size:10px;color:#65766a}.growth-form input,.growth-form select{height:42px;border:1px solid #e3eae4;border-radius:8px;padding:0 10px;background:white;font:inherit;color:#33443a}.growth-form button{height:42px;border:0;border-radius:8px;background:#284f3d;color:#fff;padding:0 16px;display:flex;align-items:center;gap:7px;font:inherit;font-size:10px}.growth-result{margin-top:15px;padding:14px;background:#f7faf7;border:1px solid #e8eee9;border-radius:10px}.growth-result b{font-size:12px}.growth-result p,.ops-note{font-size:10px;line-height:1.8;color:#87958b}.growth-result a{display:inline-flex;align-items:center;gap:6px;color:#49785b;font-size:10px;text-decoration:none}
+.inbox-row{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-top:1px solid #edf1ee}.inbox-row>svg{color:#73927d;flex:none}.inbox-row>div{flex:1;min-width:0}.inbox-row b{font-size:11px;color:#42564a}.inbox-row p{font-size:10px;color:#66776c;margin:5px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.inbox-row small{font-size:9px;color:#9ba69e}.inbox-row>span{font-size:9px;color:#71927c}
+.ops-error{font-size:11px;color:#b34e4e}
+@media(max-width:760px){.ops-panel{padding:14px;border-radius:12px}.ops-metrics{grid-template-columns:repeat(2,1fr)}.ops-quotas{grid-template-columns:1fr}.growth-form{grid-template-columns:1fr}.growth-form button{justify-content:center}.ops-heading h2{font-size:16px}}
