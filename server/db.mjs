@@ -105,6 +105,11 @@ CREATE TABLE IF NOT EXISTS conversation_messages (
   body TEXT NOT NULL, metadata_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_messages_conversation ON conversation_messages(conversation_id, created_at);
+CREATE TABLE IF NOT EXISTS tenant_settings (
+  tenant_id TEXT PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+  whatsapp_number TEXT, business_address TEXT, google_maps_url TEXT,
+  updated_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS photo_batch_runs (
   id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
   vehicle_id TEXT NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
