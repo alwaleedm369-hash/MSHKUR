@@ -28,6 +28,21 @@
     "entrypoint": "builtin:vehicle-validate"
   },
   {
+    "id": "background-remove",
+    "name": "إزالة الخلفية",
+    "category": "image",
+    "version": "1.0.0",
+    "description": "إزالة خلفية الصورة محلياً داخل المتصفح باستخدام BiRefNet عبر WebGPU/WASM.",
+    "input": "image-file",
+    "output": "transparent-png",
+    "permissions": [
+      "image:process"
+    ],
+    "cost": "local",
+    "runtime": "browser",
+    "entrypoint": "browser:bg0"
+  },
+  {
     "id": "image-optimize",
     "name": "تحسين وضغط الصورة",
     "category": "image",
