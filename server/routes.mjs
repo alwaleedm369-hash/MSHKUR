@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import rateLimit from 'express-rate-limit';
 import { registerAuthRoutes, requireAuth } from './auth.mjs';
 import { db, nowIso, audit } from './db.mjs';
 import { createJob, getJobForTenant, getSkills, listJobsForTenant, runJob } from './engine/maestro.mjs';
@@ -54,7 +55,7 @@ export function registerRoutes(app) {
       return res.status(200).send(buffer);
     } catch { return res.status(404).json({error:'not_found'}); }
   });
-  app.post('/api/tasks', requireAuth, (req,res) => {
+  app.post('/api/tasks', rateLimit({ windowMs: 15 * 60 * 1000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false }), requireAuth, (req,res) => {
     const { skillId, input:rawInput } = req.body || {};
     if (typeof skillId !== 'string' || !rawInput || typeof rawInput !== 'object' || Array.isArray(rawInput)) return res.status(400).json({ error:'invalid_task' });
     try {
