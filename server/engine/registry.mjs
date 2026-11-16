@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import fs from 'node:fs';
 import { z } from 'zod';
 import { readImageFile, storeImageBuffer } from '../storage.mjs';
 
@@ -64,12 +65,9 @@ const handlers = {
   },
 };
 
-export const skillManifests = [
-  { id:'vehicle-ad-copy', name:'كاتب إعلان السيارة', category:'cars', version:'1.0.0', description:'إنشاء مسودة إعلان من الحقول المدخلة فقط دون اختراع المواصفات.', input:'vehicle-copy', output:'ad-draft', permissions:['vehicle:read'], cost:'local' },
-  { id:'vehicle-validate', name:'مدقق بيانات السيارة', category:'cars', version:'1.0.0', description:'فحص الحقول الناقصة والتعارضات الأساسية قبل تجهيز الإعلان.', input:'vehicle-record', output:'validation-report', permissions:['vehicle:read'], cost:'local' },
-  { id:'image-optimize', name:'تحسين وضغط الصورة', category:'image', version:'1.0.0', description:'تصحيح الاتجاه وتحويل الصورة إلى WebP مع ضبط الحجم والجودة.', input:'image-file', output:'optimized-image', permissions:['image:process'], cost:'local' },
-  { id:'license-plate-blur-region', name:'طمس منطقة اللوحة يدوياً', category:'image', version:'1.0.0', description:'تمويه منطقة مستطيلة يحددها المستخدم، دون ادعاء كشف تلقائي.', input:'image-file-region', output:'blurred-image', permissions:['image:process'], cost:'local' },
-];
+const registryPath = new URL('../../skills/registry.json', import.meta.url);
+const declaredSkills = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+export const skillManifests = declaredSkills.map(skill => ({ ...skill, executable: typeof handlers[skill.id] === 'function' }));
 export async function executeSkill(skillId, input, context) {
   const handler = handlers[skillId];
   if (!handler) throw Object.assign(new Error('Skill is not installed or not executable'), { code: 'skill_unavailable' });
