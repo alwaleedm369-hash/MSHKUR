@@ -63,7 +63,7 @@ export function registerAuthRoutes(app) {
     create();
     issueSession(userId, res);
     audit({ tenantId, actorUserId: userId, eventType: 'auth.register', resourceType: 'user', resourceId: userId });
-    return res.status(201).json({ user: publicUser({ id:userId, tenant_id:tenantId, tenant_name:tenantName.trim(), name:name.trim(), email:email.trim().toLowerCase(), role:'owner' }) });
+    return res.status(201).json({ user: publicUser({ id:userId, tenant_id:tenantId, tenant_name:tenantName.trim(), tenant_slug:slug, name:name.trim(), email:email.trim().toLowerCase(), role:'owner' }) });
   });
 
   app.post('/api/auth/login', (req, res) => {
