@@ -14,8 +14,6 @@ const optimizeSchema = z.object({ imageFileId: z.string().uuid(), maxWidth: z.nu
 const plateBlurSchema = z.object({ imageFileId: z.string().uuid(), left: z.number().min(0).max(1), top: z.number().min(0).max(1), width: z.number().min(0.001).max(1), height: z.number().min(0.001).max(1) });
 const vehicleValidateSchema = vehicleCopySchema.partial().extend({ make: z.string().optional(), model: z.string().optional() });
 
-const asDataUrl = (buffer, mime) => `data:${mime};base64,${buffer.toString('base64')}`;
-
 const handlers = {
   'vehicle-ad-copy': async input => {
     const v = vehicleCopySchema.parse(input);
@@ -69,8 +67,8 @@ const handlers = {
 export const skillManifests = [
   { id:'vehicle-ad-copy', name:'كاتب إعلان السيارة', category:'cars', version:'1.0.0', description:'إنشاء مسودة إعلان من الحقول المدخلة فقط دون اختراع المواصفات.', input:'vehicle-copy', output:'ad-draft', permissions:['vehicle:read'], cost:'local' },
   { id:'vehicle-validate', name:'مدقق بيانات السيارة', category:'cars', version:'1.0.0', description:'فحص الحقول الناقصة والتعارضات الأساسية قبل تجهيز الإعلان.', input:'vehicle-record', output:'validation-report', permissions:['vehicle:read'], cost:'local' },
-  { id:'image-optimize', name:'تحسين وضغط الصورة', category:'image', version:'1.0.0', description:'تصحيح الاتجاه وتحويل الصورة إلى WebP مع ضبط الحجم والجودة.', input:'image-data-url', output:'optimized-image', permissions:['image:process'], cost:'local' },
-  { id:'license-plate-blur-region', name:'طمس منطقة اللوحة يدوياً', category:'image', version:'1.0.0', description:'تمويه منطقة مستطيلة يحددها المستخدم، دون ادعاء كشف تلقائي.', input:'image-region', output:'blurred-image', permissions:['image:process'], cost:'local' },
+  { id:'image-optimize', name:'تحسين وضغط الصورة', category:'image', version:'1.0.0', description:'تصحيح الاتجاه وتحويل الصورة إلى WebP مع ضبط الحجم والجودة.', input:'image-file', output:'optimized-image', permissions:['image:process'], cost:'local' },
+  { id:'license-plate-blur-region', name:'طمس منطقة اللوحة يدوياً', category:'image', version:'1.0.0', description:'تمويه منطقة مستطيلة يحددها المستخدم، دون ادعاء كشف تلقائي.', input:'image-file-region', output:'blurred-image', permissions:['image:process'], cost:'local' },
 ];
 export async function executeSkill(skillId, input) {
   const handler = handlers[skillId];
