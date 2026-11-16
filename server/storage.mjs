@@ -7,7 +7,8 @@ const root=path.resolve(process.env.MSHKUR_STORAGE_DIR||'./storage');
 fs.mkdirSync(root,{recursive:true});
 const mimeToExt={'image/png':'png','image/jpeg':'jpg','image/webp':'webp'};
 const maxBytes=12*1024*1024;
-const tenantQuota=Number(process.env.MSHKUR_TENANT_STORAGE_LIMIT_BYTES||536870912);
+const configuredQuota=Number(process.env.MSHKUR_TENANT_STORAGE_LIMIT_BYTES||536870912);
+const tenantQuota=Number.isSafeInteger(configuredQuota)&&configuredQuota>0?configuredQuota:536870912;
 
 export function storeImageDataUrl(dataUrl,{tenantId,userId}){
   const match=typeof dataUrl==='string'&&/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
