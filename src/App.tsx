@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { askLocalModel } from './localModel';
 import {
   ArrowDownToLine, ArrowUpLeft, Bell, Check, ChevronLeft, CircleHelp, Clock3,
   ImagePlus, LayoutDashboard, LogOut, Menu, Plus, Search, Settings2, ShieldCheck,
@@ -74,7 +75,7 @@ export default function App(){
     finally{setAuthBusy(false);}
   }
   async function logout(){await api('/api/auth/logout',{method:'POST'}).catch(()=>{});setUser(null);setVehicles([]);setScreen('home');}
-  async function addVehicle(e:React.FormEvent){
+  async function addVehicle(e:FormEvent){
     e.preventDefault();setError('');setBusy(true);
     try{
       const payload={...newVehicle,year:newVehicle.year?Number(newVehicle.year):undefined,mileage:newVehicle.mileage?Number(newVehicle.mileage):undefined,price:newVehicle.price?Number(newVehicle.price):undefined};
@@ -107,7 +108,14 @@ export default function App(){
     }catch(e){setError(e instanceof Error?e.message:'تعذر معالجة الصورة');}
     finally{setImageBusy(false);}
   }
-  async function planAssistant(e:React.FormEvent){
+  async function chatWithLocalModel(){
+    if(!assistantRequest.trim())return;
+    setAssistantModelBusy(true);setAssistantReply('');setError('');
+    try{const result=await askLocalModel(assistantRequest);setAssistantReply(result.reply+'\\n\\n— '+result.model);}
+    catch(e){const message=e instanceof Error?e.message:'تعذر الوصول إلى النموذج المحلي';setAssistantReply(message.includes('لم يتم إعداد نموذج محلي')?'لم يتم إعداد نموذج محلي بعد. لا يتصل مشكور بأي نموذج مدفوع كبديل.':'تعذر الوصول إلى النموذج المحلي. تحقق من إعداد النموذج المحلي.');}
+    finally{setAssistantModelBusy(false);}
+  }
+  async function planAssistant(e:FormEvent){
     e.preventDefault();setAssistantPlan(null);setError('');setBusy(true);
     try{setAssistantPlan(await api('/api/assistant/plan',{method:'POST',body:JSON.stringify({request:assistantRequest})}));}
     catch(e){setError(e instanceof Error?e.message:'تعذر تحليل الطلب');}
