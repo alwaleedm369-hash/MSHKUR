@@ -81,7 +81,7 @@ export function registerAuthRoutes(app) {
   app.get('/api/auth/me', (req, res) => {
     const token = cookieToken(req);
     if (!token) return res.status(401).json({ error: 'unauthenticated' });
-    const row = db.prepare(`SELECT u.id,u.tenant_id,u.name,u.email,u.role,t.name AS tenant_name
+    const row = db.prepare(`SELECT u.id,u.tenant_id,u.name,u.email,u.role,t.name AS tenant_name,t.slug AS tenant_slug
       FROM sessions s JOIN users u ON u.id=s.user_id JOIN tenants t ON t.id=u.tenant_id
       WHERE s.token_hash=? AND s.expires_at > ?`).get(hashToken(token), nowIso());
     if (!row) { clearCookie(res); return res.status(401).json({ error: 'unauthenticated' }); }
@@ -98,7 +98,7 @@ export function registerAuthRoutes(app) {
 export function requireAuth(req, res, next) {
   const token = cookieToken(req);
   if (!token) return res.status(401).json({ error: 'unauthenticated' });
-  const row = db.prepare(`SELECT u.id,u.tenant_id,u.name,u.email,u.role,t.name AS tenant_name
+  const row = db.prepare(`SELECT u.id,u.tenant_id,u.name,u.email,u.role,t.name AS tenant_name,t.slug AS tenant_slug
     FROM sessions s JOIN users u ON u.id=s.user_id JOIN tenants t ON t.id=u.tenant_id
     WHERE s.token_hash=? AND s.expires_at > ?`).get(hashToken(token), nowIso());
   if (!row) { clearCookie(res); return res.status(401).json({ error: 'unauthenticated' }); }
