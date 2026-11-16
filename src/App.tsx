@@ -9,7 +9,7 @@ import {
   Sparkles, Upload, WandSparkles, X, CarFront, Users, Zap, FileText, LoaderCircle, MapPin, MessageCircle
 } from 'lucide-react';
 
-type User = { id:string; tenantId:string; tenantName:string; tenantSlug?:string; name:string; email:string; role:string };
+type User = { id:string; tenantId:string; tenantName:string; tenantSlug?:string; tenantType?:string; name:string; email:string; role:string };
 type Vehicle = { id:string; make:string; model:string; trim?:string|null; year?:number|null; mileage?:number|null; fuel?:string|null; transmission?:string|null; color?:string|null; price?:number|null; city?:string|null; notes?:string|null; status:string };
 type Task = { id:string; status:string; output?:any; error_message?:string|null };
 type Agent = {id:string;name:string;title:string;description:string;skills:string[]};
@@ -35,7 +35,7 @@ async function runTask(skillId:string,input:any):Promise<Task>{
 export default function App(){
   const [user,setUser]=useState<User|null>(null);
   const [authMode,setAuthMode]=useState<'login'|'register'>('register');
-  const [auth,setAuth]=useState({name:'',tenantName:'معرضي',email:'',password:''});
+  const [auth,setAuth]=useState({name:'',tenantName:'معرضي',tenantType:'dealer',email:'',password:''});
   const [authBusy,setAuthBusy]=useState(false);
   const [screen,setScreen]=useState<Screen>('home');
   const [vehicles,setVehicles]=useState<Vehicle[]>([]);
@@ -204,7 +204,7 @@ export default function App(){
     <div className="auth-layout"><div className="auth-story"><div className="story-label"><span/> مساحة واحدة. عمل أقل.</div><h1>أنجز عملك.<br/><em>واترك الباقي لمشكور.</em></h1><p>أضف سياراتك، جهّز صورها، وأنشئ إعلاناتها من مكان واحد. بدون تعقيد أو اشتراكات ذكاء اصطناعي مفروضة.</p><div className="story-points"><span><Check size={16}/> أدوات محلية بلا API مدفوع</span><span><Check size={16}/> بيانات مستقلة لكل معرض</span><span><Check size={16}/> موافقتك قبل أي إجراء خارجي</span></div><div className="auth-orbit"><div className="orbit-ring ring-one"/><div className="orbit-ring ring-two"/><div className="orbit-core"><WandSparkles size={35}/></div><div className="orbit-node node-one"><CarFront size={18}/></div><div className="orbit-node node-two"><ImagePlus size={18}/></div><div className="orbit-node node-three"><FileText size={18}/></div></div></div>
     <div className="auth-card"><div className="auth-card-head"><span>{authMode==='register'?'ابدأ مجاناً':'مرحباً بعودتك'}</span><h2>{authMode==='register'?'أنشئ مساحة معرضك':'سجّل دخولك'}</h2><p>{authMode==='register'?'بياناتك تبقى في مساحة عمل مستقلة.':'تابع عملك من حيث توقفت.'}</p></div>
       <form onSubmit={submitAuth} className="auth-form">
-        {authMode==='register'&&<><label>اسمك<input required minLength={2} maxLength={80} value={auth.name} onChange={e=>setAuth({...auth,name:e.target.value})} placeholder="الاسم الكامل"/></label><label>اسم المعرض<input required minLength={2} maxLength={100} value={auth.tenantName} onChange={e=>setAuth({...auth,tenantName:e.target.value})} placeholder="اسم المعرض أو النشاط"/></label></>}
+        {authMode==='register'&&<><label>نوع الحساب<select value={auth.tenantType} onChange={e=>setAuth({...auth,tenantType:e.target.value})}><option value="individual">حساب فردي</option><option value="dealer">معرض / تاجر</option></select></label><label>اسمك<input required minLength={2} maxLength={80} value={auth.name} onChange={e=>setAuth({...auth,name:e.target.value})} placeholder="الاسم الكامل"/></label><label>اسم المعرض<input required minLength={2} maxLength={100} value={auth.tenantName} onChange={e=>setAuth({...auth,tenantName:e.target.value})} placeholder="اسم المعرض أو النشاط"/></label></>}
         <label>البريد الإلكتروني<input required type="email" value={auth.email} onChange={e=>setAuth({...auth,email:e.target.value})} placeholder="name@example.com" dir="ltr"/></label>
         <label>كلمة المرور<input required type="password" minLength={12} value={auth.password} onChange={e=>setAuth({...auth,password:e.target.value})} placeholder="12 حرفاً على الأقل" dir="ltr"/></label>
         {error&&<div className="inline-error">{error}</div>}
@@ -219,7 +219,7 @@ export default function App(){
   return <div className="workspace" dir="rtl">
     <aside className={`side-nav ${menuOpen?'side-nav-open':''}`}>
       <div className="side-brand"><div className="brand-symbol">م</div><div><b>مشكور</b><small>MSHKUR WORKSPACE</small></div><button className="side-close" onClick={()=>setMenuOpen(false)}><X size={18}/></button></div>
-      <div className="workspace-switch"><span className="workspace-avatar">{user.tenantName.slice(0,1)}</span><div><b>{user.tenantName}</b><small>مساحة المعرض</small></div><ChevronLeft size={15}/></div>
+      <div className="workspace-switch"><span className="workspace-avatar">{user.tenantName.slice(0,1)}</span><div><b>{user.tenantName}</b><small>{user.tenantType==='individual'?'مساحة فردية':'مساحة المعرض'}</small></div><ChevronLeft size={15}/></div>
       <div className="nav-caption">مساحة العمل</div>
       <nav>{navItems.map(([id,label,Icon])=><button key={id} className={`side-link ${screen===id?'selected':''}`} onClick={()=>{setScreen(id);setMenuOpen(false);setError('');}}><Icon size={18}/><span>{label}</span>{id==='cars'&&vehicles.length>0?<small>{vehicles.length}</small>:null}</button>)}</nav>
       <div className="side-spacer"/>
