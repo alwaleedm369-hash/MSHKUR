@@ -124,7 +124,12 @@ export function registerMediaAndGrowthRoutes(app) {
     if (!tenant || !message || message.length > 1500) return res.status(400).json({ error: 'invalid_chat' });
     const conversationId = typeof req.body?.conversationId === 'string' ? req.body.conversationId : randomUUID();
     const conversation = db.prepare('SELECT id FROM conversations WHERE id=? AND tenant_id=?').get(conversationId, tenant.id);
+    const name=typeof req.body?.name==='string'?req.body.name.trim().slice(0,80):'';
+    const phone=typeof req.body?.phone==='string'?req.body.phone.replace(/[^+0-9]/g,'').slice(0,24):'';
+    let leadId=conversation?db.prepare('SELECT lead_id FROM conversations WHERE id=?').get(conversationId)?.lead_id:null;
+    if((name||phone)&&!leadId){leadId=randomUUID();db.prepare("INSERT INTO leads(id,tenant_id,name,phone,source,message,status,created_at,updated_at) VALUES(?,?,?,?,? ,?,'new',?,?)").run(leadId,tenant.id,name||null,phone||null,'website',message,nowIso(),nowIso());}
     if (!conversation) db.prepare("INSERT INTO conversations(id,tenant_id,channel,status,created_at,updated_at) VALUES(?,?, 'web','open',?,?)").run(conversationId, tenant.id, nowIso(), nowIso());
+    if(leadId)db.prepare('UPDATE conversations SET lead_id=? WHERE id=?').run(leadId,conversationId);
     db.prepare("INSERT INTO conversation_messages(id,conversation_id,sender_type,body,created_at) VALUES(?,?, 'visitor',?,?)").run(randomUUID(), conversationId, message, nowIso());
     const lower = message.toLowerCase();
     let reply = 'أهلاً بك في ' + tenant.name + '. وصلت رسالتك، وسيقوم فريق المعرض بمتابعتها. اترك رقم التواصل واسم السيارة المطلوبة إن رغبت.';
