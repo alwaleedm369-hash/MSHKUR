@@ -14,6 +14,7 @@ export function consumeDailyUsage(tenantId, userId, key) {
 }
 
 async function executePhotoBatch(runId, tenantId, userId, vehicleId) {
+  db.prepare("UPDATE photo_batch_runs SET status='running',updated_at=? WHERE id=?").run(nowIso(),runId);
   const items=db.prepare('SELECT * FROM photo_batch_items WHERE run_id=? ORDER BY sort_order').all(runId);
   for(const item of items) {
     try {
