@@ -7,6 +7,7 @@ import { getSkills, createJob, runJob, getJobForTenant, listJobsForTenant } from
 import { listAgents } from '../agents/registry.mjs';
 import { createApproval, listApprovals } from '../engine/policy.mjs';
 import { readImageFile } from '../storage.mjs';
+import { executeWorkflow, listWorkflows } from '../engine/workflow.mjs';
 
 const tenantId=process.env.MSHKUR_MCP_TENANT_ID;
 const userId=process.env.MSHKUR_MCP_USER_ID;
@@ -100,6 +101,23 @@ server.registerTool('mshkur_create_approval',{
 },async({actionType,payload})=>{
   try{return textResult({approval:createApproval({tenantId,userId,actionType,payload})});}
   catch(error){return errorResult(error.message||'Could not create approval.');}
+});
+
+server.registerTool('mshkur_list_workflows',{
+  description:'List available MSHKUR workflows. Read-only.',
+  annotations:{readOnlyHint:true,openWorldHint:false},
+  inputSchema:z.object({})
+},async()=>textResult({workflows:listWorkflows()}));
+
+server.registerTool('mshkur_run_workflow',{
+  description:'Run an approved local workflow for a vehicle in the configured tenant. No external publication or messaging.',
+  annotations:{readOnlyHint:false,destructiveHint:false,openWorldHint:false},
+  inputSchema:z.object({workflowId:z.string().min(2).max(100),vehicleId:z.string().uuid()})
+},async({workflowId,vehicleId})=>{
+  try{
+    const workflow=await executeWorkflow({workflowId,tenantId,userId,input:{vehicleId}});
+    return textResult({workflow});
+  }catch(error){return errorResult(error.message||'Workflow execution failed.');}
 });
 
 const transport=new StdioServerTransport();
