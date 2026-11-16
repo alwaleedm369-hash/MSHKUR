@@ -49,6 +49,19 @@ CREATE TABLE IF NOT EXISTS jobs (
   attempts INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_jobs_tenant ON jobs(tenant_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS workflow_runs (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id), user_id TEXT NOT NULL REFERENCES users(id),
+  workflow_id TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('running','succeeded','failed')),
+  input_json TEXT NOT NULL, output_json TEXT, error_code TEXT, error_message TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_workflow_runs_tenant ON workflow_runs(tenant_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS workflow_steps (
+  id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES workflow_runs(id) ON DELETE CASCADE,
+  tenant_id TEXT NOT NULL REFERENCES tenants(id), step_key TEXT NOT NULL, skill_id TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('queued','running','succeeded','failed')),
+  job_id TEXT REFERENCES jobs(id), output_json TEXT, error_code TEXT, error_message TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_workflow_steps_run ON workflow_steps(run_id, created_at);
 CREATE TABLE IF NOT EXISTS approvals (
   id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
   user_id TEXT NOT NULL REFERENCES users(id), action_type TEXT NOT NULL,
