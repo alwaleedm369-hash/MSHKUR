@@ -111,7 +111,7 @@ export default function App(){
   async function chatWithLocalModel(){
     if(!assistantRequest.trim())return;
     setAssistantModelBusy(true);setAssistantReply('');setError('');
-    try{const result=await askLocalModel(assistantRequest);setAssistantReply(result.reply+'\\n\\n— '+result.model);}
+    try{const result=await askLocalModel(assistantRequest);setAssistantReply(result.reply+'\n\n— '+result.model);}
     catch(e){const message=e instanceof Error?e.message:'تعذر الوصول إلى النموذج المحلي';setAssistantReply(message.includes('لم يتم إعداد نموذج محلي')?'لم يتم إعداد نموذج محلي بعد. لا يتصل مشكور بأي نموذج مدفوع كبديل.':'تعذر الوصول إلى النموذج المحلي. تحقق من إعداد النموذج المحلي.');}
     finally{setAssistantModelBusy(false);}
   }
