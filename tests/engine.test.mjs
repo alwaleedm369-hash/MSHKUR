@@ -92,6 +92,19 @@ test('image optimizer stores a real WebP derivative outside SQLite', async () =>
   assert.equal(denied.status,404);
 });
 
+test('manual plate-region blur creates a tenant-owned PNG derivative', async () => {
+  const cookie=await register('blur@example.test','معرض الطمس');
+  const png=await sharp({create:{width:120,height:80,channels:3,background:'#777777'}}).png().toBuffer();
+  const response=await json('/api/tasks',{method:'POST',headers:{cookie},body:JSON.stringify({skillId:'license-plate-blur-region',input:{imageBase64:'data:image/png;base64,'+png.toString('base64'),left:0.2,top:0.55,width:0.5,height:0.25}})});
+  assert.equal(response.status,202);
+  const {id}=await response.json();
+  const task=await pollTask(id,cookie);
+  assert.equal(task.status,'succeeded');
+  const file=await fetch(base+'/api/files/'+task.output.imageFileId,{headers:{cookie}});
+  assert.equal(file.status,200);
+  assert.equal(file.headers.get('content-type'),'image/png');
+});
+
 test('browser-only background removal cannot be dispatched to the server worker', async () => {
   const cookie=await register('browser-skill@example.test','معرض المتصفح');
   const skills=await (await json('/api/skills',{headers:{cookie}})).json();
