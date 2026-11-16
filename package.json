@@ -17,7 +17,8 @@
     "check:env": "node scripts/check-env.mjs",
     "db:check": "node scripts/db-check.mjs",
     "postinstall": "node scripts/apply-bg0-patch.mjs && node scripts/copy-onnx-wasm.mjs",
-    "mcp:stdio": "node server/mcp/index.mjs"
+    "mcp:stdio": "node server/mcp/index.mjs",
+    "mcp:identities": "node scripts/list-mcp-identities.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
