@@ -9,7 +9,7 @@ import { listAgents } from './agents/registry.mjs';
 import { createApproval, decideApproval, listApprovals } from './engine/policy.mjs';
 import { readImageFile, storeImageDataUrl } from './storage.mjs';
 import { executeWorkflow, getWorkflowForTenant, listWorkflows } from './engine/workflow.mjs';
-import { registerMediaAndGrowthRoutes } from './media-growth-routes.mjs';
+import { registerMediaAndGrowthRoutes, consumeDailyUsage } from './media-growth-routes.mjs';
 
 export function registerRoutes(app) {
   registerMediaAndGrowthRoutes(app);
