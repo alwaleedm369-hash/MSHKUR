@@ -37,6 +37,24 @@ async function executePhotoBatch(runId, tenantId, userId, vehicleId) {
 }
 
 export function registerMediaAndGrowthRoutes(app) {
+
+  app.get('/api/settings/public', requireAuth, (req,res) => {
+    const settings=db.prepare('SELECT whatsapp_number,business_address,google_maps_url FROM tenant_settings WHERE tenant_id=?').get(req.user.tenantId)||{};
+    return res.json({settings});
+  });
+  app.put('/api/settings/public', requireAuth, (req,res) => {
+    if(!['owner','admin'].includes(req.user.role))return res.status(403).json({error:'forbidden'});
+    const phone=String(req.body?.whatsappNumber||'').replace(/[^0-9]/g,'').slice(0,15);
+    const address=String(req.body?.businessAddress||'').trim().slice(0,180);
+    const maps=String(req.body?.googleMapsUrl||'').trim().slice(0,500);
+    if(phone&& (phone.length<8||phone.length>15))return res.status(400).json({error:'invalid_whatsapp_number'});
+    if(maps&&!/^https:\/\/(www\.)?google\.(com|sa)\/maps\//i.test(maps))return res.status(400).json({error:'invalid_maps_url'});
+    db.prepare('INSERT INTO tenant_settings(tenant_id,whatsapp_number,business_address,google_maps_url,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(tenant_id) DO UPDATE SET whatsapp_number=excluded.whatsapp_number,business_address=excluded.business_address,google_maps_url=excluded.google_maps_url,updated_at=excluded.updated_at')
+      .run(req.user.tenantId,phone||null,address||null,maps||null,nowIso());
+    audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'workspace.public_settings_updated',resourceType:'tenant',resourceId:req.user.tenantId});
+    return res.json({ok:true});
+  });
+
   app.get('/api/usage', requireAuth, (req, res) => {
     const usage = Object.fromEntries(Object.entries(FREE_DAILY_LIMITS).map(([key, limit]) => {
       const used = db.prepare('SELECT used_count FROM daily_usage WHERE tenant_id=? AND user_id=? AND usage_date=? AND action_key=?').get(req.user.tenantId, req.user.id, nowIso().slice(0,10), key)?.used_count || 0;
@@ -116,7 +134,8 @@ export function registerMediaAndGrowthRoutes(app) {
     const tenant = db.prepare('SELECT id,name,slug FROM tenants WHERE slug=?').get(req.params.slug);
     if (!tenant) return res.status(404).json({ error: 'not_found' });
     const vehicles = db.prepare("SELECT id,make,model,trim,year,mileage,fuel,transmission,color,price,currency,city,status FROM vehicles WHERE tenant_id=? AND status='published' ORDER BY created_at DESC LIMIT 100").all(tenant.id);
-    return res.json({ showroom: { name: tenant.name, slug: tenant.slug }, vehicles });
+    const settings=db.prepare('SELECT whatsapp_number,business_address,google_maps_url FROM tenant_settings WHERE tenant_id=?').get(tenant.id)||{};
+    return res.json({ showroom: { name: tenant.name, slug: tenant.slug, ...settings }, vehicles });
   });
   app.post('/api/public/chat/:slug', rateLimit({ windowMs: 60000, limit: 12, standardHeaders: 'draft-8', legacyHeaders: false }), (req, res) => {
     const tenant = db.prepare('SELECT id,name,slug FROM tenants WHERE slug=?').get(req.params.slug);
