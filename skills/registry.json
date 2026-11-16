@@ -69,5 +69,21 @@
     ],
     "cost": "local",
     "entrypoint": "builtin:license-plate-blur-region"
+  },
+  {
+    "id": "map-prospect-search",
+    "name": "بحث استهداف المعارض على الخريطة",
+    "version": "1.0.0",
+    "description": "ينشئ رابط بحث خرائط Google حسب المدينة ونوع النشاط؛ لا يجمع بيانات أشخاص ولا يرسل رسائل.",
+    "runtime": "server",
+    "externalSideEffects": false
+  },
+  {
+    "id": "website-customer-chat",
+    "name": "مساعد استقبال العملاء بالموقع",
+    "version": "1.0.0",
+    "description": "يرد على أسئلة عامة محددة ويحفظ المحادثة لتحويلها إلى موظف المعرض.",
+    "runtime": "server",
+    "externalSideEffects": false
   }
 ]
