@@ -206,7 +206,9 @@ test('public website chat creates a stored conversation and returns a safe hando
   assert.equal(result.humanFollowUp,true);
   assert.match(result.reply,/فريق المعرض/);
   const inbox=await json('/api/inbox',{headers:{cookie}});
-  const inboxData=await inbox.json();\n  assert.equal(inboxData.conversations.length,1);\n  assert.equal(inboxData.leads.length,1);
+  const inboxData=await inbox.json();
+  assert.equal(inboxData.conversations.length,1);
+  assert.equal(inboxData.leads.length,1);
 });
 
 test('free daily ad draft quota is enforced and visible to the owner', async () => {
