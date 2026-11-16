@@ -44,6 +44,22 @@ export function registerMediaAndGrowthRoutes(app) {
     const result = db.prepare('DELETE FROM vehicle_assets WHERE id=? AND vehicle_id=? AND tenant_id=?').run(req.params.assetId, req.params.vehicleId, req.user.tenantId);
     return result.changes ? res.status(204).end() : res.status(404).json({ error: 'not_found' });
   });
+
+  app.post('/api/vehicles/:id/showroom-publish', requireAuth, (req,res) => {
+    if (!['owner','admin'].includes(req.user.role)) return res.status(403).json({error:'forbidden'});
+    const result=db.prepare("UPDATE vehicles SET status='published',updated_at=? WHERE id=? AND tenant_id=?").run(nowIso(),req.params.id,req.user.tenantId);
+    if(!result.changes) return res.status(404).json({error:'not_found'});
+    audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'vehicle.showroom_published',resourceType:'vehicle',resourceId:req.params.id});
+    return res.json({ok:true,status:'published'});
+  });
+  app.post('/api/vehicles/:id/showroom-hide', requireAuth, (req,res) => {
+    if (!['owner','admin'].includes(req.user.role)) return res.status(403).json({error:'forbidden'});
+    const result=db.prepare("UPDATE vehicles SET status='draft',updated_at=? WHERE id=? AND tenant_id=?").run(nowIso(),req.params.id,req.user.tenantId);
+    if(!result.changes) return res.status(404).json({error:'not_found'});
+    audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'vehicle.showroom_hidden',resourceType:'vehicle',resourceId:req.params.id});
+    return res.json({ok:true,status:'draft'});
+  });
+
   app.get('/api/public/showroom/:slug', (req, res) => {
     const tenant = db.prepare('SELECT id,name,slug FROM tenants WHERE slug=?').get(req.params.slug);
     if (!tenant) return res.status(404).json({ error: 'not_found' });
