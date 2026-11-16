@@ -195,33 +195,44 @@ export default function App(){
 }
 
 
+function paintRegion(canvas:HTMLCanvasElement,image:HTMLImageElement,region:{left:number;top:number;width:number;height:number}){
+  if(canvas.width!==image.naturalWidth)canvas.width=image.naturalWidth;
+  if(canvas.height!==image.naturalHeight)canvas.height=image.naturalHeight;
+  const ctx=canvas.getContext('2d');if(!ctx)return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0);
+  const x=region.left*canvas.width,y=region.top*canvas.height,w=region.width*canvas.width,h=region.height*canvas.height;
+  ctx.fillStyle='rgba(220,70,70,.28)';ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle='#e65f58';ctx.lineWidth=Math.max(2,canvas.width/500);ctx.strokeRect(x,y,w,h);
+}
 function ImageRegionSelector({src,onSelect}:{src:string;onSelect:(region:{left:number;top:number;width:number;height:number})=>void}){
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
+  const imageRef=useRef<HTMLImageElement|null>(null);
   const startRef=useRef<{x:number;y:number}|null>(null);
   const [region,setRegion]=useState({left:0.3,top:0.55,width:0.4,height:0.18});
+  const regionRef=useRef(region);
+  useEffect(()=>{
+    regionRef.current=region;
+    if(canvasRef.current&&imageRef.current)paintRegion(canvasRef.current,imageRef.current,region);
+  },[region]);
   useEffect(()=>{
     const image=new Image();
     image.onload=()=>{
-      const canvas=canvasRef.current;if(!canvas)return;
-      canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
-      const ctx=canvas.getContext('2d');if(!ctx)return;
-      ctx.drawImage(image,0,0);
-      const x=region.left*canvas.width,y=region.top*canvas.height,w=region.width*canvas.width,h=region.height*canvas.height;
-      ctx.fillStyle='rgba(220,70,70,.28)';ctx.fillRect(x,y,w,h);
-      ctx.strokeStyle='#e65f58';ctx.lineWidth=Math.max(2,canvas.width/500);ctx.strokeRect(x,y,w,h);
+      imageRef.current=image;
+      if(canvasRef.current)paintRegion(canvasRef.current,image,regionRef.current);
     };
     image.src=src;
-  },[src,region]);
+    return ()=>{image.onload=null;};
+  },[src]);
   function point(event:PointerEvent<HTMLCanvasElement>){
     const rect=event.currentTarget.getBoundingClientRect();
     return {x:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))};
   }
-  function move(event:React.PointerEvent<HTMLCanvasElement>){
+  function move(event:PointerEvent<HTMLCanvasElement>){
     if(!startRef.current)return;
     const p=point(event),s=startRef.current;
     setRegion({left:Math.min(s.x,p.x),top:Math.min(s.y,p.y),width:Math.max(.01,Math.abs(p.x-s.x)),height:Math.max(.01,Math.abs(p.y-s.y))});
   }
-  function end(event:React.PointerEvent<HTMLCanvasElement>){
+  function end(event:PointerEvent<HTMLCanvasElement>){
     if(!startRef.current)return;
     const p=point(event),s=startRef.current;
     const next={left:Math.min(s.x,p.x),top:Math.min(s.y,p.y),width:Math.max(.01,Math.abs(p.x-s.x)),height:Math.max(.01,Math.abs(p.y-s.y))};
@@ -229,7 +240,6 @@ function ImageRegionSelector({src,onSelect}:{src:string;onSelect:(region:{left:n
   }
   return <canvas ref={canvasRef} className="region-canvas" onPointerDown={event=>{startRef.current=point(event);event.currentTarget.setPointerCapture(event.pointerId);}} onPointerMove={move} onPointerUp={end} onPointerCancel={()=>{startRef.current=null;}} aria-label="اسحب لتحديد المنطقة المراد طمسها"/>;
 }
-
 function VehicleCard({vehicle,onAd,busy}:{vehicle:Vehicle;onAd:()=>void;busy:boolean}){
   return <article className="vehicle-card"><div className="vehicle-card-art"><CarFront size={40}/><span>مسودة</span></div><div className="vehicle-card-body"><b>{[vehicle.year,vehicle.make,vehicle.model,vehicle.trim].filter(Boolean).join(' ')}</b><small>{[vehicle.city,vehicle.mileage?new Intl.NumberFormat('ar-SA').format(vehicle.mileage)+' كم':null].filter(Boolean).join(' · ')||'بيانات أولية'}</small>{vehicle.city&&<a className="vehicle-map-link" href={'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(vehicle.city)} target="_blank" rel="noreferrer"><MapPin size={12}/> فتح الموقع على الخرائط</a>}<div className="vehicle-card-bottom"><strong>{vehicle.price?new Intl.NumberFormat('ar-SA').format(vehicle.price)+' ر.س':'السعر غير محدد'}</strong><button onClick={onAd} disabled={busy}>{busy?<LoaderCircle size={15} className="spin"/>:<FileText size={15}/>} تجهيز الإعلان</button></div></div></article>;
 }
