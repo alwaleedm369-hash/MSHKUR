@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerRoutes } from './routes.mjs';
 import { db } from './db.mjs';
+import { getLocalModelStatus } from './engine/model-router.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -31,7 +32,7 @@ export function createApp({ serveWeb = process.env.NODE_ENV === 'production' } =
         googleMaps: false,
         whatsapp: false,
         localSkills: true,
-        localModel: false,
+        localModel: getLocalModelStatus().status,
       },
     });
   });
