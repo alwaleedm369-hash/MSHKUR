@@ -1,5 +1,6 @@
 const rules = [
   { skillId:'image-optimize', patterns:[/ضغط.*(صورة|صور)/u,/حس[ّن].*(صورة|صور)/u,/حوّل.*webp/iu,/قلل.*حجم.*(صورة|صور)/u] },
+  { skillId:'background-remove', patterns:[/إزالة.*الخلفية/u,/احذف.*الخلفية/u,/خلفية.*شفافة/u] },
   { skillId:'license-plate-blur-region', patterns:[/طمس.*(لوحة|اللوحة|رقم)/u,/اخف.*(لوحة|اللوحة|رقم)/u] },
   { skillId:'vehicle-ad-copy', patterns:[/اكتب.*(إعلان|اعلان)/u,/جهز.*(إعلان|اعلان)/u,/وصف.*سيارة/u,/سو[ّ]ق.*سيارة/u] },
   { skillId:'vehicle-validate', patterns:[/راجع.*بيانات.*سيارة/u,/تحقق.*(مواصفات|بيانات).*سيارة/u,/الحقول.*الناقصة/u] },
