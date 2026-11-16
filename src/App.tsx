@@ -63,9 +63,14 @@ export default function App(){
   const [assistantModelBusy,setAssistantModelBusy]=useState(false);
   const [busy,setBusy]=useState(false);
   const [menuOpen,setMenuOpen]=useState(false);
-  const [assetVehicleId,setAssetVehicleId]=useState('');\n  const [vehicleAssets,setVehicleAssets]=useState<any[]>([]);\n  const [assetUploadBusy,setAssetUploadBusy]=useState(false);
+  const [assetVehicleId,setAssetVehicleId]=useState('');
+  const [vehicleAssets,setVehicleAssets]=useState<any[]>([]);
+  const [assetUploadBusy,setAssetUploadBusy]=useState(false);
 
-  const loadVehicles=useCallback(async()=>{const data=await api<{vehicles:Vehicle[]}>('/api/vehicles');setVehicles(data.vehicles);},[]);\n  const loadVehicleAssets=useCallback(async(vehicleId:string)=>{if(!vehicleId){setVehicleAssets([]);return;}const data=await api<{assets:any[]}>('/api/vehicles/'+vehicleId+'/assets');setVehicleAssets(data.assets);},[]);\n  useEffect(()=>{if(vehicles.length&&!assetVehicleId)setAssetVehicleId(vehicles[0].id);},[vehicles,assetVehicleId]);\n  useEffect(()=>{if(assetVehicleId)loadVehicleAssets(assetVehicleId).catch(e=>setError(e.message));},[assetVehicleId,loadVehicleAssets]);
+  const loadVehicles=useCallback(async()=>{const data=await api<{vehicles:Vehicle[]}>('/api/vehicles');setVehicles(data.vehicles);},[]);
+  const loadVehicleAssets=useCallback(async(vehicleId:string)=>{if(!vehicleId){setVehicleAssets([]);return;}const data=await api<{assets:any[]}>('/api/vehicles/'+vehicleId+'/assets');setVehicleAssets(data.assets);},[]);
+  useEffect(()=>{if(vehicles.length&&!assetVehicleId)setAssetVehicleId(vehicles[0].id);},[vehicles,assetVehicleId]);
+  useEffect(()=>{if(assetVehicleId)loadVehicleAssets(assetVehicleId).catch(e=>setError(e.message));},[assetVehicleId,loadVehicleAssets]);
   useEffect(()=>{
     api<{user:User}>('/api/auth/me').then(async data=>{setUser(data.user);}).catch(()=>{}).finally(()=>setLoading(false));
   },[]);
@@ -104,7 +109,17 @@ export default function App(){
     }catch(e){setError(e instanceof Error?e.message:'تعذر إنشاء الإعلان');}
     finally{setBusy(false);}
   }
-  async function uploadVehiclePhotos(files:FileList|null){\n    if(!files||!assetVehicleId)return;\n    setAssetUploadBusy(true);setError('');setMessage('');\n    try{\n      for(const file of Array.from(files)){\n        if(!file.type.startsWith('image/')||file.size>12*1024*1024)throw new Error('كل صورة يجب أن تكون صورة PNG أو JPG أو WebP وأقل من 12 ميجابايت.');\n        const dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('تعذرت قراءة الصورة'));reader.readAsDataURL(file);});\n        await api('/api/vehicles/'+assetVehicleId+'/assets',{method:'POST',body:JSON.stringify({imageBase64:dataUrl})});\n      }\n      await loadVehicleAssets(assetVehicleId);setMessage('تم حفظ الصور الأصلية في ملف السيارة. يمكنك اختيار أي صورة لبدء تجهيزها.');\n    }catch(e){setError(e instanceof Error?e.message:'تعذر رفع الصور');}\n    finally{setAssetUploadBusy(false);}\n  }\n  async function chooseImage(file?:File){
+  async function uploadVehiclePhotos(files:FileList|null){\n    if(!files||!assetVehicleId)return;
+    setAssetUploadBusy(true);setError('');setMessage('');
+    try{\n      for(const file of Array.from(files)){\n        if(!file.type.startsWith('image/')||file.size>12*1024*1024)throw new Error('كل صورة يجب أن تكون صورة PNG أو JPG أو WebP وأقل من 12 ميجابايت.');
+        const dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('تعذرت قراءة الصورة'));reader.readAsDataURL(file);});
+        await api('/api/vehicles/'+assetVehicleId+'/assets',{method:'POST',body:JSON.stringify({imageBase64:dataUrl})});
+      }
+      await loadVehicleAssets(assetVehicleId);setMessage('تم حفظ الصور الأصلية في ملف السيارة. يمكنك اختيار أي صورة لبدء تجهيزها.');
+    }catch(e){setError(e instanceof Error?e.message:'تعذر رفع الصور');}
+    finally{setAssetUploadBusy(false);}
+  }
+  async function chooseImage(file?:File){
     if(!file)return;
     if(!file.type.startsWith('image/')){setError('اختر ملف صورة صالحاً.');return;}
     if(file.size>12*1024*1024){setError('حجم الصورة يجب ألا يتجاوز 12 ميجابايت.');return;}
