@@ -183,7 +183,9 @@ export default function App(){
     finally{setBusy(false);}
   }
 
-  const publicSlug=window.location.pathname.match(/^\/s\/([a-z0-9\p{L}-]+)\/?$/iu)?.[1];\n  if(publicSlug)return <PublicShowroom slug={decodeURIComponent(publicSlug)}/>;\n  if(loading)return <div className="boot-screen"><div className="brand-symbol">م</div><span>مشكور</span><div className="boot-loader"/></div>;
+  const publicSlug=window.location.pathname.match(/^\/s\/([a-z0-9\p{L}-]+)\/?$/iu)?.[1];
+  if(publicSlug)return <PublicShowroom slug={decodeURIComponent(publicSlug)}/>;
+  if(loading)return <div className="boot-screen"><div className="brand-symbol">م</div><span>مشكور</span><div className="boot-loader"/></div>;
   if(!user)return <div className="auth-shell" dir="rtl">
     <div className="auth-brand"><div className="brand-symbol">م</div><span>مشكور</span><small>مساحة عملك الذكية</small></div>
     <div className="auth-layout"><div className="auth-story"><div className="story-label"><span/> مساحة واحدة. عمل أقل.</div><h1>أنجز عملك.<br/><em>واترك الباقي لمشكور.</em></h1><p>أضف سياراتك، جهّز صورها، وأنشئ إعلاناتها من مكان واحد. بدون تعقيد أو اشتراكات ذكاء اصطناعي مفروضة.</p><div className="story-points"><span><Check size={16}/> أدوات محلية بلا API مدفوع</span><span><Check size={16}/> بيانات مستقلة لكل معرض</span><span><Check size={16}/> موافقتك قبل أي إجراء خارجي</span></div><div className="auth-orbit"><div className="orbit-ring ring-one"/><div className="orbit-ring ring-two"/><div className="orbit-core"><WandSparkles size={35}/></div><div className="orbit-node node-one"><CarFront size={18}/></div><div className="orbit-node node-two"><ImagePlus size={18}/></div><div className="orbit-node node-three"><FileText size={18}/></div></div></div>
