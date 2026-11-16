@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -59,5 +60,5 @@ CREATE INDEX IF NOT EXISTS idx_audit_tenant ON audit_events(tenant_id, created_a
 export function nowIso() { return new Date().toISOString(); }
 export function audit({ tenantId, actorUserId = null, eventType, resourceType = null, resourceId = null, details = {} }) {
   db.prepare(`INSERT INTO audit_events(id,tenant_id,actor_user_id,event_type,resource_type,resource_id,details_json,created_at)
-    VALUES(?,?,?,?,?,?,?,?)`).run(crypto.randomUUID(), tenantId, actorUserId, eventType, resourceType, resourceId, JSON.stringify(details), nowIso());
+    VALUES(?,?,?,?,?,?,?,?)`).run(randomUUID(), tenantId, actorUserId, eventType, resourceType, resourceId, JSON.stringify(details), nowIso());
 }
