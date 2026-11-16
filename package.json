@@ -16,7 +16,8 @@
     "check": "npm test && npm run build",
     "check:env": "node scripts/check-env.mjs",
     "db:check": "node scripts/db-check.mjs",
-    "postinstall": "node scripts/apply-bg0-patch.mjs && node scripts/copy-onnx-wasm.mjs"
+    "postinstall": "node scripts/apply-bg0-patch.mjs && node scripts/copy-onnx-wasm.mjs",
+    "mcp:stdio": "node server/mcp/index.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
@@ -40,6 +41,7 @@
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "@modelcontextprotocol/server": "^2.4.0"
   }
 }
