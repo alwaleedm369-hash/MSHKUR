@@ -20,3 +20,6 @@
 @media(max-width:760px){.assistant-buttons{display:grid;grid-template-columns:1fr}.assistant-buttons>*{width:100%}}
 
 .vehicle-map-link{display:inline-flex;align-items:center;gap:5px;margin-top:8px;color:#6c8d78;font-size:9px;text-decoration:none}.vehicle-map-link:hover{text-decoration:underline}
+
+.region-selector-wrap{margin-top:15px;border:1px solid #e8eee9;background:#fbfcfb;border-radius:11px;padding:12px}.region-selector-wrap>div:first-child{display:grid;gap:4px;margin-bottom:10px}.region-selector-wrap b{font-size:10px;color:#4e6556}.region-selector-wrap small{font-size:9px;color:#96a198}.region-canvas{display:block;width:100%;height:auto;max-height:380px;object-fit:contain;border-radius:7px;background:#f0f2f0;touch-action:none;cursor:crosshair}.image-result-four{grid-template-columns:repeat(4,1fr)}
+@media(max-width:760px){.region-selector-wrap{padding:9px}.region-canvas{max-height:280px}.image-result-four{grid-template-columns:1fr 1fr}}
