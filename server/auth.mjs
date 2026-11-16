@@ -30,7 +30,7 @@ function clearCookie(res) {
   res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`);
 }
 function publicUser(row) {
-  return { id: row.id, tenantId: row.tenant_id, tenantName: row.tenant_name, name: row.name, email: row.email, role: row.role };
+  return { id: row.id, tenantId: row.tenant_id, tenantName: row.tenant_name, name: row.name, email: row.email, role: row.role, tenantSlug: row.tenant_slug };
 }
 function issueSession(userId, res) {
   const token = randomBytes(32).toString('base64url');
