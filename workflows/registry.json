@@ -1,0 +1,20 @@
+[
+  {
+    "id": "vehicle-ad-draft",
+    "name": "تجهيز مسودة إعلان السيارة",
+    "version": "1.0.0",
+    "description": "التحقق من بيانات السيارة ثم إنشاء مسودة إعلان من بياناتها المحفوظة.",
+    "runtime": "server",
+    "externalSideEffects": false,
+    "steps": [
+      {
+        "key": "validate",
+        "skillId": "vehicle-validate"
+      },
+      {
+        "key": "draft",
+        "skillId": "vehicle-ad-copy"
+      }
+    ]
+  }
+]
