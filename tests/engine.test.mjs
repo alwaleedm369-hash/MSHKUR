@@ -109,6 +109,8 @@ test('assistant intent planner routes Arabic tasks to an installed local skill',
   const body=await response.json();
   assert.equal(body.intent.matched,true);
   assert.equal(body.intent.skillId,'vehicle-ad-copy');
+  const bg=await json('/api/assistant/plan',{method:'POST',headers:{cookie},body:JSON.stringify({request:'أزل الخلفية من الصورة'})});
+  assert.equal((await bg.json()).intent.skillId,'background-remove');
 });
 
 test('external action approvals are stored pending and never executed automatically', async () => {
