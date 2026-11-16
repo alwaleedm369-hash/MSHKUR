@@ -40,7 +40,7 @@ The lite model is approximately 98.5 MB on first download; the full model is app
 - llama.cpp / llama-quantize — optional local GGUF inference/quantization tool, not a paid API.
 - AssetRipper — GPL-3.0; not bundled or linked as runtime dependency.
 - FFmpeg WASM — not currently included.
-- MCP TypeScript SDK — not currently included as a runtime dependency.
+- @modelcontextprotocol/server 2.4.0 — Apache-2.0; local stdio server only, dev dependency and not required by production web runtime.
 - miniPaint — MIT; research/UX reference only, not bundled.
 
 ## General rule
