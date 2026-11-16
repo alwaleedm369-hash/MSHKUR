@@ -8,9 +8,23 @@ import { generateWithLocalModel, getLocalModelStatus } from './engine/model-rout
 import { listAgents } from './agents/registry.mjs';
 import { createApproval, decideApproval, listApprovals } from './engine/policy.mjs';
 import { readImageFile, storeImageDataUrl } from './storage.mjs';
+import { executeWorkflow, getWorkflowForTenant, listWorkflows } from './engine/workflow.mjs';
 
 export function registerRoutes(app) {
   registerAuthRoutes(app);
+  app.get('/api/workflows', requireAuth, (_req,res) => res.json({workflows:listWorkflows()}));
+  app.post('/api/workflows/:workflowId/run', requireAuth, async (req,res) => {
+    const { vehicleId }=req.body||{};
+    if(typeof vehicleId!=='string')return res.status(400).json({error:'vehicle_id_required'});
+    try{
+      const workflow=await executeWorkflow({workflowId:req.params.workflowId,tenantId:req.user.tenantId,userId:req.user.id,input:{vehicleId}});
+      return res.status(workflow.status==='succeeded'?200:422).json({workflow});
+    }catch(error){return res.status(error.code==='vehicle_not_found'?404:400).json({error:error.code||'workflow_failed',message:error.message});}
+  });
+  app.get('/api/workflows/:id', requireAuth, (req,res) => {
+    const workflow=getWorkflowForTenant(req.params.id,req.user.tenantId);
+    return workflow?res.json({workflow}):res.status(404).json({error:'not_found'});
+  });
   app.get('/api/skills', requireAuth, (_req,res) => res.json({ skills:getSkills() }));
   app.get('/api/agents', requireAuth, (_req,res) => res.json({ agents:listAgents() }));
   app.get('/api/assistant/status', requireAuth, (_req,res) => res.json({ orchestration:'deterministic-local', model:getLocalModelStatus(), paidFallback:false }));
