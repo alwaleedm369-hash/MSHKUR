@@ -90,9 +90,9 @@ export default function App(){
   async function generateAd(vehicle:Vehicle){
     setError('');setMessage('');setBusy(true);setSelectedVehicle(vehicle.id);
     try{
-      const task=await runTask('vehicle-ad-copy',{make:vehicle.make,model:vehicle.model,trim:vehicle.trim||undefined,year:vehicle.year||undefined,mileage:vehicle.mileage||undefined,fuel:vehicle.fuel||undefined,transmission:vehicle.transmission||undefined,color:vehicle.color||undefined,city:vehicle.city||undefined,price:vehicle.price??undefined});
-      if(task.status!=='succeeded')throw new Error(task.error_message||'فشل تجهيز المسودة');
-      setAdDraft(task.output.description);setScreen('cars');setMessage('أُنشئت مسودة من بيانات السيارة المحفوظة. راجعها قبل استخدامها.');
+      const result=await api<{workflow:any}>('/api/workflows/vehicle-ad-draft/run',{method:'POST',body:JSON.stringify({vehicleId:vehicle.id})});
+      if(result.workflow.status!=='succeeded')throw new Error(result.workflow.error_message||'فشل سير عمل الإعلان');
+      setAdDraft(result.workflow.output.adDraft.description);setScreen('cars');setMessage('اكتمل سير العمل: فحص البيانات ثم إنشاء مسودة الإعلان. راجع النواقص قبل استخدامها.');
     }catch(e){setError(e instanceof Error?e.message:'تعذر إنشاء الإعلان');}
     finally{setBusy(false);}
   }
