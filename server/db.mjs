@@ -76,6 +76,41 @@ CREATE TABLE IF NOT EXISTS audit_events (
   created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_tenant ON audit_events(tenant_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS vehicle_assets (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
+  vehicle_id TEXT NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+  file_id TEXT NOT NULL REFERENCES files(id), original_file_id TEXT REFERENCES files(id),
+  asset_role TEXT NOT NULL DEFAULT 'gallery', sort_order INTEGER NOT NULL DEFAULT 0,
+  processing_status TEXT NOT NULL DEFAULT 'original',
+  created_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_vehicle_assets ON vehicle_assets(tenant_id, vehicle_id, sort_order);
+CREATE TABLE IF NOT EXISTS leads (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
+  vehicle_id TEXT REFERENCES vehicles(id) ON DELETE SET NULL,
+  name TEXT, phone TEXT, email TEXT, source TEXT NOT NULL DEFAULT 'website',
+  message TEXT, status TEXT NOT NULL DEFAULT 'new',
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_leads_tenant ON leads(tenant_id, status, created_at DESC);
+CREATE TABLE IF NOT EXISTS conversations (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
+  lead_id TEXT REFERENCES leads(id) ON DELETE SET NULL,
+  channel TEXT NOT NULL DEFAULT 'web', visitor_key TEXT,
+  status TEXT NOT NULL DEFAULT 'open', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS conversation_messages (
+  id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  sender_type TEXT NOT NULL CHECK(sender_type IN ('visitor','assistant','staff','system')),
+  body TEXT NOT NULL, metadata_json TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON conversation_messages(conversation_id, created_at);
+CREATE TABLE IF NOT EXISTS daily_usage (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
+  user_id TEXT NOT NULL REFERENCES users(id), usage_date TEXT NOT NULL,
+  action_key TEXT NOT NULL, used_count INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(tenant_id,user_id,usage_date,action_key)
+);
 `);
 export function nowIso() { return new Date().toISOString(); }
 export function audit({ tenantId, actorUserId = null, eventType, resourceType = null, resourceId = null, details = {} }) {
