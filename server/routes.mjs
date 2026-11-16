@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { registerAuthRoutes, requireAuth } from './auth.mjs';
 import { db, nowIso, audit } from './db.mjs';
 import { createJob, getJobForTenant, getSkills, listJobsForTenant, runJob } from './engine/maestro.mjs';
@@ -76,7 +77,7 @@ export function registerRoutes(app) {
     if (typeof record.make !== 'string' || !record.make.trim() || typeof record.model !== 'string' || !record.model.trim()) return res.status(400).json({ error:'make_and_model_required' });
     if (record.year !== undefined && (!Number.isInteger(record.year) || record.year < 1950 || record.year > new Date().getFullYear()+1)) return res.status(400).json({ error:'invalid_year' });
     if (record.price !== undefined && (typeof record.price !== 'number' || record.price < 0)) return res.status(400).json({ error:'invalid_price' });
-    const id = crypto.randomUUID(), now = nowIso();
+    const id = randomUUID(), now = nowIso();
     db.prepare(`INSERT INTO vehicles(id,tenant_id,created_by,make,model,trim,year,mileage,fuel,transmission,color,price,city,notes,created_at,updated_at)
       VALUES(@id,@tenant_id,@created_by,@make,@model,@trim,@year,@mileage,@fuel,@transmission,@color,@price,@city,@notes,@created_at,@updated_at)`)
       .run({ id, tenant_id:req.user.tenantId, created_by:req.user.id, make:record.make.trim(), model:record.model.trim(), trim:record.trim||null, year:record.year||null, mileage:record.mileage??null, fuel:record.fuel||null, transmission:record.transmission||null, color:record.color||null, price:record.price??null, city:record.city||null, notes:record.notes||null, created_at:now, updated_at:now });
