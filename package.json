@@ -16,7 +16,7 @@
     "check": "npm test && npm run build",
     "check:env": "node scripts/check-env.mjs",
     "db:check": "node scripts/db-check.mjs",
-    "postinstall": "node scripts/apply-bg0-patch.mjs"
+    "postinstall": "node scripts/apply-bg0-patch.mjs && node scripts/copy-onnx-wasm.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
