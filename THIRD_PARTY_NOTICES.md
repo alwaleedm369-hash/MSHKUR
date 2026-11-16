@@ -21,8 +21,8 @@ This list reflects the intended runtime packages on `build/phase-02-engine-core`
 ## BG0 model weights and bundled third-party components
 
 BG0 downloads pinned BiRefNet ONNX weights on first use. These weights are not part of the Git repository and have separate model licenses:
-- Full BiRefNet 512 WebGPU export: https://huggingface.co/naddy24/birefnet-512-webgpu — MIT; pinned revision is recorded by BG0.
-- BiRefNet Lite 512: https://huggingface.co/studioludens/birefnet-lite-512 — MIT; pinned revision is recorded by BG0.
+- Full BiRefNet 512 WebGPU export: https://huggingface.co/naddy24/birefnet-512-webgpu — MIT; pinned revision `ca02a86c094927479e2be583abe87f8ea73fcfda`.
+- BiRefNet Lite 512: https://huggingface.co/studioludens/birefnet-lite-512 — MIT; pinned revision `4a3c40c36c94093cc1e724d9ea428b8fa4b57dc7`.
 
 BG0 also documents an HEIC/HEIF decoder fallback based on `heic-to 1.5.2`, libheif 1.22.2 and libde265 1.0.16, licensed LGPL-3.0-or-later. MSHKUR's current file picker intentionally accepts only PNG/JPEG/WebP, but the package's bundled fallback and notices remain relevant to the distributed dependency. Preserve the upstream notices and corresponding source archives:
 - https://github.com/opencoredev/bg0/blob/main/THIRD_PARTY_NOTICES.md
