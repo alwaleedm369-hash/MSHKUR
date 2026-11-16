@@ -122,6 +122,16 @@ test('external action approvals are stored pending and never executed automatica
   assert.equal((await decision.json()).approval.execution,'not_connected');
 });
 
+test('local model router rejects public hosted API endpoints', async () => {
+  const cookie=await register('public-model@example.test','معرض النموذج المحلي');
+  process.env.LOCAL_LLM_BASE_URL='https://api.openai.com';
+  const response=await json('/api/assistant/status',{headers:{cookie}});
+  const body=await response.json();
+  assert.equal(body.model.status,'invalid_configuration');
+  assert.equal(body.paidFallback,false);
+  delete process.env.LOCAL_LLM_BASE_URL;
+});
+
 test('local model endpoint refuses to call a paid fallback when no local model is configured', async () => {
   const cookie=await register('model@example.test','معرض النموذج');
   const response=await json('/api/assistant/chat',{method:'POST',headers:{cookie},body:JSON.stringify({message:'اكتب وصفاً'})});
