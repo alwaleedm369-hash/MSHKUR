@@ -7,6 +7,7 @@ import sharp from 'sharp';
 
 const temp = mkdtempSync(path.join(tmpdir(), 'mshkur-test-'));
 process.env.MSHKUR_DB_PATH = path.join(temp, 'test.sqlite');
+process.env.MSHKUR_STORAGE_DIR = path.join(temp, 'storage');
 process.env.NODE_ENV = 'test';
 const { createApp } = await import('../server/app.mjs');
 const { db } = await import('../server/db.mjs');
@@ -77,7 +78,7 @@ test('image optimizer produces a real WebP derivative', async () => {
   assert.equal(task.output.format,'webp');
 });
 
-test('logout revokes the session', async () => {
+test('assistant intent planner routes Arabic tasks to an installed local skill', async () => {\n  const cookie=await register('planner@example.test','معرض المساعد');\n  const response=await json('/api/assistant/plan',{method:'POST',headers:{cookie},body:JSON.stringify({request:'جهز إعلان لسيارة كامري'})});\n  const body=await response.json();\n  assert.equal(body.intent.matched,true);\n  assert.equal(body.intent.skillId,'vehicle-ad-copy');\n});\n\ntest('external action approvals are stored pending and never executed automatically', async () => {\n  const cookie=await register('approval@example.test','معرض الموافقات');\n  const response=await json('/api/approvals',{method:'POST',headers:{cookie},body:JSON.stringify({actionType:'publish_listing',payload:{platform:'example',listingId:'draft-1'}})});\n  assert.equal(response.status,201);\n  const {approval}=await response.json();\n  assert.equal(approval.status,'pending');\n  const decision=await json('/api/approvals/'+approval.id+'/decision',{method:'POST',headers:{cookie},body:JSON.stringify({decision:'approved'})});\n  assert.equal(decision.status,200);\n  assert.equal((await decision.json()).approval.execution,'not_connected');\n});\n\ntest('logout revokes the session', async () => {
   const cookie=await register('logout@example.test','معرض الخروج');
   const out=await json('/api/auth/logout',{method:'POST',headers:{cookie}});
   assert.equal(out.status,200);
