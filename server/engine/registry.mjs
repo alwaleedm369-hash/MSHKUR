@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import { z } from 'zod';
+import { readImageFile, storeImageBuffer } from '../storage.mjs';
 
 const vehicleCopySchema = z.object({
   make: z.string().min(1).max(60), model: z.string().min(1).max(80),
@@ -9,17 +10,10 @@ const vehicleCopySchema = z.object({
   color: z.string().max(40).optional(), city: z.string().max(60).optional(),
   price: z.number().nonnegative().optional(), notes: z.string().max(1000).optional(),
 });
-const optimizeSchema = z.object({ imageBase64: z.string().min(100).max(18_000_000), maxWidth: z.number().int().min(320).max(4096).default(2048), quality: z.number().int().min(50).max(95).default(84) });
-const plateBlurSchema = z.object({ imageBase64: z.string().min(100).max(18_000_000), left: z.number().min(0).max(1), top: z.number().min(0).max(1), width: z.number().min(0.001).max(1), height: z.number().min(0.001).max(1) });
+const optimizeSchema = z.object({ imageFileId: z.string().uuid(), maxWidth: z.number().int().min(320).max(4096).default(2048), quality: z.number().int().min(50).max(95).default(84) });
+const plateBlurSchema = z.object({ imageFileId: z.string().uuid(), left: z.number().min(0).max(1), top: z.number().min(0).max(1), width: z.number().min(0.001).max(1), height: z.number().min(0.001).max(1) });
 const vehicleValidateSchema = vehicleCopySchema.partial().extend({ make: z.string().optional(), model: z.string().optional() });
 
-const toBuffer = value => {
-  const match = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(value);
-  if (!match) throw Object.assign(new Error('Unsupported image data URL'), { code: 'invalid_image' });
-  const data = Buffer.from(match[2], 'base64');
-  if (data.length > 12 * 1024 * 1024) throw Object.assign(new Error('Image too large'), { code: 'image_too_large' });
-  return data;
-};
 const asDataUrl = (buffer, mime) => `data:${mime};base64,${buffer.toString('base64')}`;
 
 const handlers = {
@@ -45,27 +39,30 @@ const handlers = {
     if (parsed.price !== undefined && parsed.price < 0) warnings.push('negative_price');
     return { normalized: parsed, missingFields: missing, warnings, readyForDraft: missing.length <= 3 };
   },
-  'image-optimize': async input => {
+  'image-optimize': async (input, context) => {
     const v = optimizeSchema.parse(input);
-    const source = toBuffer(v.imageBase64);
+    const {buffer:source,file:sourceFile} = readImageFile(v.imageFileId,context.tenantId);
     const image = sharp(source, { limitInputPixels: 40_000_000, failOn: 'error' }).rotate();
     const meta = await image.metadata();
     const output = await image.resize({ width: v.maxWidth, withoutEnlargement: true }).webp({ quality: v.quality, effort: 4 }).toBuffer();
-    return { imageBase64: asDataUrl(output, 'image/webp'), original: { width: meta.width, height: meta.height, format: meta.format }, outputBytes: output.length, format: 'webp' };
+    const stored = storeImageBuffer(output, 'image/webp', context);
+    return { imageFileId:stored.id, originalFileId:sourceFile.id, original: { width: meta.width, height: meta.height, format: meta.format }, outputBytes: output.length, format: 'webp' };
   },
-  'license-plate-blur-region': async input => {
+  'license-plate-blur-region': async (input, context) => {
     const v = plateBlurSchema.parse(input);
-    const source = toBuffer(v.imageBase64);
-    const image = sharp(source, { limitInputPixels: 40_000_000, failOn: 'error' }).rotate();
+    const {buffer:source,file:sourceFile} = readImageFile(v.imageFileId,context.tenantId);
+    const oriented = await sharp(source, { limitInputPixels: 40_000_000, failOn: 'error' }).rotate().png().toBuffer();
+    const image = sharp(oriented, { limitInputPixels: 40_000_000, failOn: 'error' });
     const meta = await image.metadata();
     if (!meta.width || !meta.height) throw Object.assign(new Error('Invalid image metadata'), { code: 'invalid_image' });
     const left = Math.max(0, Math.min(meta.width - 1, Math.round(v.left * meta.width)));
     const top = Math.max(0, Math.min(meta.height - 1, Math.round(v.top * meta.height)));
     const width = Math.max(1, Math.min(meta.width - left, Math.round(v.width * meta.width)));
     const height = Math.max(1, Math.min(meta.height - top, Math.round(v.height * meta.height)));
-    const blurred = await sharp(source).extract({ left, top, width, height }).blur(18).png().toBuffer();
+    const blurred = await sharp(oriented).extract({ left, top, width, height }).blur(18).png().toBuffer();
     const output = await image.composite([{ input: blurred, left, top }]).png().toBuffer();
-    return { imageBase64: asDataUrl(output, 'image/png'), region: { left, top, width, height }, note: 'تمويه منطقة يحددها المستخدم؛ لا يوجد كشف تلقائي للوحة في هذه المهارة.' };
+    const stored = storeImageBuffer(output, 'image/png', context);
+    return { imageFileId:stored.id, originalFileId:sourceFile.id, region: { left, top, width, height }, note: 'تمويه منطقة يحددها المستخدم؛ لا يوجد كشف تلقائي للوحة في هذه المهارة.' };
   },
 };
 
