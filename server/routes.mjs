@@ -6,6 +6,7 @@ import { classifyIntent } from './engine/intent.mjs';
 import { getLocalModelStatus } from './engine/model-router.mjs';
 import { listAgents } from './agents/registry.mjs';
 import { createApproval, decideApproval, listApprovals } from './engine/policy.mjs';
+import { readImageFile, storeImageDataUrl } from './storage.mjs';
 
 export function registerRoutes(app) {
   registerAuthRoutes(app);
@@ -27,10 +28,30 @@ export function registerRoutes(app) {
     try { const result=decideApproval({tenantId:req.user.tenantId,userId:req.user.id,role:req.user.role,approvalId:req.params.id,decision:req.body?.decision}); return result ? res.json({approval:result}) : res.status(404).json({error:'not_found'}); }
     catch(error){ return res.status(error.code==='forbidden'?403:400).json({error:error.code || 'decision_failed',message:error.message}); }
   });
-  app.post('/api/tasks', requireAuth, (req,res) => {
-    const { skillId, input } = req.body || {};
-    if (typeof skillId !== 'string' || !input || typeof input !== 'object' || Array.isArray(input)) return res.status(400).json({ error:'invalid_task' });
+  app.get('/api/files/:id', requireAuth, (req,res) => {
     try {
+      const {buffer,file}=readImageFile(req.params.id,req.user.tenantId);
+      res.set('Content-Type',file.mime_type);
+      res.set('Content-Length',String(file.size_bytes));
+      res.set('Cache-Control','private, no-store');
+      res.set('X-Content-Type-Options','nosniff');
+      return res.status(200).send(buffer);
+    } catch { return res.status(404).json({error:'not_found'}); }
+  });
+  app.post('/api/tasks', requireAuth, (req,res) => {
+    const { skillId, input:rawInput } = req.body || {};
+    if (typeof skillId !== 'string' || !rawInput || typeof rawInput !== 'object' || Array.isArray(rawInput)) return res.status(400).json({ error:'invalid_task' });
+    try {
+      const input={...rawInput};
+      if(['image-optimize','license-plate-blur-region'].includes(skillId)) {
+        if(input.imageBase64) {
+          const stored=storeImageDataUrl(input.imageBase64,{tenantId:req.user.tenantId,userId:req.user.id});
+          delete input.imageBase64;
+          input.imageFileId=stored.id;
+        } else if(input.imageFileId) {
+          readImageFile(input.imageFileId,req.user.tenantId);
+        } else return res.status(400).json({error:'image_required'});
+      }
       const job = createJob({ tenantId:req.user.tenantId, userId:req.user.id, skillId, input });
       runJob(job.id).catch(() => {});
       return res.status(202).json(job);
