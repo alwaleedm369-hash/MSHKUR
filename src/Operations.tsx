@@ -9,8 +9,10 @@ async function api<T=any>(url:string, options:RequestInit={}):Promise<T>{
 }
 export function OperationsPanel(){
   const [data,setData]=useState<any>(null),[error,setError]=useState('');
+  const [contact,setContact]=useState({whatsappNumber:'',businessAddress:'',googleMapsUrl:''}),[saved,setSaved]=useState(false);
   const load=()=>api('/api/admin/overview').then(setData).catch(e=>setError(e.message));
-  useEffect(()=>{load();},[]);
+  useEffect(()=>{load();api('/api/settings/public').then((r:any)=>setContact({whatsappNumber:r.settings.whatsapp_number||'',businessAddress:r.settings.business_address||'',googleMapsUrl:r.settings.google_maps_url||''})).catch(()=>{});},[]);
+  async function saveContact(){setSaved(false);try{await api('/api/settings/public',{method:'PUT',body:JSON.stringify(contact)});setSaved(true);}catch(e){setError(e instanceof Error?e.message:'تعذر حفظ بيانات التواصل');}}
   return <section className="ops-panel" dir="rtl">
     <div className="ops-heading"><div><span>مركز المالك</span><h2>التشغيل والإدارة</h2><small>ملخص مساحة العمل والمهام والموافقات</small></div><button onClick={load}><RefreshCw size={16}/> تحديث</button></div>
     {error&&<p className="ops-error">{error}</p>}
