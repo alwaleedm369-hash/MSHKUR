@@ -77,7 +77,7 @@ test('vehicle ad skill creates a draft only from supplied facts', async () => {
 test('image optimizer stores a real WebP derivative outside SQLite', async () => {
   const cookie = await register('image@example.test','معرض الصور');
   const png = await sharp({create:{width:80,height:60,channels:3,background:'#d0d0d0'}}).png().toBuffer();
-  const response = await json('/api/tasks',{method:'POST',headers:{cookie},body:JSON.stringify({skillId:'image-optimize',input:{imageBase64:'data:image/png;base64,'+png.toString('base64'),maxWidth:64,quality:75}})});
+  const response = await json('/api/tasks',{method:'POST',headers:{cookie},body:JSON.stringify({skillId:'image-optimize',input:{imageBase64:'data:image/png;base64,'+png.toString('base64'),maxWidth:320,quality:75}})});
   assert.equal(response.status,202);
   const {id}=await response.json();
   const task=await pollTask(id,cookie);
@@ -90,6 +90,17 @@ test('image optimizer stores a real WebP derivative outside SQLite', async () =>
   const otherTenant=await register('other-image@example.test','معرض آخر');
   const denied=await fetch(base+'/api/files/'+task.output.imageFileId,{headers:{cookie:otherTenant}});
   assert.equal(denied.status,404);
+});
+
+test('browser-only background removal cannot be dispatched to the server worker', async () => {
+  const cookie=await register('browser-skill@example.test','معرض المتصفح');
+  const skills=await (await json('/api/skills',{headers:{cookie}})).json();
+  const bg=skills.skills.find(skill=>skill.id==='background-remove');
+  assert.equal(bg.available,true);
+  assert.equal(bg.runtime,'browser');
+  const response=await json('/api/tasks',{method:'POST',headers:{cookie},body:JSON.stringify({skillId:'background-remove',input:{}})});
+  assert.equal(response.status,400);
+  assert.equal((await response.json()).error,'skill_requires_browser_runtime');
 });
 
 test('assistant intent planner routes Arabic tasks to an installed local skill', async () => {
