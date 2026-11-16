@@ -27,3 +27,5 @@
 .draft-warning{display:flex;align-items:flex-start;gap:8px;background:#fff8ed;border:1px solid #f2e8d5;color:#957444;border-radius:8px;padding:10px 12px;margin-top:9px;font-size:9px;line-height:1.8}.draft-warning b{white-space:nowrap;font-size:9px}.draft-warning span{color:#927f61}
 
 .vehicle-card-buttons{display:flex;align-items:center;gap:6px}.vehicle-card-buttons .vehicle-edit-button{background:#f4f6f4;color:#7a8980}.vehicle-card-buttons button{font-size:8px;padding:7px 8px}
+
+.form-grid .form-full-width{grid-column:1/-1}
