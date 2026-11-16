@@ -30,7 +30,7 @@ function clearCookie(res) {
   res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${secure}`);
 }
 function publicUser(row) {
-  return { id: row.id, tenantId: row.tenant_id, tenantName: row.tenant_name, name: row.name, email: row.email, role: row.role, tenantSlug: row.tenant_slug };
+  return { id: row.id, tenantId: row.tenant_id, tenantName: row.tenant_name, name: row.name, email: row.email, role: row.role, tenantSlug: row.tenant_slug, tenantType: row.tenant_type };
 }
 function issueSession(userId, res) {
   const token = randomBytes(32).toString('base64url');
@@ -42,7 +42,7 @@ function issueSession(userId, res) {
 }
 export function registerAuthRoutes(app) {
   app.post('/api/auth/register', (req, res) => {
-    const { name, email, password, tenantName } = req.body || {};
+    const { name, email, password, tenantName } = req.body || {};\n    const tenantType = req.body?.tenantType === 'individual' ? 'individual' : 'dealer';
     if (typeof name !== 'string' || name.trim().length < 2 || name.length > 80 ||
         typeof tenantName !== 'string' || tenantName.trim().length < 2 || tenantName.length > 100 ||
         typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 ||
@@ -56,14 +56,14 @@ export function registerAuthRoutes(app) {
     const slugBase = tenantName.trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 50) || 'workspace';
     const slug = `${slugBase}-${tenantId.slice(0, 8)}`;
     const create = db.transaction(() => {
-      db.prepare('INSERT INTO tenants(id,name,slug,created_at) VALUES(?,?,?,?)').run(tenantId, tenantName.trim(), slug, now);
+      db.prepare('INSERT INTO tenants(id,name,slug,tenant_type,created_at) VALUES(?,?,?,?,?)').run(tenantId, tenantName.trim(), slug, tenantType, now);
       db.prepare('INSERT INTO users(id,tenant_id,name,email,password_hash,role,created_at) VALUES(?,?,?,?,?,?,?)')
         .run(userId, tenantId, name.trim(), email.trim().toLowerCase(), passwordHash(password), 'owner', now);
     });
     create();
     issueSession(userId, res);
     audit({ tenantId, actorUserId: userId, eventType: 'auth.register', resourceType: 'user', resourceId: userId });
-    return res.status(201).json({ user: publicUser({ id:userId, tenant_id:tenantId, tenant_name:tenantName.trim(), tenant_slug:slug, name:name.trim(), email:email.trim().toLowerCase(), role:'owner' }) });
+    return res.status(201).json({ user: publicUser({ id:userId, tenant_id:tenantId, tenant_name:tenantName.trim(), tenant_slug:slug, tenant_type:tenantType, name:name.trim(), email:email.trim().toLowerCase(), role:'owner' }) });
   });
 
   app.post('/api/auth/login', (req, res) => {
@@ -81,7 +81,7 @@ export function registerAuthRoutes(app) {
   app.get('/api/auth/me', (req, res) => {
     const token = cookieToken(req);
     if (!token) return res.status(401).json({ error: 'unauthenticated' });
-    const row = db.prepare(`SELECT u.id,u.tenant_id,u.name,u.email,u.role,t.name AS tenant_name,t.slug AS tenant_slug
+    const row = db.prepare(`SELECT u.id,u.tenant_id,u.name,u.email,u.role,t.name AS tenant_name,t.slug AS tenant_slug,t.tenant_type AS tenant_type
       FROM sessions s JOIN users u ON u.id=s.user_id JOIN tenants t ON t.id=u.tenant_id
       WHERE s.token_hash=? AND s.expires_at > ?`).get(hashToken(token), nowIso());
     if (!row) { clearCookie(res); return res.status(401).json({ error: 'unauthenticated' }); }
