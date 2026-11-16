@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { db, nowIso, audit } from './db.mjs';
 import { requireAuth } from './auth.mjs';
 import { storeImageDataUrl } from './storage.mjs';
+import { executeSkill } from './engine/registry.mjs';
 
 const FREE_DAILY_LIMITS = { image_jobs: 20, ad_drafts: 10, assistant_messages: 40 };
 export function consumeDailyUsage(tenantId, userId, key) {
@@ -11,6 +12,29 @@ export function consumeDailyUsage(tenantId, userId, key) {
   const result = db.prepare('INSERT INTO daily_usage(id,tenant_id,user_id,usage_date,action_key,used_count) VALUES(?,?,?,?,?,1) ON CONFLICT(tenant_id,user_id,usage_date,action_key) DO UPDATE SET used_count=used_count+1 WHERE used_count < ?').run(randomUUID(),tenantId,userId,day,key,limit);
   if (!result.changes) throw Object.assign(new Error('وصلت إلى الحد اليومي المجاني لهذه المهمة. حاول غداً.'), { code: 'daily_limit_reached' });
 }
+
+async function executePhotoBatch(runId, tenantId, userId, vehicleId) {
+  const items=db.prepare('SELECT * FROM photo_batch_items WHERE run_id=? ORDER BY sort_order').all(runId);
+  for(const item of items) {
+    try {
+      consumeDailyUsage(tenantId,userId,'image_jobs');
+      db.prepare("UPDATE photo_batch_items SET status='running',updated_at=? WHERE id=?").run(nowIso(),item.id);
+      const output=await executeSkill('image-optimize',{imageFileId:item.source_file_id,maxWidth:2048,quality:84},{tenantId,userId});
+      const derivedId=randomUUID();
+      db.prepare("INSERT INTO vehicle_assets(id,tenant_id,vehicle_id,file_id,original_file_id,asset_role,sort_order,processing_status,created_by,created_at) VALUES(?,?,?,?,?,'derived',?,'optimized',?,?)")
+        .run(derivedId,tenantId,vehicleId,output.imageFileId,item.source_file_id,item.sort_order,userId,nowIso());
+      db.prepare("UPDATE photo_batch_items SET output_file_id=?,status='succeeded',updated_at=? WHERE id=?").run(output.imageFileId,nowIso(),item.id);
+      db.prepare('UPDATE photo_batch_runs SET completed_items=completed_items+1,updated_at=? WHERE id=?').run(nowIso(),runId);
+    } catch(error) {
+      db.prepare("UPDATE photo_batch_items SET status='failed',error_message=?,updated_at=? WHERE id=?").run(String(error.message||'Processing failed').slice(0,300),nowIso(),item.id);
+      db.prepare('UPDATE photo_batch_runs SET failed_items=failed_items+1,updated_at=? WHERE id=?').run(nowIso(),runId);
+    }
+  }
+  const counts=db.prepare("SELECT SUM(status='failed') AS failed,SUM(status='succeeded') AS done FROM photo_batch_items WHERE run_id=?").get(runId);
+  const status=counts.failed?'completed_with_errors':'succeeded';
+  db.prepare('UPDATE photo_batch_runs SET status=?,updated_at=? WHERE id=?').run(status,nowIso(),runId);
+}
+
 export function registerMediaAndGrowthRoutes(app) {
   app.get('/api/usage', requireAuth, (req, res) => {
     const usage = Object.fromEntries(Object.entries(FREE_DAILY_LIMITS).map(([key, limit]) => {
@@ -43,6 +67,31 @@ export function registerMediaAndGrowthRoutes(app) {
   app.delete('/api/vehicles/:vehicleId/assets/:assetId', requireAuth, (req, res) => {
     const result = db.prepare('DELETE FROM vehicle_assets WHERE id=? AND vehicle_id=? AND tenant_id=?').run(req.params.assetId, req.params.vehicleId, req.user.tenantId);
     return result.changes ? res.status(204).end() : res.status(404).json({ error: 'not_found' });
+  });
+
+
+  app.post('/api/vehicles/:id/photo-batch', requireAuth, (req,res) => {
+    const vehicle=db.prepare('SELECT id FROM vehicles WHERE id=? AND tenant_id=?').get(req.params.id,req.user.tenantId);
+    if(!vehicle)return res.status(404).json({error:'not_found'});
+    const assetIds=Array.isArray(req.body?.assetIds)?[...new Set(req.body.assetIds)].slice(0,20):[];
+    if(!assetIds.length)return res.status(400).json({error:'assets_required'});
+    const placeholders=assetIds.map(()=>'?').join(',');
+    const assets=db.prepare('SELECT id,file_id,sort_order FROM vehicle_assets WHERE tenant_id=? AND vehicle_id=? AND id IN ('+placeholders+') AND asset_role IN (\'gallery\',\'cover\') ORDER BY sort_order').all(req.user.tenantId,vehicle.id,...assetIds);
+    if(assets.length!==assetIds.length)return res.status(400).json({error:'invalid_assets'});
+    const runId=randomUUID(),now=nowIso();
+    const tx=db.transaction(()=>{
+      db.prepare("INSERT INTO photo_batch_runs(id,tenant_id,vehicle_id,user_id,status,total_items,created_at,updated_at) VALUES(?,?,?,?,'queued',?,?,?)").run(runId,req.user.tenantId,vehicle.id,req.user.id,assets.length,now,now);
+      for(const asset of assets)db.prepare("INSERT INTO photo_batch_items(id,run_id,tenant_id,source_asset_id,source_file_id,status,sort_order,created_at,updated_at) VALUES(?,?,?,?,?,'queued',?,?,?)").run(randomUUID(),runId,req.user.tenantId,asset.id,asset.file_id,asset.sort_order,now,now);
+    });
+    tx();
+    setImmediate(()=>executePhotoBatch(runId,req.user.tenantId,req.user.id,vehicle.id).catch(()=>{}));
+    return res.status(202).json({runId,status:'queued',totalItems:assets.length,sequence:'optimize-webp'});
+  });
+  app.get('/api/photo-batches/:id', requireAuth, (req,res) => {
+    const run=db.prepare('SELECT * FROM photo_batch_runs WHERE id=? AND tenant_id=? AND user_id=?').get(req.params.id,req.user.tenantId,req.user.id);
+    if(!run)return res.status(404).json({error:'not_found'});
+    const items=db.prepare('SELECT id,source_asset_id,source_file_id,output_file_id,status,error_message,sort_order FROM photo_batch_items WHERE run_id=? ORDER BY sort_order').all(run.id);
+    return res.json({run,items});
   });
 
   app.post('/api/vehicles/:id/showroom-publish', requireAuth, (req,res) => {
