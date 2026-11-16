@@ -12,7 +12,7 @@ tools/model-lab/quantize-gguf.sh input.gguf models/output-q4.gguf Q4_K_M
 
 ## ONNX Runtime
 
-أنشئ بيئة Python منفصلة وثبّت onnxruntime وonnxruntime-tools/onnx حسب توثيق ONNX Runtime، ثم:
+أنشئ بيئة Python منفصلة وثبّت onnxruntime وonnx حسب توثيق ONNX Runtime، ثم:
 
 ```bash
 python tools/model-lab/quantize-onnx.py input.onnx models/output-int8.onnx --type qint8
