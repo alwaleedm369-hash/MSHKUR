@@ -71,6 +71,7 @@ Google OAuth، خرائط تفاعلية مدمجة، كشف اللوحات تل
 - [خادم MCP المحلي](tools/mcp/README_AR.md)
 - [مختبر النماذج وأدوات الضغط](tools/model-lab/README_AR.md)
 - [خارطة التنفيذ](docs/ROADMAP_AR.md)
+- [دليل النشر](docs/DEPLOYMENT_AR.md)
 - [خدمات Google الاختيارية](docs/GOOGLE_SERVICES_AR.md)
 
 ## مبادئ غير قابلة للتفاوض
