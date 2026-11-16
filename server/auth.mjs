@@ -42,7 +42,8 @@ function issueSession(userId, res) {
 }
 export function registerAuthRoutes(app) {
   app.post('/api/auth/register', (req, res) => {
-    const { name, email, password, tenantName } = req.body || {};\n    const tenantType = req.body?.tenantType === 'individual' ? 'individual' : 'dealer';
+    const { name, email, password, tenantName } = req.body || {};
+    const tenantType = req.body?.tenantType === 'individual' ? 'individual' : 'dealer';
     if (typeof name !== 'string' || name.trim().length < 2 || name.length > 80 ||
         typeof tenantName !== 'string' || tenantName.trim().length < 2 || tenantName.length > 100 ||
         typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 ||
