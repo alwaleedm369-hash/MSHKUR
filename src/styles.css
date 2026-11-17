@@ -119,3 +119,22 @@
 .work-empty{display:grid;justify-items:center;gap:8px;padding:42px 15px;color:#8b9a90}
 .work-empty b{font-size:13px;color:#53675b}.work-empty p{font-size:11px}
 @media(max-width:720px){.work-library-grid{grid-template-columns:1fr}.workflow-row{align-items:flex-start;flex-direction:column}.workflow-row>span{white-space:normal}.task-history-row{align-items:flex-start}.task-status{margin-right:auto}}
+
+.skill-import-form{display:flex;gap:8px;margin:14px 0;align-items:center}
+.skill-import-form input{flex:1;min-width:0;border:1px solid #dfe8e0;background:#fff;border-radius:9px;padding:11px;font:inherit;font-size:11px;color:#33483b}
+.skill-import-form button,.import-review-actions button{border:0;border-radius:9px;background:#416f59;color:#fff;padding:10px 13px;font:inherit;font-size:11px;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;white-space:nowrap}
+.skill-import-form button:disabled{opacity:.55;cursor:wait}
+.import-feedback{font-size:11px;color:#4d765e;background:#fff;border-radius:8px;padding:9px}
+.imported-source-list{display:grid;gap:8px;margin-top:16px}
+.imported-source-list> b{font-size:12px;color:#506658}
+.imported-source-list>small{font-size:10px;color:#89968d}
+.imported-source-row{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid #e2eae3;border-radius:9px;padding:12px}
+.imported-source-row>div:first-child{display:grid;gap:5px;min-width:0}
+.imported-source-row b{font-size:11px;color:#34493b}
+.imported-source-row small{font-size:9px;color:#859289;overflow-wrap:anywhere}
+.imported-source-row span{font-size:9px;color:#64836e}
+.import-review-actions{display:flex;gap:6px;flex-shrink:0}
+.import-review-actions button{padding:7px 9px;font-size:10px}
+.import-review-actions button:last-child{background:#f3eeee;color:#93645e}
+.import-warning{display:block;margin-top:13px;color:#9a8062;font-size:10px;line-height:1.8}
+@media(max-width:720px){.skill-import-form{align-items:stretch;flex-direction:column}.skill-import-form button{width:100%}.imported-source-row{align-items:flex-start;flex-direction:column}.import-review-actions{width:100%}.import-review-actions button{flex:1}}
