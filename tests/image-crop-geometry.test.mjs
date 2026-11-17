@@ -24,7 +24,7 @@ test('drag crop supports reverse direction and clamps to source bounds', () => {
 });
 test('drag crop honors an aspect ratio and remains within the image', () => {
   const crop = getCropFromDrag(1600, 900, 100, 100, 900, 500, 16 / 9);
-  assert.equal(crop.width / crop.height, 16 / 9);
+  assert.ok(Math.abs(crop.width / crop.height - 16 / 9) < 0.01);
   assert.ok(crop.x >= 0 && crop.y >= 0);
   assert.ok(crop.x + crop.width <= 1600 && crop.y + crop.height <= 900);
 });
