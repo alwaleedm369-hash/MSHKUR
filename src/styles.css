@@ -224,3 +224,27 @@
 @media(prefers-reduced-motion:reduce){.car-start-stage-glow,.car-start-stage:after,.scene-swatch:after{animation:none}}
 
 .auth-google-note{display:block;margin:-5px 2px 4px;font-size:9px;line-height:1.7;color:#9aa49d}
+
+/* Scrollable public product directory below the first mobile viewport */
+.car-start-below{margin-top:31px;padding-top:25px;border-top:1px solid #e5ece6}
+.car-start-below-heading{text-align:center;padding:0 8px 17px}
+.car-start-below-heading>span{font-size:8px;letter-spacing:2px;color:#83a08b}
+.car-start-below-heading h2{font-size:19px;line-height:1.5;letter-spacing:-.35px;color:#2b4033;margin:7px 0 4px}
+.car-start-below-heading p{font-size:9px;color:#8b988f;margin:0}
+.car-start-tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.car-start-tool-card{min-width:0;min-height:155px;display:flex;flex-direction:column;align-items:flex-start;text-align:right;padding:13px 11px 11px;border:1px solid #e5ece6;border-radius:12px;background:#fff;color:#33483b;box-shadow:0 4px 14px #1d392809;cursor:pointer;transition:border-color .18s,transform .18s}
+.car-start-tool-card:active{transform:scale(.985)}
+.car-start-tool-card:hover{border-color:#b7cdbb}
+.car-start-tool-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#edf5ef;color:#5d896a;margin-bottom:10px}
+.car-start-tool-card>b{font-size:10px;color:#344b3b;margin-bottom:5px}
+.car-start-tool-card>small{font-size:8px;line-height:1.65;color:#88958b;min-height:32px}
+.car-start-tool-card>em{margin-top:auto;padding-top:8px;display:flex;align-items:center;gap:4px;color:#5f866b;font-style:normal;font-size:8px}
+.car-start-below-flow{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:17px;padding:14px 10px;border:1px solid #e5ece6;border-radius:11px;background:#f0f5f1}
+.car-start-below-flow>div{min-width:0;display:grid;justify-items:center;text-align:center;gap:4px;flex:1}
+.car-start-below-flow>div>span{width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#dceade;color:#547a5f;font-size:8px}
+.car-start-below-flow>div>b{font-size:8px;color:#4a6050;white-space:nowrap}
+.car-start-below-flow>div>small{font-size:7px;color:#8a988e;line-height:1.4}
+.car-start-below-flow>svg{flex:none;color:#9cad9f}
+.car-start-below-privacy{display:flex;align-items:center;gap:7px;margin:13px 2px 0;color:#819087;font-size:8px;line-height:1.7}
+.car-start-below-privacy svg{flex:none;color:#71977c}
+@media(max-width:390px){.car-start-tool-grid{gap:7px}.car-start-tool-card{padding:11px 9px;min-height:158px}.car-start-below-heading h2{font-size:17px}.car-start-below-flow{padding-inline:6px;gap:2px}.car-start-below-flow>div>b{font-size:7px}.car-start-below-flow>div>small{font-size:6px}}
