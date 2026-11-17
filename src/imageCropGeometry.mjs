@@ -68,3 +68,13 @@ export function getCropFromDrag(width, height, startX, startY, endX, endY, targe
   const bottom = Math.max(y + 1, Math.min(height, Math.ceil(top + cropHeight)));
   return { x, y, width: right - x, height: bottom - y };
 }
+
+/** Resolve a named crop ratio; "original" follows the source image dimensions. */
+export function resolveCropRatio(mode, width, height) {
+  validateSource(width, height);
+  if (mode === 'free') return null;
+  if (mode === 'original') return width / height;
+  const ratios = { square: 1, landscape: 4 / 3, wide: 16 / 9 };
+  if (Object.hasOwn(ratios, mode)) return ratios[mode];
+  throw new RangeError('نمط القص غير معروف.');
+}
