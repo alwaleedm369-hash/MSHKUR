@@ -154,7 +154,7 @@ export default function App(){
   }
   async function optimizeVehicleBatch(){
     if(!assetVehicleId||!vehicleAssets.length)return;
-    setBatchBusy(true);setBatchStatus('بدء تجهيز الصور بالتسلسل...');setError('');
+    setBatchBusy(true);setBatchRunStatus('queued');setBatchRunId('');setBatchStatus('بدء تجهيز الصور بالتسلسل...');setError('');
     try{
       const started=await api<{runId:string}>('/api/vehicles/'+assetVehicleId+'/photo-batch',{method:'POST',body:JSON.stringify({assetIds:vehicleAssets.filter(a=>a.asset_role!=='derived').map(a=>a.id)})});
       setBatchRunId(started.runId);
