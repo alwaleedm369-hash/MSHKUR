@@ -124,6 +124,16 @@ CREATE TABLE IF NOT EXISTS photo_batch_items (
   error_message TEXT, sort_order INTEGER NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_photo_batch_items ON photo_batch_items(run_id, sort_order);
+CREATE TABLE IF NOT EXISTS imported_skill_sources (
+  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  imported_by TEXT NOT NULL REFERENCES users(id), source_url TEXT NOT NULL,
+  repository TEXT NOT NULL, source_path TEXT NOT NULL, source_ref TEXT NOT NULL,
+  commit_sha TEXT NOT NULL, license_spdx TEXT NOT NULL, skill_name TEXT NOT NULL,
+  skill_content TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'review_required'
+    CHECK(status IN ('review_required','approved','rejected')),
+  review_note TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_imported_skills_tenant ON imported_skill_sources(tenant_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS daily_usage (
   id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id),
   user_id TEXT NOT NULL REFERENCES users(id), usage_date TEXT NOT NULL,
