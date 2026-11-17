@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Blocks, Workflow, RefreshCw, Clock3, CheckCircle2, XCircle, LoaderCircle, ShieldCheck, GitBranch, BookOpen } from 'lucide-react';
 
-async function api<T=any>(url:string):Promise<T>{
-  const response=await fetch(url,{headers:{'Content-Type':'application/json'}});
+async function api<T=any>(url:string,options:RequestInit={}):Promise<T>{
+  const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
   const body=await response.json().catch(()=>({}));
   if(!response.ok)throw new Error(body.message||body.error||'تعذر تحميل البيانات');
   return body as T;
@@ -13,13 +13,27 @@ export function SkillsPanel(){
   const [workflows,setWorkflows]=useState<any[]>([]);
   const [error,setError]=useState('');
   const [loading,setLoading]=useState(true);
+  const [imports,setImports]=useState<any[]>([]);
+  const [sourceUrl,setSourceUrl]=useState('');
+  const [importBusy,setImportBusy]=useState(false);
+  const [importMessage,setImportMessage]=useState('');
   async function load(){
     setLoading(true);setError('');
-    try{const [a,b]=await Promise.all([api<{skills:any[]}>('/api/skills'),api<{workflows:any[]}>('/api/workflows')]);setSkills(a.skills);setWorkflows(b.workflows);}
+    try{const [a,b,c]=await Promise.all([api<{skills:any[]}>('/api/skills'),api<{workflows:any[]}>('/api/workflows'),api<{imports:any[]}>('/api/imported-skills')]);setSkills(a.skills);setWorkflows(b.workflows);setImports(c.imports);}
     catch(e){setError(e instanceof Error?e.message:'تعذر تحميل المكتبة');}
     finally{setLoading(false);}
   }
   useEffect(()=>{load();},[]);
+  async function importFromGithub(e:React.FormEvent){
+    e.preventDefault();setImportBusy(true);setImportMessage('جارٍ جلب الملف والتحقق من الترخيص...');
+    try{await api<{imported:any}>('/api/imported-skills/github',{method:'POST',body:JSON.stringify({url:sourceUrl})});setImportMessage('تم استيراد وصف المهارة إلى قائمة المراجعة. لم يتم تشغيلها.');setSourceUrl('');await load();}
+    catch(error){setImportMessage(error instanceof Error?error.message:'تعذر استيراد المصدر');}
+    finally{setImportBusy(false);}
+  }
+  async function reviewImport(id:string,status:'approved'|'rejected'){
+    try{await api('/api/imported-skills/'+id+'/review',{method:'POST',body:JSON.stringify({status,note:status==='approved'?'مراجعة أولية للوثيقة فقط؛ يلزم محول تنفيذ مستقل قبل التفعيل.':'مرفوض من المالك'})});await load();}
+    catch(error){setImportMessage(error instanceof Error?error.message:'تعذر حفظ المراجعة');}
+  }
   return <section className="ops-panel" dir="rtl">
     <div className="ops-heading"><div><span>مكتبة التنفيذ</span><h2>المهارات وسير العمل</h2><small>كل مهارة لها مدخلات وصلاحيات ومخرج محدد</small></div><button onClick={load}><RefreshCw size={16}/> تحديث</button></div>
     {error&&<p className="ops-error">{error}</p>}
@@ -31,7 +45,22 @@ export function SkillsPanel(){
       <div className="work-library-section"><div className="ops-heading"><div><span>وصفات قابلة للتنفيذ</span><h2>سير العمل</h2></div><Workflow size={20}/></div>
         {workflows.map(flow=><article className="workflow-row" key={flow.id}><div><b>{flow.name}</b><p>{flow.description}</p><small>{(flow.steps||[]).length} خطوات · {flow.externalSideEffects?'يتطلب موافقة خارجية':'تنفيذ محلي'}</small></div><span><CheckCircle2 size={16}/> {flow.id}</span></article>)}
       </div>
-      <div className="import-roadmap"><div><GitBranch size={19}/><b>استيراد مهارة من GitHub أو ملف SKILL.md</b></div><p>مسار الاستيراد التالي سيقبل ملفات المهارات والتوثيق فقط، ويفحص المصدر والترخيص والصلاحيات قبل إضافتها. لن يشغّل كوداً مستورداً تلقائياً أو يمنحه صلاحية الوصول إلى بيانات المعرض.</p><a href="https://github.com/alwaleedm369-hash/MSHKUR/tree/build/phase-02-engine-core/skills" target="_blank" rel="noreferrer">مجلد المهارات الحالي <BookOpen size={14}/></a></div>
+      <div className="import-roadmap"><div><GitBranch size={19}/><b>استيراد مهارة من GitHub</b></div>
+        <p>ألصق رابط ملف SKILL.md من مستودع عام. نفحص وجود ترخيص واضح ونثبت commit المصدر. نستورد الوثيقة فقط إلى مساحة مراجعة خاصة بحسابك؛ لا نشغّل كوداً ولا ننزّل نماذج تلقائياً.</p>
+        <form className="skill-import-form" onSubmit={importFromGithub}>
+          <input type="url" value={sourceUrl} onChange={e=>setSourceUrl(e.target.value)} placeholder="https://github.com/owner/repo/blob/main/skills/example/SKILL.md" required dir="ltr"/>
+          <button type="submit" disabled={importBusy}>{importBusy?<LoaderCircle size={15} className="spin"/>:<GitBranch size={15}/>} استيراد للمراجعة</button>
+        </form>
+        {importMessage&&<p className="import-feedback">{importMessage}</p>}
+        <a href="https://github.com/alwaleedm369-hash/MSHKUR/tree/build/phase-02-engine-core/skills" target="_blank" rel="noreferrer">مجلد مهارات MSHKUR <BookOpen size={14}/></a>
+        <div className="imported-source-list"><b>المصادر المستوردة</b>
+          {imports.length===0?<small>لا توجد مصادر مستوردة بعد.</small>:imports.map(item=><article className="imported-source-row" key={item.id}>
+            <div><b>{item.skill_name}</b><small>{item.repository} · {item.license_spdx} · {item.commit_sha?.slice(0,8)}</small><span>{item.status==='review_required'?'بانتظار المراجعة':item.status==='approved'?'مقبول للمراجعة الفنية':'مرفوض'}</span></div>
+            {item.status==='review_required'&&<div className="import-review-actions"><button type="button" onClick={()=>reviewImport(item.id,'approved')}>اعتماد الوثيقة</button><button type="button" onClick={()=>reviewImport(item.id,'rejected')}>رفض</button></div>}
+          </article>)}
+        </div>
+        <small className="import-warning">اعتماد الوثيقة لا يفعّل المهارة. تفعيل أي مهارة يتطلب كتابة محول آمن واختبارات وصلاحيات منفصلة.</small>
+      </div>
     </>}
   </section>;
 }
