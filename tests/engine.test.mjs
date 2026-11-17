@@ -282,6 +282,50 @@ test('map growth assistant returns a Google Maps search link without sending out
   assert.match(result.note,/لا يتم جمع بيانات أشخاص/);
 });
 
+
+test('photo batch can be cancelled before processing starts', async () => {
+  const cookie=await register('batch-cancel@example.test','معرض إلغاء الدفعات');
+  const created=await json('/api/vehicles',{method:'POST',headers:{cookie},body:JSON.stringify({make:'Kia',model:'Sportage'})});
+  const vehicleId=(await created.json()).vehicle.id;
+  const me=(await (await json('/api/auth/me',{headers:{cookie}})).json()).user;
+  const runId=crypto.randomUUID();
+  const now=new Date().toISOString();
+  db.prepare("INSERT INTO photo_batch_runs(id,tenant_id,vehicle_id,user_id,status,total_items,created_at,updated_at) VALUES(?,?,?,?,'queued',1,?,?)")
+    .run(runId,me.tenantId,vehicleId,me.id,now,now);
+  const cancelled=await json('/api/photo-batches/'+runId+'/cancel',{method:'POST',headers:{cookie},body:'{}'});
+  assert.equal(cancelled.status,200);
+  assert.equal((await cancelled.json()).status,'cancelled');
+  const state=await (await json('/api/photo-batches/'+runId,{headers:{cookie}})).json();
+  assert.equal(state.run.status,'cancelled');
+});
+
+test('photo batch retry only requeues failed items and remains tenant scoped', async () => {
+  const cookie=await register('batch-retry@example.test','معرض إعادة المحاولة');
+  const created=await json('/api/vehicles',{method:'POST',headers:{cookie},body:JSON.stringify({make:'Mazda',model:'CX-5'})});
+  const vehicleId=(await created.json()).vehicle.id;
+  const me=(await (await json('/api/auth/me',{headers:{cookie}})).json()).user;
+  const runId=crypto.randomUUID(), itemId=crypto.randomUUID(), now=new Date().toISOString();
+  db.prepare("INSERT INTO photo_batch_runs(id,tenant_id,vehicle_id,user_id,status,total_items,failed_items,created_at,updated_at) VALUES(?,?,?,?,'completed_with_errors',1,1,?,?)")
+    .run(runId,me.tenantId,vehicleId,me.id,now,now);
+  db.prepare("INSERT INTO photo_batch_items(id,run_id,tenant_id,source_asset_id,source_file_id,status,sort_order,created_at,updated_at) VALUES(?,?,?,?,?,'failed',0,?,?)")
+    .run(itemId,runId,me.tenantId,crypto.randomUUID(),crypto.randomUUID(),now,now);
+  const retry=await json('/api/photo-batches/'+runId+'/retry',{method:'POST',headers:{cookie},body:'{}'});
+  assert.equal(retry.status,202);
+  assert.equal((await retry.json()).retriedItems,1);
+  let state;
+  for(let i=0;i<80;i++){
+    await new Promise(resolve=>setTimeout(resolve,25));
+    state=await (await json('/api/photo-batches/'+runId,{headers:{cookie}})).json();
+    if(state.run.status==='completed_with_errors')break;
+  }
+  assert.equal(state.run.status,'completed_with_errors');
+  assert.equal(state.items.length,1);
+  assert.equal(state.items[0].status,'failed');
+  const other=await register('batch-retry-other@example.test','معرض آخر');
+  const hidden=await json('/api/photo-batches/'+runId+'/retry',{method:'POST',headers:{cookie:other},body:'{}'});
+  assert.equal(hidden.status,404);
+});
+
 test.after(async()=>{
   await new Promise(resolve=>server.close(resolve));
   db.close();
