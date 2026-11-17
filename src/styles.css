@@ -138,3 +138,9 @@
 .import-review-actions button:last-child{background:#f3eeee;color:#93645e}
 .import-warning{display:block;margin-top:13px;color:#9a8062;font-size:10px;line-height:1.8}
 @media(max-width:720px){.skill-import-form{align-items:stretch;flex-direction:column}.skill-import-form button{width:100%}.imported-source-row{align-items:flex-start;flex-direction:column}.import-review-actions{width:100%}.import-review-actions button{flex:1}}
+
+.workflow-run-controls{display:flex;align-items:center;gap:7px}
+.workflow-run-controls select{max-width:175px;min-width:120px;border:1px solid #e1e9e2;border-radius:8px;padding:8px;background:#fff;color:#52665a;font:inherit;font-size:10px}
+.workflow-run-controls button{border:0;border-radius:8px;padding:8px 12px;background:#416f59;color:#fff;font:inherit;font-size:10px;cursor:pointer}
+.workflow-run-controls button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:720px){.workflow-run-controls{width:100%}.workflow-run-controls select{flex:1;max-width:none}}
