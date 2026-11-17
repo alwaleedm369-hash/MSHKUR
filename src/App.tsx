@@ -119,7 +119,7 @@ export default function App(){
       } else {
         const created=await api<{vehicle:Vehicle}>('/api/vehicles',{method:'POST',body:JSON.stringify(payload)});
         savedVehicleId=created.vehicle.id;
-        setPendingVehicleId(savedVehicleId);
+        if(pendingCarPhotos.length) setPendingVehicleId(savedVehicleId);
       }
       const hasPendingPhotos=pendingCarPhotos.length>0;
       if(hasPendingPhotos&&savedVehicleId){
