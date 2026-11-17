@@ -134,7 +134,7 @@ export function registerMediaAndGrowthRoutes(app) {
     const run=db.prepare('SELECT * FROM photo_batch_runs WHERE id=? AND tenant_id=? AND user_id=?').get(req.params.id,req.user.tenantId,req.user.id);
     if(!run) return res.status(404).json({error:'not_found'});
     if(activePhotoBatches.has(run.id)||run.status==='running') return res.status(409).json({error:'already_running'});
-    const reset=db.prepare("UPDATE photo_batch_items SET status='queued',error_message=NULL,updated_at=? WHERE run_id=? AND tenant_id=? AND status='failed'").run(nowIso(),run.id,req.user.tenantId);
+    const reset=db.prepare("UPDATE photo_batch_items SET status='queued',output_file_id=NULL,error_message=NULL,updated_at=? WHERE run_id=? AND tenant_id=? AND status='failed'").run(nowIso(),run.id,req.user.tenantId);
     if(!reset.changes) return res.status(409).json({error:'no_failed_items',message:'لا توجد صور متعثرة لإعادة المحاولة.'});
     db.prepare("UPDATE photo_batch_runs SET status='queued',failed_items=0,updated_at=? WHERE id=? AND tenant_id=?").run(nowIso(),run.id,req.user.tenantId);
     audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'photo_batch.retry_requested',resourceType:'photo_batch',resourceId:run.id,details:{items:reset.changes}});
