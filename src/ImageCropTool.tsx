@@ -17,6 +17,8 @@ export default function ImageCropTool({ src, onExport }: Props) {
   const imageRef = useRef<HTMLImageElement>(null);
   const dragStart = useRef<{x:number;y:number}|null>(null);
   const cropBeforeDrag = useRef<Crop|null>(null);
+  const previewBeforeDrag = useRef('');
+  const previewModeBeforeDrag = useRef<'result'|'original'>('result');
   const [ratio, setRatio] = useState<Ratio>('free');
   const [crop, setCrop] = useState<Crop|null>(null);
   const [history, setHistory] = useState<Crop[]>([]);
@@ -77,6 +79,8 @@ export default function ImageCropTool({ src, onExport }: Props) {
     event.currentTarget.setPointerCapture(event.pointerId);
     dragStart.current = point;
     cropBeforeDrag.current = crop;
+    previewBeforeDrag.current = exportedPreview;
+    previewModeBeforeDrag.current = previewMode;
     setCrop({x:point.x,y:point.y,width:1,height:1});
     setExportedPreview('');
     onExport('');
@@ -104,13 +108,18 @@ export default function ImageCropTool({ src, onExport }: Props) {
     }
     dragStart.current = null;
     cropBeforeDrag.current = null;
+    previewBeforeDrag.current = '';
     setDragging(false);
   }
   function cancelCrop() {
     if (!dragStart.current) return;
     dragStart.current = null;
     setCrop(cropBeforeDrag.current);
+    setExportedPreview(previewBeforeDrag.current);
+    setPreviewMode(previewModeBeforeDrag.current);
+    onExport(previewBeforeDrag.current);
     cropBeforeDrag.current = null;
+    previewBeforeDrag.current = '';
     setDragging(false);
   }
   async function exportCrop() {
