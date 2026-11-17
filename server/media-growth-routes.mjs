@@ -6,6 +6,7 @@ import { storeImageDataUrl } from './storage.mjs';
 import { executeSkill } from './engine/registry.mjs';
 
 const FREE_DAILY_LIMITS = { image_jobs: 3, ad_drafts: 10, assistant_messages: 40 };
+const activePhotoBatches = new Set();
 export function consumeDailyUsage(tenantId, userId, key) {
   const day = nowIso().slice(0, 10);
   const limit = FREE_DAILY_LIMITS[key] || 20;
@@ -14,26 +15,40 @@ export function consumeDailyUsage(tenantId, userId, key) {
 }
 
 async function executePhotoBatch(runId, tenantId, userId, vehicleId) {
-  db.prepare("UPDATE photo_batch_runs SET status='running',updated_at=? WHERE id=?").run(nowIso(),runId);
-  const items=db.prepare('SELECT * FROM photo_batch_items WHERE run_id=? ORDER BY sort_order').all(runId);
-  for(const item of items) {
-    try {
-      consumeDailyUsage(tenantId,userId,'image_jobs');
-      db.prepare("UPDATE photo_batch_items SET status='running',updated_at=? WHERE id=?").run(nowIso(),item.id);
-      const output=await executeSkill('image-optimize',{imageFileId:item.source_file_id,maxWidth:2048,quality:84},{tenantId,userId});
-      const derivedId=randomUUID();
-      db.prepare("INSERT INTO vehicle_assets(id,tenant_id,vehicle_id,file_id,original_file_id,asset_role,sort_order,processing_status,created_by,created_at) VALUES(?,?,?,?,?,'derived',?,'optimized',?,?)")
-        .run(derivedId,tenantId,vehicleId,output.imageFileId,item.source_file_id,item.sort_order,userId,nowIso());
-      db.prepare("UPDATE photo_batch_items SET output_file_id=?,status='succeeded',updated_at=? WHERE id=?").run(output.imageFileId,nowIso(),item.id);
-      db.prepare('UPDATE photo_batch_runs SET completed_items=completed_items+1,updated_at=? WHERE id=?').run(nowIso(),runId);
-    } catch(error) {
-      db.prepare("UPDATE photo_batch_items SET status='failed',error_message=?,updated_at=? WHERE id=?").run(String(error.message||'Processing failed').slice(0,300),nowIso(),item.id);
-      db.prepare('UPDATE photo_batch_runs SET failed_items=failed_items+1,updated_at=? WHERE id=?').run(nowIso(),runId);
+  if (activePhotoBatches.has(runId)) return;
+  activePhotoBatches.add(runId);
+  try {
+    const run=db.prepare('SELECT status FROM photo_batch_runs WHERE id=? AND tenant_id=? AND user_id=?').get(runId,tenantId,userId);
+    if(!run || run.status==='cancelled') return;
+    db.prepare("UPDATE photo_batch_runs SET status='running',updated_at=? WHERE id=? AND tenant_id=?").run(nowIso(),runId,tenantId);
+    const items=db.prepare("SELECT * FROM photo_batch_items WHERE run_id=? AND tenant_id=? AND status IN ('queued','failed') ORDER BY sort_order").all(runId,tenantId);
+    for(const item of items) {
+      const current=db.prepare('SELECT status FROM photo_batch_runs WHERE id=? AND tenant_id=?').get(runId,tenantId);
+      if(!current || current.status==='cancelled') break;
+      try {
+        consumeDailyUsage(tenantId,userId,'image_jobs');
+        db.prepare("UPDATE photo_batch_items SET status='running',error_message=NULL,updated_at=? WHERE id=? AND tenant_id=?").run(nowIso(),item.id,tenantId);
+        const output=await executeSkill('image-optimize',{imageFileId:item.source_file_id,maxWidth:2048,quality:84},{tenantId,userId});
+        const derivedId=randomUUID();
+        db.prepare("INSERT INTO vehicle_assets(id,tenant_id,vehicle_id,file_id,original_file_id,asset_role,sort_order,processing_status,created_by,created_at) VALUES(?,?,?,?,?,'derived',?,'optimized',?,?)")
+          .run(derivedId,tenantId,vehicleId,output.imageFileId,item.source_file_id,item.sort_order,userId,nowIso());
+        db.prepare("UPDATE photo_batch_items SET output_file_id=?,status='succeeded',error_message=NULL,updated_at=? WHERE id=? AND tenant_id=?").run(output.imageFileId,nowIso(),item.id,tenantId);
+        db.prepare('UPDATE photo_batch_runs SET completed_items=(SELECT COUNT(*) FROM photo_batch_items WHERE run_id=? AND status=\'succeeded\'),updated_at=? WHERE id=? AND tenant_id=?').run(runId,nowIso(),runId,tenantId);
+      } catch(error) {
+        db.prepare("UPDATE photo_batch_items SET status='failed',error_message=?,updated_at=? WHERE id=? AND tenant_id=?").run(String(error.message||'Processing failed').slice(0,300),nowIso(),item.id,tenantId);
+        db.prepare("UPDATE photo_batch_runs SET failed_items=(SELECT COUNT(*) FROM photo_batch_items WHERE run_id=? AND status='failed'),updated_at=? WHERE id=? AND tenant_id=?").run(runId,nowIso(),runId,tenantId);
+      }
     }
+    const counts=db.prepare("SELECT SUM(status='failed') AS failed,SUM(status='succeeded') AS done FROM photo_batch_items WHERE run_id=? AND tenant_id=?").get(runId,tenantId);
+    const current=db.prepare('SELECT status FROM photo_batch_runs WHERE id=? AND tenant_id=?').get(runId,tenantId);
+    if(current?.status!=='cancelled') {
+      const status=counts.failed?'completed_with_errors':(counts.done===0?'completed_with_errors':'succeeded');
+      db.prepare('UPDATE photo_batch_runs SET status=?,completed_items=?,failed_items=?,updated_at=? WHERE id=? AND tenant_id=?')
+        .run(status,counts.done||0,counts.failed||0,nowIso(),runId,tenantId);
+    }
+  } finally {
+    activePhotoBatches.delete(runId);
   }
-  const counts=db.prepare("SELECT SUM(status='failed') AS failed,SUM(status='succeeded') AS done FROM photo_batch_items WHERE run_id=?").get(runId);
-  const status=counts.failed?'completed_with_errors':'succeeded';
-  db.prepare('UPDATE photo_batch_runs SET status=?,updated_at=? WHERE id=?').run(status,nowIso(),runId);
 }
 
 export function registerMediaAndGrowthRoutes(app) {
@@ -107,6 +122,24 @@ export function registerMediaAndGrowthRoutes(app) {
     tx();
     setImmediate(()=>executePhotoBatch(runId,req.user.tenantId,req.user.id,vehicle.id).catch(()=>{}));
     return res.status(202).json({runId,status:'queued',totalItems:assets.length,sequence:'optimize-webp'});
+  });
+  app.post('/api/photo-batches/:id/cancel', requireAuth, (req,res) => {
+    const result=db.prepare("UPDATE photo_batch_runs SET status='cancelled',updated_at=? WHERE id=? AND tenant_id=? AND user_id=? AND status IN ('queued','running')")
+      .run(nowIso(),req.params.id,req.user.tenantId,req.user.id);
+    if(!result.changes) return res.status(409).json({error:'not_cancellable',message:'المعالجة غير موجودة أو انتهت بالفعل.'});
+    audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'photo_batch.cancel_requested',resourceType:'photo_batch',resourceId:req.params.id});
+    return res.json({ok:true,status:'cancelled',message:'سيتوقف المسار بعد اكتمال الصورة الجاري العمل عليها إن وجدت.'});
+  });
+  app.post('/api/photo-batches/:id/retry', requireAuth, (req,res) => {
+    const run=db.prepare('SELECT * FROM photo_batch_runs WHERE id=? AND tenant_id=? AND user_id=?').get(req.params.id,req.user.tenantId,req.user.id);
+    if(!run) return res.status(404).json({error:'not_found'});
+    if(activePhotoBatches.has(run.id)||run.status==='running') return res.status(409).json({error:'already_running'});
+    const reset=db.prepare("UPDATE photo_batch_items SET status='queued',error_message=NULL,updated_at=? WHERE run_id=? AND tenant_id=? AND status='failed'").run(nowIso(),run.id,req.user.tenantId);
+    if(!reset.changes) return res.status(409).json({error:'no_failed_items',message:'لا توجد صور متعثرة لإعادة المحاولة.'});
+    db.prepare("UPDATE photo_batch_runs SET status='queued',failed_items=0,updated_at=? WHERE id=? AND tenant_id=?").run(nowIso(),run.id,req.user.tenantId);
+    audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'photo_batch.retry_requested',resourceType:'photo_batch',resourceId:run.id,details:{items:reset.changes}});
+    setImmediate(()=>executePhotoBatch(run.id,req.user.tenantId,req.user.id,run.vehicle_id).catch(()=>{}));
+    return res.status(202).json({ok:true,status:'queued',retriedItems:reset.changes});
   });
   app.get('/api/photo-batches/:id', requireAuth, (req,res) => {
     const run=db.prepare('SELECT * FROM photo_batch_runs WHERE id=? AND tenant_id=? AND user_id=?').get(req.params.id,req.user.tenantId,req.user.id);
