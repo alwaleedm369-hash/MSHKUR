@@ -55,7 +55,7 @@ https://github.com/danielgatis/rembg
 - قياس مدة كل خطوة وحجم المدخلات والمخرجات.
 - سجل أخطاء مفهوم للمستخدم مع تفاصيل تقنية في الإدارة.
 
-**قرار البنية:** نبقى على SQLite ومحركنا الداخلي للمرحلة الأولى. ندرس OpenWorkflow كمرجع TypeScript/SQLite/Apache-2.0، لكنه مشروع 0.x حديث نسبياً بحسب بيانات نوفمبر 2026؛ لا نعتمده قبل فحص API واختبار ترحيل workflow فعلي.  
+**قرار البنية:** نبقى على SQLite ومحركنا الداخلي للمرحلة الأولى. ندرس OpenWorkflow كمرجع TypeScript/SQLite/Apache-2.0. هندسته تعتمد قاعدة بيانات كحقيقة وحيدة، مع workers stateless تسحب المهام وتستخدم leases/heartbeats وstep attempts للاستئناف بعد التعطل؛ لا يوجد orchestrator server منفصل، لكن التشغيل يتطلب worker process داخل بنيتنا. هذا مرجع مفيد لتصميم الاستئناف والـ leases، وليس سبباً لإضافة اعتماد الآن. المشروع ما زال 0.x وفق آخر مراجعة؛ لا نعتمده قبل فحص API واختبار workflow فعلي.  
 https://github.com/openworkflowdev/openworkflow
 
 Temporal وHatchet وTrigger.dev وConductor خيارات قوية عندما نحتاج عمالاً متعددين وتنسيقاً موزعاً، لكنها تضيف خدمات وقواعد بيانات/طوابير أو تشغيلاً منفصلاً؛ ليست حاجة حالية.
