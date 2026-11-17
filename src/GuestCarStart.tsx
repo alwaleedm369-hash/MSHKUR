@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera, Check, ChevronLeft, ImagePlus, LogIn, Plus, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Camera, ChevronLeft, ImagePlus, LogIn, Plus, ShieldCheck, Sparkles, X } from 'lucide-react';
 
 type Photo = { file: File; url: string };
 type Props = {
@@ -40,12 +40,14 @@ export default function GuestCarStart({ onContinue, onSignIn, onQuickTool }: Pro
       else setError('');
       return [...current, ...additions];
     });
-    setActive(photos.length);
+    setActive(Math.min(photos.length, 11));
   }
 
   function removePhoto(index: number) {
+    const removed = photos[index];
+    if (removed) URL.revokeObjectURL(removed.url);
     setPhotos(current => current.filter((_, i) => i !== index));
-    setActive(current => Math.max(0, Math.min(current, photos.length - 2)));
+    setActive(current => current > index ? current - 1 : Math.min(current, Math.max(0, photos.length - 2)));
   }
 
   const currentPhoto = photos[active];
