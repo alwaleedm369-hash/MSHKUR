@@ -9,11 +9,83 @@ import { listAgents } from './agents/registry.mjs';
 import { createApproval, decideApproval, listApprovals } from './engine/policy.mjs';
 import { readImageFile, storeImageDataUrl } from './storage.mjs';
 import { executeWorkflow, getWorkflowForTenant, listWorkflows } from './engine/workflow.mjs';
+import { registerMediaAndGrowthRoutes, consumeDailyUsage } from './media-growth-routes.mjs';\nimport { randomUUID } from 'node:crypto';
+import rateLimit from 'express-rate-limit';
+import { registerAuthRoutes, requireAuth } from './auth.mjs';
+import { db, nowIso, audit } from './db.mjs';
+import { createJob, getJobForTenant, getSkills, listJobsForTenant, runJob } from './engine/maestro.mjs';
+import { classifyIntent } from './engine/intent.mjs';
+import { generateWithLocalModel, getLocalModelStatus } from './engine/model-router.mjs';
+import { listAgents } from './agents/registry.mjs';
+import { createApproval, decideApproval, listApprovals } from './engine/policy.mjs';
+import { readImageFile, storeImageDataUrl } from './storage.mjs';
+import { executeWorkflow, getWorkflowForTenant, listWorkflows } from './engine/workflow.mjs';
 import { registerMediaAndGrowthRoutes, consumeDailyUsage } from './media-growth-routes.mjs';
+
+const skillImportLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false });
+function parseGithubSkillUrl(value) {
+  let url;
+  try { url = new URL(value); } catch { throw Object.assign(new Error('رابط GitHub غير صالح'), { code:'invalid_source_url' }); }
+  if (url.protocol !== 'https:' || url.hostname !== 'github.com' || url.search || url.hash) throw Object.assign(new Error('المصدر المسموح مستودع GitHub عام فقط'), { code:'unsupported_source' });
+  const parts = url.pathname.split('/').filter(Boolean);
+  if (parts.length < 5 || parts[2] !== 'blob') throw Object.assign(new Error('استخدم رابط ملف SKILL.md بصيغة GitHub /blob/branch/path'), { code:'skill_file_required' });
+  const [owner, name, , ref, ...fileParts] = parts;
+  const filePath = fileParts.join('/');
+  if (!/^[A-Za-z0-9_.-]{1,100}$/.test(owner) || !/^[A-Za-z0-9_.-]{1,100}$/.test(name) || !ref || filePath.split('/').pop().toLowerCase() !== 'skill.md') throw Object.assign(new Error('يجب أن ينتهي المسار بملف SKILL.md'), { code:'skill_file_required' });
+  return { owner, name, ref, filePath, repository:owner+'/'+name };
+}
+async function githubJson(url) {
+  const response = await fetch(url, { headers:{ Accept:'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28', 'User-Agent':'MSHKUR-Skill-Review' }, signal:AbortSignal.timeout(12000) });
+  if (!response.ok) throw Object.assign(new Error(response.status===404?'لم يتم العثور على المستودع أو الملف':response.status===403?'تجاوز GitHub حد الطلبات مؤقتاً':'تعذر قراءة GitHub'), { code:'github_fetch_failed' });
+  return response.json();
+}
+async function importSkillSource({url,tenantId,userId}) {
+  const source=parseGithubSkillUrl(url);
+  const apiBase='https://api.github.com/repos/'+encodeURIComponent(source.owner)+'/'+encodeURIComponent(source.name);
+  const [file,license,commit] = await Promise.all([
+    githubJson(apiBase+'/contents/'+source.filePath.split('/').map(encodeURIComponent).join('/')+'?ref='+encodeURIComponent(source.ref)),
+    githubJson(apiBase+'/license?ref='+encodeURIComponent(source.ref)),
+    githubJson(apiBase+'/commits/'+encodeURIComponent(source.ref))
+  ]);
+  if (file.type!=='file' || !file.content || file.encoding!=='base64' || file.size>40000) throw Object.assign(new Error('ملف SKILL.md يجب أن يكون نصاً لا يتجاوز 40KB'), { code:'invalid_skill_file' });
+  const content=Buffer.from(file.content.replace(/\s/g,''),'base64').toString('utf8');
+  if (!content.trim() || /<script\b|javascript:|data:text\/html/i.test(content)) throw Object.assign(new Error('محتوى المهارة فارغ أو يحتوي صيغة غير مقبولة'), { code:'unsafe_skill_content' });
+  const licenseSpdx=license.license?.spdx_id;
+  if (!licenseSpdx || licenseSpdx==='NOASSERTION') throw Object.assign(new Error('لم يتم العثور على معرف ترخيص واضح؛ لا يمكن استيراد هذا المصدر'), { code:'license_required' });
+  const commitSha=commit.sha;
+  if (!/^[a-f0-9]{40}$/i.test(commitSha||'')) throw Object.assign(new Error('تعذر تثبيت نسخة المصدر'), { code:'commit_unpinned' });
+  const heading=content.match(/^#\s+(.+)$/m);
+  const skillName=(heading?.[1]||source.filePath.split('/').slice(-2,-1)[0]||'Imported skill').slice(0,120);
+  const id=randomUUID(),now=nowIso();
+  db.prepare(`INSERT INTO imported_skill_sources(id,tenant_id,imported_by,source_url,repository,source_path,source_ref,commit_sha,license_spdx,skill_name,skill_content,status,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,'review_required',?,?)`).run(id,tenantId,userId,url,source.repository,source.filePath,source.ref,commitSha,licenseSpdx,skillName,content,now,now);
+  audit({tenantId,actorUserId:userId,eventType:'skill.source_imported',resourceType:'imported_skill_source',resourceId:id,details:{repository:source.repository,commitSha,licenseSpdx}});
+  return {id,repository:source.repository,sourcePath:source.filePath,commitSha,licenseSpdx,skillName,status:'review_required'};
+}
+
 
 export function registerRoutes(app) {
   registerMediaAndGrowthRoutes(app);
   registerAuthRoutes(app);
+  app.get('/api/imported-skills', requireAuth, (req,res) => {
+    const rows=db.prepare('SELECT id,repository,source_path,source_ref,commit_sha,license_spdx,skill_name,status,review_note,created_at FROM imported_skill_sources WHERE tenant_id=? ORDER BY created_at DESC LIMIT 30').all(req.user.tenantId);
+    return res.json({imports:rows});
+  });
+  app.post('/api/imported-skills/github', requireAuth, skillImportLimiter, async (req,res) => {
+    if(!['owner','admin'].includes(req.user.role)) return res.status(403).json({error:'forbidden'});
+    if(typeof req.body?.url!=='string'||req.body.url.length>1000) return res.status(400).json({error:'invalid_source_url'});
+    try { const imported=await importSkillSource({url:req.body.url,tenantId:req.user.tenantId,userId:req.user.id}); return res.status(201).json({imported}); }
+    catch(error){ return res.status(400).json({error:error.code||'import_failed',message:error.message}); }
+  });
+  app.post('/api/imported-skills/:id/review', requireAuth, (req,res) => {
+    if(!['owner','admin'].includes(req.user.role)) return res.status(403).json({error:'forbidden'});
+    const status=req.body?.status;
+    if(!['approved','rejected'].includes(status)) return res.status(400).json({error:'invalid_review_status'});
+    const result=db.prepare("UPDATE imported_skill_sources SET status=?,review_note=?,updated_at=? WHERE id=? AND tenant_id=? AND status='review_required'").run(status,String(req.body?.note||'').slice(0,500),nowIso(),req.params.id,req.user.tenantId);
+    if(!result.changes) return res.status(404).json({error:'not_found_or_already_reviewed'});
+    audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'skill.source_reviewed',resourceType:'imported_skill_source',resourceId:req.params.id,details:{status}});
+    return res.json({id:req.params.id,status});
+  });
   app.get('/api/workflows', requireAuth, (_req,res) => res.json({workflows:listWorkflows()}));
   app.post('/api/workflows/:workflowId/run', requireAuth, async (req,res) => {
     const { vehicleId }=req.body||{};
