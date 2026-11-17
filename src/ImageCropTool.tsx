@@ -15,7 +15,7 @@ const ratios: { id: Ratio; label: string; value: number | null }[] = [
 
 export default function ImageCropTool({ src, onExport }: Props) {
   const imageRef = useRef<HTMLImageElement>(null);
-  const dragStart = useRef<{x:number;y:number}|null>(null);
+  const dragStart = useRef<{x:number;y:number}|null>(null);\n  const cropBeforeDrag = useRef<Crop|null>(null);
   const [ratio, setRatio] = useState<Ratio>('free');
   const [crop, setCrop] = useState<Crop|null>(null);
   const [history, setHistory] = useState<Crop[]>([]);
@@ -151,7 +151,7 @@ export default function ImageCropTool({ src, onExport }: Props) {
           setHistory([initial]);
           setHistoryIndex(0);
         }}/>
-        <div className="crop-interaction" role="group" aria-label="اسحب لتحديد منطقة القص" onPointerDown={beginCrop} onPointerMove={moveCrop} onPointerUp={endCrop} onPointerCancel={endCrop} style={{cursor:'crosshair'}}>
+        <div className="crop-interaction" role="group" aria-label="اسحب لتحديد منطقة القص" onPointerDown={beginCrop} onPointerMove={moveCrop} onPointerUp={endCrop} onPointerCancel={cancelCrop} style={{cursor:'crosshair'}}>
           {selection && <div className="crop-selection" style={{left:selection.left+'%',top:selection.top+'%',width:selection.width+'%',height:selection.height+'%'}}/>}
         </div>
       </div>
