@@ -34,3 +34,11 @@ test('rejects invalid dimensions, ratios and oversized source images', () => {
   assert.throws(() => getCenteredCrop(8000, 6000), /40 ميغابكسل/);
   assert.equal(MAX_CROP_PIXELS, 40_000_000);
 });
+
+test('original ratio follows the source while free mode remains unconstrained', async () => {
+  const { resolveCropRatio } = await import('../src/imageCropGeometry.mjs');
+  assert.equal(resolveCropRatio('original', 1600, 900), 1600 / 900);
+  assert.equal(resolveCropRatio('free', 1600, 900), null);
+  assert.equal(resolveCropRatio('square', 1600, 900), 1);
+  assert.throws(() => resolveCropRatio('unknown', 1600, 900), /نمط القص/);
+});
