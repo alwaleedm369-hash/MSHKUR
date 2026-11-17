@@ -83,3 +83,7 @@
 @media(max-width:600px){.guest-intro{padding-top:26px}.guest-intro h1{font-size:24px}.guest-upload{min-height:150px}.guest-results>div{grid-template-columns:1fr 1fr}}
 
 .public-chat input{height:40px;border:1px solid #e4ebe5;border-radius:9px;padding:0 11px;font:inherit;font-size:10px;color:#35483b}
+
+.ops-contact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:14px;margin:16px 0;border:1px solid #e8eee9;border-radius:10px;background:#fbfcfb}.ops-contact h3{grid-column:1/-1;margin:0 0 4px}.ops-contact label{display:grid;gap:6px;font-size:10px;color:#65766a}.ops-contact label:nth-of-type(3){grid-column:1/-1}.ops-contact input{height:40px;border:1px solid #e3eae4;border-radius:8px;padding:0 10px;background:#fff;font:inherit;font-size:10px}.ops-contact button{height:40px;border:0;border-radius:8px;background:#2d523d;color:#fff;font:inherit;font-size:10px}.ops-contact>small{align-self:center;font-size:10px;color:#63856e}
+.public-contact-links{display:flex;gap:8px;margin:0 0 16px}.public-contact-links a{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border:1px solid #e1eae2;border-radius:8px;background:#fff;color:#5d8068;text-decoration:none;font-size:10px}
+@media(max-width:600px){.ops-contact{grid-template-columns:1fr}.ops-contact h3,.ops-contact label:nth-of-type(3){grid-column:auto}.public-contact-links a{flex:1;justify-content:center}}
