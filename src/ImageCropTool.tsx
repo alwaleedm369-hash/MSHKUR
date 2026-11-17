@@ -23,6 +23,7 @@ export default function ImageCropTool({ src, onExport }: Props) {
       image.decoding = 'async';
       image.src = src;
       await image.decode();
+      if (image.naturalWidth * image.naturalHeight > 40000000) throw new Error('الصورة كبيرة جداً للقص الآمن في المتصفح. استخدم نسخة أصغر من 40 ميغابكسل.');
       const selected = ratios.find(item => item.id === ratio);
       const targetRatio = selected?.value;
       let sx = 0, sy = 0, sw = image.naturalWidth, sh = image.naturalHeight;
