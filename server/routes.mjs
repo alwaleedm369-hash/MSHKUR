@@ -11,6 +11,7 @@ import { readImageFile, storeImageDataUrl } from './storage.mjs';
 import { executeWorkflow, getWorkflowForTenant, listWorkflows } from './engine/workflow.mjs';
 import { registerMediaAndGrowthRoutes, consumeDailyUsage } from './media-growth-routes.mjs';
 
+const skillImportLimiter = rateLimit({ windowMs: 60 * 60 * 1000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false });
 function parseGithubSkillUrl(value) {
   let url;
   try { url = new URL(value); } catch { throw Object.assign(new Error('رابط GitHub غير صالح'), { code:'invalid_source_url' }); }
