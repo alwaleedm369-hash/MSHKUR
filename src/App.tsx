@@ -42,6 +42,8 @@ export default function App(){
   const [guestMode,setGuestMode]=useState(true);
   const [quickTool,setQuickTool]=useState(false);
   const [pendingCarPhotos,setPendingCarPhotos]=useState<File[]>([]);
+  const [pendingVehicleId,setPendingVehicleId]=useState('');
+  const [pendingPhotoIndex,setPendingPhotoIndex]=useState(0);
   const [auth,setAuth]=useState({name:'',tenantName:'معرضي',tenantType:'dealer',email:'',password:''});
   const [authBusy,setAuthBusy]=useState(false);
   const [screen,setScreen]=useState<Screen>('home');
@@ -111,19 +113,26 @@ export default function App(){
     e.preventDefault();setError('');setBusy(true);
     try{
       const payload={...newVehicle,year:newVehicle.year?Number(newVehicle.year):undefined,mileage:newVehicle.mileage?Number(newVehicle.mileage):undefined,price:newVehicle.price?Number(newVehicle.price):undefined};
-      let savedVehicleId=editingVehicleId;
-      if(editingVehicleId)await api('/api/vehicles/'+editingVehicleId,{method:'PUT',body:JSON.stringify(payload)});
-      else {
+      let savedVehicleId=editingVehicleId||pendingVehicleId;
+      if(editingVehicleId||pendingVehicleId){
+        await api('/api/vehicles/'+savedVehicleId,{method:'PUT',body:JSON.stringify(payload)});
+      } else {
         const created=await api<{vehicle:Vehicle}>('/api/vehicles',{method:'POST',body:JSON.stringify(payload)});
         savedVehicleId=created.vehicle.id;
+        setPendingVehicleId(savedVehicleId);
       }
       const hasPendingPhotos=pendingCarPhotos.length>0;
       if(hasPendingPhotos&&savedVehicleId){
-        for(const file of pendingCarPhotos){
+        for(let index=pendingPhotoIndex;index<pendingCarPhotos.length;index++){
+          const file=pendingCarPhotos[index];
           const imageBase64=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('تعذرت قراءة إحدى الصور'));reader.readAsDataURL(file);});
           await api('/api/vehicles/'+savedVehicleId+'/assets',{method:'POST',body:JSON.stringify({imageBase64})});
+          setPendingPhotoIndex(index+1);
         }
-        setPendingCarPhotos([]);setAssetVehicleId(savedVehicleId);await loadVehicleAssets(savedVehicleId);setScreen('studio');
+        setPendingCarPhotos([]);setPendingPhotoIndex(0);setPendingVehicleId('');
+        setAssetVehicleId(savedVehicleId);await loadVehicleAssets(savedVehicleId);setScreen('studio');
+      } else if(savedVehicleId===pendingVehicleId) {
+        setPendingVehicleId('');
       }
       await loadVehicles();
       setNewVehicle({make:'',model:'',trim:'',year:'',mileage:'',fuel:'',transmission:'',color:'',price:'',city:'جدة',notes:''});
@@ -267,7 +276,7 @@ export default function App(){
     <div className="auth-card"><div className="auth-card-head"><span>{authMode==='register'?'ابدأ مجاناً':'مرحباً بعودتك'}</span><h2>{authMode==='register'?'أنشئ مساحة معرضك':'سجّل دخولك'}</h2><p>{authMode==='register'?'بياناتك تبقى في مساحة عمل مستقلة.':'تابع عملك من حيث توقفت.'}</p></div>
       <form onSubmit={submitAuth} className="auth-form">
         {authMode==='register'&&<><label>نوع الحساب<select value={auth.tenantType} onChange={e=>setAuth({...auth,tenantType:e.target.value})}><option value="individual">حساب فردي</option><option value="dealer">معرض / تاجر</option></select></label><label>اسمك<input required minLength={2} maxLength={80} value={auth.name} onChange={e=>setAuth({...auth,name:e.target.value})} placeholder="الاسم الكامل"/></label><label>اسم المعرض<input required minLength={2} maxLength={100} value={auth.tenantName} onChange={e=>setAuth({...auth,tenantName:e.target.value})} placeholder="اسم المعرض أو النشاط"/></label></>}
-        <label>البريد الإلكتروني<input required type="email" value={auth.email} onChange={e=>setAuth({...auth,email:e.target.value})} placeholder="name@example.com" dir="ltr"/></label>
+        <label>البريد الإلكتروني<input required type="email" value={auth.email} onChange={e=>setAuth({...auth,email:e.target.value})} placeholder="name@gmail.com" dir="ltr"/></label>
         <label>كلمة المرور<input required type="password" minLength={12} value={auth.password} onChange={e=>setAuth({...auth,password:e.target.value})} placeholder="12 حرفاً على الأقل" dir="ltr"/></label>
         {error&&<div className="inline-error">{error}</div>}
         <button className="button-primary auth-submit" disabled={authBusy}>{authBusy?<LoaderCircle className="spin" size={17}/>:null}{authMode==='register'?'إنشاء مساحة العمل':'تسجيل الدخول'}<ArrowUpLeft size={17}/></button>
