@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Camera, ChevronLeft, ImagePlus, LogIn, Plus, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Camera, Check, ChevronLeft, FileText, ImagePlus, LogIn, Plus, ShieldCheck, Sparkles, X } from 'lucide-react';
 
 type Photo = { file: File; url: string };
 type Props = {
   onContinue: (files: File[]) => void;
   onSignIn: () => void;
   onQuickTool: () => void;
+  onOpenTask: (screen: 'studio' | 'cars') => void;
 };
 
 const scenes = [
@@ -15,7 +16,7 @@ const scenes = [
   { id: 'white', label: 'خلفية بيضاء' },
 ];
 
-export default function GuestCarStart({ onContinue, onSignIn, onQuickTool }: Props) {
+export default function GuestCarStart({ onContinue, onSignIn, onQuickTool, onOpenTask }: Props) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const libraryRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -136,6 +137,62 @@ export default function GuestCarStart({ onContinue, onSignIn, onQuickTool }: Pro
 
       <div className="car-start-note"><ShieldCheck size={16}/><span>صورك تبقى على جهازك أثناء الاختيار. عند المتابعة تنتقل للتسجيل ثم حفظ السيارة وصورها في حسابك.</span></div>
       <button type="button" className="car-start-quick" onClick={onQuickTool}>تجربة إزالة الخلفية مباشرة دون تسجيل <ChevronLeft size={15}/></button>
+
+      <section className="car-start-below" aria-label="أدوات مشكور">
+        <div className="car-start-below-heading">
+          <span>MSHKUR TOOLS</span>
+          <h2>كل ما تحتاجه لتجهيز صور سيارتك</h2>
+          <p>تصفح الأدوات، اختر المهمة، وابدأ مباشرة.</p>
+        </div>
+        <div className="car-start-tool-grid">
+          <button type="button" className="car-start-tool-card" onClick={onQuickTool}>
+            <span className="car-start-tool-icon"><Sparkles size={20}/></span>
+            <b>إزالة الخلفية</b>
+            <small>قص السيارة من صورتها وتجهيزها بخلفية شفافة</small>
+            <em>جرّب الآن <ChevronLeft size={14}/></em>
+          </button>
+          <button type="button" className="car-start-tool-card" onClick={() => onOpenTask('studio')}>
+            <span className="car-start-tool-icon"><ShieldCheck size={20}/></span>
+            <b>طمس اللوحة</b>
+            <small>حدد منطقة اللوحة وراجع النتيجة قبل حفظها</small>
+            <em>فتح الأداة <ChevronLeft size={14}/></em>
+          </button>
+          <button type="button" className="car-start-tool-card" onClick={() => onOpenTask('studio')}>
+            <span className="car-start-tool-icon"><ImagePlus size={20}/></span>
+            <b>قص وتحسين الصور</b>
+            <small>قص النسب وتحسين الصورة مع حفظ الأصل</small>
+            <em>فتح الأدوات <ChevronLeft size={14}/></em>
+          </button>
+          <button type="button" className="car-start-tool-card" onClick={() => onOpenTask('cars')}>
+            <span className="car-start-tool-icon"><Camera size={20}/></span>
+            <b>ألبوم السيارة</b>
+            <small>اجمع صور السيارة الأصلية ونسخها المجهزة</small>
+            <em>إضافة سيارة <ChevronLeft size={14}/></em>
+          </button>
+          <button type="button" className="car-start-tool-card" onClick={() => onOpenTask('cars')}>
+            <span className="car-start-tool-icon"><Check size={20}/></span>
+            <b>بيانات السيارة</b>
+            <small>سجل الماركة والطراز والسنة والسعر والتفاصيل</small>
+            <em>إدخال البيانات <ChevronLeft size={14}/></em>
+          </button>
+          <button type="button" className="car-start-tool-card" onClick={() => onOpenTask('cars')}>
+            <span className="car-start-tool-icon"><FileText size={20}/></span>
+            <b>مسودة الإعلان</b>
+            <small>أنشئ وصفاً من بيانات السيارة التي أدخلتها</small>
+            <em>تجهيز الإعلان <ChevronLeft size={14}/></em>
+          </button>
+        </div>
+
+        <div className="car-start-below-flow">
+          <div><span>01</span><b>أضف صور سيارتك</b><small>كاميرا أو معرض الصور</small></div>
+          <ChevronLeft size={17}/>
+          <div><span>02</span><b>جهّز الصور</b><small>اختر الأدوات التي تحتاجها</small></div>
+          <ChevronLeft size={17}/>
+          <div><span>03</span><b>جهّز الإعلان</b><small>راجع البيانات والنتيجة</small></div>
+        </div>
+        <div className="car-start-below-privacy"><ShieldCheck size={16}/><span>أنت تحتفظ بالأصل، وتراجع المخرجات. لا يتم النشر من هذا المسار.</span></div>
+      </section>
+
       <footer className="car-start-footer">مشكور <span>صور أفضل. إعلان أوضح.</span></footer>
     </main>
   );
