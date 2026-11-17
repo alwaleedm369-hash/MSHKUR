@@ -42,6 +42,7 @@ export default function App(){
   const [guestMode,setGuestMode]=useState(true);
   const [quickTool,setQuickTool]=useState(false);
   const [pendingCarPhotos,setPendingCarPhotos]=useState<File[]>([]);
+  const [pendingScreen,setPendingScreen]=useState<Screen>('home');
   const [pendingVehicleId,setPendingVehicleId]=useState('');
   const [pendingPhotoIndex,setPendingPhotoIndex]=useState(0);
   const [auth,setAuth]=useState({name:'',tenantName:'معرضي',tenantType:'dealer',email:'',password:''});
@@ -98,8 +99,15 @@ export default function App(){
       const body=authMode==='register'?auth:{email:auth.email,password:auth.password};
       const data=await api<{user:User}>('/api/auth/'+authMode,{method:'POST',body:JSON.stringify(body)});
       setUser(data.user);
-      if(pendingCarPhotos.length){setScreen('cars');setShowVehicleForm(true);setMessage('تم فتح مساحة العمل. أكمل بيانات السيارة لحفظ الصور التي اخترتها.');}
-      else setMessage(authMode==='register'?'تم إنشاء مساحة معرضك بنجاح.':'مرحباً بعودتك.');
+      if(pendingCarPhotos.length){
+        setScreen('cars');setShowVehicleForm(true);
+        setMessage('تم فتح مساحة العمل. أكمل بيانات السيارة لحفظ الصور التي اخترتها.');
+      } else if(pendingScreen!=='home') {
+        setScreen(pendingScreen);
+        if(pendingScreen==='cars')setShowVehicleForm(true);
+        setMessage('أهلاً بك. يمكنك الآن متابعة المهمة التي اخترتها.');
+      } else setMessage(authMode==='register'?'تم إنشاء مساحة معرضك بنجاح.':'مرحباً بعودتك.');
+      setPendingScreen('home');
       setError('');
     }catch(e){setError(e instanceof Error?e.message:'تعذر تسجيل الدخول');}
     finally{setAuthBusy(false);}
@@ -266,9 +274,10 @@ export default function App(){
   if(loading)return <div className="boot-screen"><div className="brand-symbol">م</div><span>مشكور</span><div className="boot-loader"/></div>;
   if(quickTool&&!user)return <GuestStudio onAccount={()=>{setQuickTool(false);setGuestMode(false);setAuthMode('register');}}/>;
   if(guestMode&&!user)return <GuestCarStart
-    onContinue={files=>{setPendingCarPhotos(files);setGuestMode(false);setAuthMode('register');setScreen('cars');setShowVehicleForm(true);}}
-    onSignIn={()=>{setGuestMode(false);setAuthMode('login');}}
-    onQuickTool={()=>setQuickTool(true)}
+    onContinue={files=>{setPendingCarPhotos(files);setPendingScreen('cars');setGuestMode(false);setAuthMode('register');setScreen('cars');setShowVehicleForm(true);}}
+    onSignIn={()=>{setPendingScreen('home');setGuestMode(false);setAuthMode('login');}}
+    onQuickTool={()=>{setPendingScreen('home');setQuickTool(true);}}
+    onOpenTask={target=>{setPendingScreen(target);setQuickTool(false);setGuestMode(false);setAuthMode('register');setError('');setMessage('');}}
   />;
   if(!user)return <div className="auth-shell" dir="rtl">
     <div className="auth-brand"><div className="brand-symbol">م</div><span>مشكور</span><small>مساحة عملك الذكية</small></div>
