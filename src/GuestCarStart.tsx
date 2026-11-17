@@ -22,8 +22,9 @@ export default function GuestCarStart({ onContinue, onSignIn, onQuickTool }: Pro
   const [active, setActive] = useState(0);
   const [scene, setScene] = useState('silver');
   const [error, setError] = useState('');
-
-  useEffect(() => () => photos.forEach(photo => URL.revokeObjectURL(photo.url)), [photos]);
+  const photosRef = useRef<Photo[]>([]);
+  useEffect(() => { photosRef.current = photos; }, [photos]);
+  useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   function addFiles(list: FileList | null) {
     if (!list?.length) return;
