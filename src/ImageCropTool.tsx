@@ -48,6 +48,7 @@ export default function ImageCropTool({ src, onExport }: Props) {
     setHistoryIndex(index);
     setCrop(history[index]);
     setExportedPreview('');
+    onExport('');
   }
   function redo() {
     if (historyIndex >= history.length - 1) return;
@@ -55,6 +56,7 @@ export default function ImageCropTool({ src, onExport }: Props) {
     setHistoryIndex(index);
     setCrop(history[index]);
     setExportedPreview('');
+    onExport('');
   }
   function pointFromEvent(event: PointerEvent<HTMLDivElement>) {
     const image = imageRef.current;
