@@ -48,7 +48,7 @@ export function TasksPanel(){
     {loading?<p className="ops-note">جارٍ تحميل المهام...</p>:tasks.length===0?<div className="work-empty"><Clock3 size={26}/><b>لا توجد مهام بعد</b><p>عند تنفيذ أداة أو سير عمل ستظهر حالته ونتيجته هنا.</p></div>:<div className="task-history">{tasks.map(task=><article className="task-history-row" key={task.id}>
       <div className="task-history-icon">{task.status==='succeeded'?<CheckCircle2 size={18}/>:task.status==='failed'?<XCircle size={18}/>:<LoaderCircle className="spin" size={18}/>}</div>
       <div className="task-history-main"><b>{task.skill_id||task.skillId||'مهمة'}</b><small>{task.created_at?new Date(task.created_at).toLocaleString('ar-SA'):'وقت غير متاح'}</small>{task.error_message&&<p>{task.error_message}</p>}</div>
-      <span className={'task-status status-'+task.status}>{({succeeded:'مكتملة',failed:'فشلت',running:'قيد التنفيذ',queued:'في الانتظار'})[task.status as string]||task.status}</span>
+      <span className={'task-status status-'+task.status}>{(({succeeded:'مكتملة',failed:'فشلت',running:'قيد التنفيذ',queued:'في الانتظار'} as Record<string,string>)[task.status]||task.status)}</span>
     </article>)}</div>}
     <div className="work-safety-note"><ShieldCheck size={17}/><span>المهام مقيدة بمهارات مسموحة وعزل مساحة العمل. أي نشر أو إرسال خارجي يحتاج موافقة مستقلة.</span></div>
   </section>;
