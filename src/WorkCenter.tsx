@@ -12,6 +12,10 @@ async function api<T=any>(url:string,options:RequestInit={}):Promise<T>{
 export function SkillsPanel(){
   const [skills,setSkills]=useState<any[]>([]);
   const [workflows,setWorkflows]=useState<any[]>([]);
+  const [vehicles,setVehicles]=useState<any[]>([]);
+  const [workflowVehicle,setWorkflowVehicle]=useState('');
+  const [runningWorkflow,setRunningWorkflow]=useState('');
+  const [workflowResult,setWorkflowResult]=useState('');
   const [error,setError]=useState('');
   const [loading,setLoading]=useState(true);
   const [imports,setImports]=useState<any[]>([]);
@@ -20,7 +24,7 @@ export function SkillsPanel(){
   const [importMessage,setImportMessage]=useState('');
   async function load(){
     setLoading(true);setError('');
-    try{const [a,b,c]=await Promise.all([api<{skills:any[]}>('/api/skills'),api<{workflows:any[]}>('/api/workflows'),api<{imports:any[]}>('/api/imported-skills')]);setSkills(a.skills);setWorkflows(b.workflows);setImports(c.imports);}
+    try{const [a,b,c,d]=await Promise.all([api<{skills:any[]}>('/api/skills'),api<{workflows:any[]}>('/api/workflows'),api<{imports:any[]}>('/api/imported-skills'),api<{vehicles:any[]}>('/api/vehicles')]);setSkills(a.skills);setWorkflows(b.workflows);setImports(c.imports);setVehicles(d.vehicles);if(!workflowVehicle&&d.vehicles[0])setWorkflowVehicle(d.vehicles[0].id);}
     catch(e){setError(e instanceof Error?e.message:'تعذر تحميل المكتبة');}
     finally{setLoading(false);}
   }
@@ -30,6 +34,13 @@ export function SkillsPanel(){
     try{await api<{imported:any}>('/api/imported-skills/github',{method:'POST',body:JSON.stringify({url:sourceUrl})});setImportMessage('تم استيراد وصف المهارة إلى قائمة المراجعة. لم يتم تشغيلها.');setSourceUrl('');await load();}
     catch(error){setImportMessage(error instanceof Error?error.message:'تعذر استيراد المصدر');}
     finally{setImportBusy(false);}
+  }
+  async function runWorkflow(id:string){
+    if(!workflowVehicle){setWorkflowResult('أضف سيارة أولاً لتنفيذ هذا المسار.');return;}
+    setRunningWorkflow(id);setWorkflowResult('جارٍ تنفيذ الخطوات...');
+    try{const result=await api<{workflow:any}>('/api/workflows/'+id+'/run',{method:'POST',body:JSON.stringify({vehicleId:workflowVehicle})});setWorkflowResult(result.workflow.status==='succeeded'?'اكتمل سير العمل وحُفظت نتائجه.':'انتهى التنفيذ مع تعثر إحدى الخطوات. افتح سجل المهام للمراجعة.');}
+    catch(error){setWorkflowResult(error instanceof Error?error.message:'تعذر تنفيذ سير العمل');}
+    finally{setRunningWorkflow('');}
   }
   async function reviewImport(id:string,status:'approved'|'rejected'){
     try{await api('/api/imported-skills/'+id+'/review',{method:'POST',body:JSON.stringify({status,note:status==='approved'?'مراجعة أولية للوثيقة فقط؛ يلزم محول تنفيذ مستقل قبل التفعيل.':'مرفوض من المالك'})});await load();}
@@ -44,7 +55,8 @@ export function SkillsPanel(){
         <p>{skill.description}</p><div className="work-library-meta"><span>{skill.runtime==='browser'?'داخل المتصفح':'على الخادم'}</span><span>{skill.cost==='local'?'محلي':'يتطلب إعداداً'}</span></div><code>{skill.id}</code>
       </article>)}</div>
       <div className="work-library-section"><div className="ops-heading"><div><span>وصفات قابلة للتنفيذ</span><h2>سير العمل</h2></div><Workflow size={20}/></div>
-        {workflows.map(flow=><article className="workflow-row" key={flow.id}><div><b>{flow.name}</b><p>{flow.description}</p><small>{(flow.steps||[]).length} خطوات · {flow.externalSideEffects?'يتطلب موافقة خارجية':'تنفيذ محلي'}</small></div><span><CheckCircle2 size={16}/> {flow.id}</span></article>)}
+        {workflows.map(flow=><article className="workflow-row" key={flow.id}><div><b>{flow.name}</b><p>{flow.description}</p><small>{(flow.steps||[]).length} خطوات · {flow.externalSideEffects?'يتطلب موافقة خارجية':'تنفيذ محلي'}</small></div><span><CheckCircle2 size={16}/> {flow.id}</span><div className="workflow-run-controls"><select aria-label="اختر السيارة" value={workflowVehicle} onChange={e=>setWorkflowVehicle(e.target.value)}><option value="">اختر سيارة</option>{vehicles.map(vehicle=><option key={vehicle.id} value={vehicle.id}>{[vehicle.year,vehicle.make,vehicle.model].filter(Boolean).join(' ')}</option>)}</select><button type="button" disabled={!!runningWorkflow||!vehicles.length} onClick={()=>runWorkflow(flow.id)}>{runningWorkflow===flow.id?<LoaderCircle size={14} className="spin"/>:'تنفيذ'}</button></div></article>)}
+        {workflowResult&&<p className="import-feedback">{workflowResult}</p>}
       </div>
       <div className="import-roadmap"><div><GitBranch size={19}/><b>استيراد مهارة من GitHub</b></div>
         <p>ألصق رابط ملف SKILL.md من مستودع عام. نفحص وجود ترخيص واضح ونثبت commit المصدر. نستورد الوثيقة فقط إلى مساحة مراجعة خاصة بحسابك؛ لا نشغّل كوداً ولا ننزّل نماذج تلقائياً.</p>
