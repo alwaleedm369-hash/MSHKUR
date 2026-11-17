@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
-import { getCenteredCrop, getCropFromDrag } from './imageCropGeometry.mjs';
+import { getCenteredCrop, getCropFromDrag, resolveCropRatio } from './imageCropGeometry.mjs';
 
 type Props = { src: string; onExport: (dataUrl: string) => void };
 type Ratio = 'free' | 'original' | 'square' | 'landscape' | 'wide';
@@ -146,7 +146,7 @@ export default function ImageCropTool({ src, onExport }: Props) {
       <div className="crop-stage">
         <img ref={imageRef} src={src} alt="معاينة الصورة الأصلية" onLoad={event => {
           const image = event.currentTarget;
-          const initial = getCenteredCrop(image.naturalWidth,image.naturalHeight,ratios.find(item => item.id === ratio)?.value ?? null);
+          const initial = getCenteredCrop(image.naturalWidth,image.naturalHeight,resolveCropRatio(ratio,image.naturalWidth,image.naturalHeight));
           setCrop(initial);
           setHistory([initial]);
           setHistoryIndex(0);
