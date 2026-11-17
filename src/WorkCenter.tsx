@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { Blocks, Workflow, RefreshCw, Clock3, CheckCircle2, XCircle, LoaderCircle, ShieldCheck, GitBranch, BookOpen } from 'lucide-react';
 
 async function api<T=any>(url:string,options:RequestInit={}):Promise<T>{
@@ -24,7 +25,7 @@ export function SkillsPanel(){
     finally{setLoading(false);}
   }
   useEffect(()=>{load();},[]);
-  async function importFromGithub(e:React.FormEvent){
+  async function importFromGithub(e:FormEvent){
     e.preventDefault();setImportBusy(true);setImportMessage('جارٍ جلب الملف والتحقق من الترخيص...');
     try{await api<{imported:any}>('/api/imported-skills/github',{method:'POST',body:JSON.stringify({url:sourceUrl})});setImportMessage('تم استيراد وصف المهارة إلى قائمة المراجعة. لم يتم تشغيلها.');setSourceUrl('');await load();}
     catch(error){setImportMessage(error instanceof Error?error.message:'تعذر استيراد المصدر');}
