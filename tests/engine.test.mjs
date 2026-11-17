@@ -41,6 +41,18 @@ test('protected endpoints reject anonymous requests', async () => {
   assert.equal(response.status,401);
 });
 
+test('imported skill sources are tenant scoped and require authentication', async () => {
+  const anonymous=await json('/api/imported-skills');
+  assert.equal(anonymous.status,401);
+  const cookieA=await register('skill-import-a@example.test','مساحة استيراد ألف');
+  const cookieB=await register('skill-import-b@example.test','مساحة استيراد باء');
+  const listA=await json('/api/imported-skills',{headers:{cookie:cookieA}});
+  const listB=await json('/api/imported-skills',{headers:{cookie:cookieB}});
+  assert.equal(listA.status,200);
+  assert.deepEqual((await listA.json()).imports,[]);
+  assert.deepEqual((await listB.json()).imports,[]);
+});
+
 test('registration creates an isolated tenant and authenticated session', async () => {
   const cookie = await register('owner-one@example.test','معرض الأول');
   const me = await json('/api/auth/me',{headers:{cookie}});
