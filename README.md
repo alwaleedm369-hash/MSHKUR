@@ -74,6 +74,7 @@ Google OAuth، خرائط تفاعلية مدمجة، كشف اللوحات تل
 - [دليل النشر](docs/DEPLOYMENT_AR.md)
 - [خدمات Google الاختيارية](docs/GOOGLE_SERVICES_AR.md)
 - [مصنع استيراد المشاريع والمهارات المفتوحة](docs/OPEN_SOURCE_IMPORT_FACTORY_AR.md)
+- [خريطة المحركات الهجينة والاختيارات التجارية](docs/ENGINE_SELECTION_BLUEPRINT_AR.md)
 
 ## مبادئ غير قابلة للتفاوض
 
