@@ -34,6 +34,7 @@ export default function ImageCropTool({ src, onExport }: Props) {
     setHistory(previous => [...previous.slice(0, historyIndex + 1), next].slice(-30));
     setHistoryIndex(previous => Math.min(previous + 1, 29));
     setExportedPreview('');
+    onExport('');
   }
   function setPreset(next: Ratio) {
     setRatio(next);
@@ -72,6 +73,7 @@ export default function ImageCropTool({ src, onExport }: Props) {
     dragStart.current = point;
     setCrop({x:point.x,y:point.y,width:1,height:1});
     setExportedPreview('');
+    onExport('');
     setDragging(true);
   }
   function moveCrop(event: PointerEvent<HTMLDivElement>) {
