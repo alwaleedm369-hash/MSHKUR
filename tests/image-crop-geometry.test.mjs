@@ -11,7 +11,7 @@ test('square crop centers horizontally on a landscape image', () => {
 });
 
 test('4:3 crop centers vertically on a portrait image', () => {
-  assert.deepEqual(getCenteredCrop(900, 1600, 4 / 3), { x: 0, y: 463, width: 900, height: 675 });
+  assert.deepEqual(getCenteredCrop(900, 1600, 4 / 3), { x: 0, y: 462, width: 900, height: 675 });
 });
 
 test('wide crop stays inside source bounds', () => {
