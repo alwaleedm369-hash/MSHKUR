@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getCenteredCrop } from './imageCropGeometry.mjs';
 
 type Props = { src: string; onExport: (dataUrl: string) => void };
 type Ratio = 'original' | 'square' | 'landscape' | 'wide';
@@ -23,20 +24,9 @@ export default function ImageCropTool({ src, onExport }: Props) {
       image.decoding = 'async';
       image.src = src;
       await image.decode();
-      if (image.naturalWidth * image.naturalHeight > 40000000) throw new Error('الصورة كبيرة جداً للقص الآمن في المتصفح. استخدم نسخة أصغر من 40 ميغابكسل.');
       const selected = ratios.find(item => item.id === ratio);
-      const targetRatio = selected?.value;
-      let sx = 0, sy = 0, sw = image.naturalWidth, sh = image.naturalHeight;
-      if (targetRatio) {
-        const sourceRatio = sw / sh;
-        if (sourceRatio > targetRatio) {
-          sw = Math.round(sh * targetRatio);
-          sx = Math.round((image.naturalWidth - sw) / 2);
-        } else {
-          sh = Math.round(sw / targetRatio);
-          sy = Math.round((image.naturalHeight - sh) / 2);
-        }
-      }
+      const crop = getCenteredCrop(image.naturalWidth, image.naturalHeight, selected?.value ?? null);
+      const { x: sx, y: sy, width: sw, height: sh } = crop;
       const canvas = document.createElement('canvas');
       canvas.width = sw;
       canvas.height = sh;
