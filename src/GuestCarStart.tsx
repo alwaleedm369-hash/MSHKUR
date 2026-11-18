@@ -3,7 +3,7 @@ import { ArrowLeft, Camera, Check, ChevronLeft, FileText, ImagePlus, LogIn, Plus
 
 type Photo = { file: File; url: string };
 type Props = {
-  onContinue: (files: File[]) => void;
+  onContinue: (files: File[], scene: 'silver'|'dark'|'warm'|'white') => void;
   onSignIn: () => void;
   onQuickTool: () => void;
   onOpenTask: (screen: 'studio' | 'cars') => void;
@@ -131,7 +131,7 @@ export default function GuestCarStart({ onContinue, onSignIn, onQuickTool, onOpe
 
       {error && <p className="car-start-error">{error}</p>}
 
-      <button type="button" className="car-start-continue" disabled={!photos.length} onClick={() => onContinue(photos.map(photo => photo.file))}>
+      <button type="button" className="car-start-continue" disabled={!photos.length} onClick={() => onContinue(photos.map(photo => photo.file), scene as 'silver'|'dark'|'warm'|'white')}>
         متابعة تجهيز السيارة <ArrowLeft size={18}/>
       </button>
 
