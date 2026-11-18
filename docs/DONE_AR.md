@@ -1,31 +1,43 @@
-# إشعار انتهاء العمل — مشكور
+# إشعار انتهاء — مشكور commercial-0.4
 
-## تم تطبيقه على الفرع `docs/mobile-and-commercial-launch`
+تاريخ: 2026-11-18
 
-### مكوّنات جاهزة ومتصلة
-- `GuestLanding` — واجهة الزائر الرئيسية
-- `CommercialShell` — غلاف المساعد + النشر
-- `AIChatSheet` — دردشة المساعد
-- `PublishBottomSheet` — موافقة النشر
-- `AdminControlsPanel` — إخفاء المساعد + واتساب
-- `styles-guest-landing.css` — مستورد في main.tsx
-- `App.tsx` — نقطة دخول تجارية تستخدم المكونات أعلاه
+## تم تطبيق App.tsx الكامل على الفرع
 
-### ملاحظة مهمة عن App.tsx
-ملف App الأصلي كبير جداً (~48KB). تم:
-1. تطبيق نقطة دخول جديدة تستخدم GuestLanding + CommercialShell + Admin
-2. حفظ النسخة المدمجة الكاملة محلياً في المشروع تحت:
-   `artifacts/App.tsx.integrated-full`
+`src/App.tsx` الآن يتضمن:
 
-لدمج كل منطق السيارات/الاستوديو القديم مع الواجهة الجديدة:
-انسخ محتوى `App.tsx.integrated-full` فوق `src/App.tsx` يدوياً أو من جهازك، ثم ادفع.
+- **GuestLanding** للزائر (قبل/بعد · قوالب · زر ابدأ)
+- **GuestStudio** للتجربة السريعة
+- **تسجيل دخول / إنشاء حساب** كامل
+- **DashboardHome** + قائمة سيارات + إضافة سيارة
+- **الاستوديو** + AssetHistoryPanel + OfflineAdKit
+- **المهارات والمهام**
+- **CommercialShell** (زر المساعد العائم + بطاقة النشر)
+- **AdminControlsPanel** (إخفاء المساعد + واتساب wa.me)
+- **OperationsPanel** للإدارة
 
-### ما يعمل الآن على الفرع
-- زائر → GuestLanding → ابدأ / سجّل
-- بعد الدخول → CommercialShell (زر عائم + شيتات)
-- أدمن → إظهار/إخفاء المساعد + رقم واتساب
+## الملفات التجارية على الفرع
 
-### الخطوات التالية عندك
-1. اختبار الفرع محلياً
-2. نسخ App.tsx.integrated-full إذا أردت كل المنطق القديم + الجديد
-3. دمج الفرع مع main بعد الاختبار
+- src/GuestLanding.tsx
+- src/PublishBottomSheet.tsx
+- src/AIChatSheet.tsx
+- src/AdminControlsPanel.tsx
+- src/CommercialShell.tsx
+- src/styles-guest-landing.css
+- src/main.tsx (يستورد الـ CSS)
+- src/App.tsx (BUILD commercial-0.4)
+
+## للتشغيل
+
+```bash
+git checkout docs/mobile-and-commercial-launch
+npm install
+npm run dev
+```
+
+## ملاحظات
+
+- واتساب: wa.me فقط
+- لا API مدفوع إجباري
+- المساعد قابل للإخفاء من شاشة الإدارة
+- النسخة الأقدم الكاملة جداً محفوظة في artifacts/App.tsx.integrated-full إن احتجت كل دوال الطمس/التحسين القديمة سطراً بسطر
