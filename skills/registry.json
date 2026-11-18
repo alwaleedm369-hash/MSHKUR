@@ -1,0 +1,89 @@
+[
+  {
+    "id": "vehicle-ad-copy",
+    "name": "كاتب إعلان السيارة",
+    "category": "cars",
+    "version": "1.0.0",
+    "description": "إنشاء مسودة إعلان من الحقول المدخلة فقط دون اختراع المواصفات.",
+    "input": "vehicle-copy",
+    "output": "ad-draft",
+    "permissions": [
+      "vehicle:read"
+    ],
+    "cost": "local",
+    "entrypoint": "builtin:vehicle-ad-copy"
+  },
+  {
+    "id": "vehicle-validate",
+    "name": "مدقق بيانات السيارة",
+    "category": "cars",
+    "version": "1.0.0",
+    "description": "فحص الحقول الناقصة والتعارضات الأساسية قبل تجهيز الإعلان.",
+    "input": "vehicle-record",
+    "output": "validation-report",
+    "permissions": [
+      "vehicle:read"
+    ],
+    "cost": "local",
+    "entrypoint": "builtin:vehicle-validate"
+  },
+  {
+    "id": "background-remove",
+    "name": "إزالة الخلفية",
+    "category": "image",
+    "version": "1.0.0",
+    "description": "إزالة خلفية الصورة محلياً داخل المتصفح باستخدام BiRefNet عبر WebGPU/WASM.",
+    "input": "image-file",
+    "output": "transparent-png",
+    "permissions": [
+      "image:process"
+    ],
+    "cost": "local",
+    "runtime": "browser",
+    "entrypoint": "browser:bg0"
+  },
+  {
+    "id": "image-optimize",
+    "name": "تحسين وضغط الصورة",
+    "category": "image",
+    "version": "1.0.0",
+    "description": "تصحيح الاتجاه وتحويل الصورة إلى WebP مع ضبط الحجم والجودة.",
+    "input": "image-file",
+    "output": "optimized-image",
+    "permissions": [
+      "image:process"
+    ],
+    "cost": "local",
+    "entrypoint": "builtin:image-optimize"
+  },
+  {
+    "id": "license-plate-blur-region",
+    "name": "طمس منطقة اللوحة يدوياً",
+    "category": "image",
+    "version": "1.0.0",
+    "description": "تمويه منطقة مستطيلة يحددها المستخدم، دون ادعاء كشف تلقائي.",
+    "input": "image-file-region",
+    "output": "blurred-image",
+    "permissions": [
+      "image:process"
+    ],
+    "cost": "local",
+    "entrypoint": "builtin:license-plate-blur-region"
+  },
+  {
+    "id": "map-prospect-search",
+    "name": "بحث استهداف المعارض على الخريطة",
+    "version": "1.0.0",
+    "description": "ينشئ رابط بحث خرائط Google حسب المدينة ونوع النشاط؛ لا يجمع بيانات أشخاص ولا يرسل رسائل.",
+    "runtime": "server",
+    "externalSideEffects": false
+  },
+  {
+    "id": "website-customer-chat",
+    "name": "مساعد استقبال العملاء بالموقع",
+    "version": "1.0.0",
+    "description": "يرد على أسئلة عامة محددة ويحفظ المحادثة لتحويلها إلى موظف المعرض.",
+    "runtime": "server",
+    "externalSideEffects": false
+  }
+]

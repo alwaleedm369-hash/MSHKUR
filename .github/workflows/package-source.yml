@@ -1,0 +1,25 @@
+name: package-source
+on:
+  push:
+    branches: ["build/**"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create clean source archive
+        run: |
+          mkdir -p dist
+          zip -r dist/MSHKUR-source.zip . \
+            -x ".git/*" "node_modules/*" "dist/*" \
+               ".env" ".env.*" "data/*" "storage/*" \
+               "coverage/*" "*.log" ".DS_Store"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MSHKUR-source
+          path: dist/MSHKUR-source.zip
+          if-no-files-found: error
+          retention-days: 14

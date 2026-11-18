@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MSHKUR Local Model Manifest",
+  "type": "object",
+  "required": ["id", "name", "task", "format", "license", "sha256", "sizeBytes", "runtime"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{2,80}$" },
+    "name": { "type": "string", "maxLength": 120 },
+    "task": { "type": "string", "enum": ["chat", "embedding", "segmentation", "ocr", "classification", "upscale", "speech"] },
+    "format": { "type": "string", "enum": ["gguf", "onnx", "safetensors"] },
+    "license": { "type": "string", "maxLength": 120 },
+    "licenseUrl": { "type": "string", "format": "uri" },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "sizeBytes": { "type": "integer", "minimum": 1 },
+    "quantization": { "type": "string", "enum": ["fp32", "fp16", "q8", "q5", "q4", "q3", "q2", "1.58bit"] },
+    "runtime": { "type": "string", "enum": ["llama.cpp", "onnxruntime-node", "onnxruntime-web", "transformers.js"] },
+    "minRamMb": { "type": "integer", "minimum": 0 },
+    "minVramMb": { "type": "integer", "minimum": 0 },
+    "offlineOnly": { "type": "boolean", "default": true },
+    "source": { "type": "string", "format": "uri" }
+  },
+  "additionalProperties": false
+}

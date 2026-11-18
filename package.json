@@ -8,30 +8,41 @@
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "dev:web": "vite",
     "build": "npm run typecheck && vite build",
     "start": "node server/index.mjs",
     "typecheck": "tsc -b --pretty false",
     "test": "node --test tests/*.test.mjs",
     "check": "npm test && npm run build",
-    "check:env": "node scripts/check-env.mjs"
+    "check:env": "node scripts/check-env.mjs",
+    "db:check": "node scripts/db-check.mjs",
+    "postinstall": "node scripts/apply-bg0-patch.mjs && node scripts/copy-onnx-wasm.mjs",
+    "mcp:stdio": "node server/mcp/index.mjs",
+    "mcp:identities": "node scripts/list-mcp-identities.mjs"
   },
   "dependencies": {
-    "@bg0/browser": "0.1.1",
     "@vitejs/plugin-react": "^4.3.4",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "express-async-errors": "^3.1.1",
     "lucide-react": "^0.468.0",
-    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "helmet": "^8.0.0",
+    "better-sqlite3": "^13.2.0",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.6",
+    "express-rate-limit": "^8.2.1",
+    "@fontsource/ibm-plex-sans-arabic": "^5.2.6",
+    "vite-plugin-pwa": "^2.0.0",
+    "@bg0/browser": "^0.1.2",
+    "@huggingface/transformers": "4.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
-    "@types/qrcode": "^1.5.5",
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "@modelcontextprotocol/server": "^2.4.0"
   }
 }

@@ -3,6 +3,8 @@ dist/
 .env
 .env.*.local
 .data/
+storage/
+/public/onnx/
 data/
 *.log
 .DS_Store
