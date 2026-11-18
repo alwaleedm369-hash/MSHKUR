@@ -13,7 +13,7 @@ export default function GlassTintTool({src,onExport}:{src:string;onExport:(dataU
   const [error,setError]=useState('');
   useEffect(()=>{
     const canvas=canvasRef.current;if(!canvas||!src)return;
-    let active=true;const image=new Image();
+    let active=true;imageRef.current=null;const image=new Image();
     image.onload=()=>{
       if(!active||!canvasRef.current)return;
       imageRef.current=image;
