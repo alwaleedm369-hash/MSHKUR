@@ -23,7 +23,7 @@ export default function AssetHistoryPanel({assets,onOpen}:{assets:Asset[];onOpen
           <img className="asset-compare-before" src={original.url} alt="الصورة الأصلية"/>
           <div className="asset-compare-after" style={{clipPath:`inset(0 ${100-position}% 0 0)`}}><img src={derived.url} alt="النسخة المعالجة"/></div>
           <div className="asset-compare-line" style={{left:position+'%'}}><i/></div>
-          <span className="asset-compare-tag before">الأصل</span><span className="asset-compare-tag after">بعد المعالجة</span>
+          <span className="asset-compare-tag before">بعد المعالجة</span><span className="asset-compare-tag after">الأصل</span>
         </div>
         <label className="asset-compare-range"><ArrowLeftRight size={14}/> حرّك للمقارنة <input type="range" min="0" max="100" value={position} onChange={e=>setPosition(Number(e.target.value))}/></label>
       </>:<div className="asset-history-empty"><ImageIcon size={21}/><span>لا توجد نسخة معالجة مرتبطة بهذه الصورة بعد.</span></div>}
