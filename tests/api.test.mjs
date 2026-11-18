@@ -1,7 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { createApp } from '../server/app.mjs';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+const temp = mkdtempSync(path.join(tmpdir(), 'mshkur-api-test-'));
+process.env.MSHKUR_DB_PATH = path.join(temp, 'test.sqlite');
+process.env.MSHKUR_STORAGE_DIR = path.join(temp, 'storage');
+process.env.NODE_ENV = 'test';
+process.env.APP_BASE_URL = 'http://mshkur.test';
+const { createApp } = await import('../server/app.mjs');
+const { db } = await import('../server/db.mjs');
+
+test.after(() => {
+  db.close();
+  rmSync(temp, { recursive: true, force: true });
+});
 
 async function withServer(run) {
   const server = createApp({ serveWeb: false }).listen(0, '127.0.0.1');
