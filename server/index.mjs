@@ -6,7 +6,6 @@ import { recoverQueuedJobs } from './engine/maestro.mjs';
 const port = Number(process.env.PORT || 4174);
 const host = process.env.HOST || '0.0.0.0';
 db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(new Date().toISOString());
-db.prepare("UPDATE jobs SET status='queued',updated_at=? WHERE status='running'").run(new Date().toISOString());
 const app = createApp();
 const server = app.listen(port, host, () => {
   console.log(`MSHKUR API listening on http://${host}:${port}`);
