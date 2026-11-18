@@ -7,6 +7,7 @@ import { executeSkill } from './engine/registry.mjs';
 
 const FREE_DAILY_LIMITS = { image_jobs: 3, ad_drafts: 10, assistant_messages: 40 };
 const activePhotoBatches = new Set();
+const assetWriteLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 60, standardHeaders: 'draft-8', legacyHeaders: false });
 export function consumeDailyUsage(tenantId, userId, key) {
   const day = nowIso().slice(0, 10);
   const limit = FREE_DAILY_LIMITS[key] || 20;
@@ -84,7 +85,7 @@ export function registerMediaAndGrowthRoutes(app) {
     const assets = db.prepare(sql).all(vehicle.id, req.user.tenantId);
     return res.json({ assets: assets.map(a => ({ ...a, url: '/api/files/' + a.file_id })) });
   });
-  app.post('/api/vehicles/:id/assets', requireAuth, (req, res) => {
+  app.post('/api/vehicles/:id/assets', assetWriteLimiter, requireAuth, (req, res) => {
     const vehicle = db.prepare('SELECT id FROM vehicles WHERE id=? AND tenant_id=?').get(req.params.id, req.user.tenantId);
     if (!vehicle) return res.status(404).json({ error: 'not_found' });
     try {
@@ -98,7 +99,7 @@ export function registerMediaAndGrowthRoutes(app) {
       return res.status(201).json({ asset: { id, file_id: stored.id, url: '/api/files/' + stored.id, asset_role: role, sort_order: order } });
     } catch (error) { return res.status(400).json({ error: error.code || 'asset_upload_failed', message: error.message }); }
   });
-  app.post('/api/vehicles/:id/assets/derived', requireAuth, (req,res) => {
+  app.post('/api/vehicles/:id/assets/derived', assetWriteLimiter, requireAuth, (req,res) => {
     const vehicle=db.prepare('SELECT id FROM vehicles WHERE id=? AND tenant_id=?').get(req.params.id,req.user.tenantId);
     if(!vehicle)return res.status(404).json({error:'not_found'});
     const originalAssetId=typeof req.body?.originalAssetId==='string'?req.body.originalAssetId:null;
