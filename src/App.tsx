@@ -343,11 +343,14 @@ export default function App() {
                   <button className="button-primary" onClick={() => setPublishOpen(true)}>جاهز للنشر؟</button>
                 </section>
                 {assetVehicleId ? (
-                  <AssetHistoryPanel vehicleId={assetVehicleId} assets={vehicleAssets} onRefresh={() => loadVehicleAssets(assetVehicleId)} />
+                  <AssetHistoryPanel assets={vehicleAssets} onOpen={(id) => { setMessage('فتح الأصل ' + id); }} />
                 ) : (
                   <div className="empty-inventory"><b>اختر سيارة أولاً من قائمة السيارات</b></div>
                 )}
-                <OfflineAdKit />
+                {(() => {
+                  const v = vehicles.find(x => x.id === assetVehicleId);
+                  return v ? <OfflineAdKit vehicle={v} assets={vehicleAssets} /> : null;
+                })()}
               </>
             )}
 
