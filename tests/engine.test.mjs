@@ -363,6 +363,23 @@ test('failed jobs can be retried without creating a duplicate task', async () =>
   assert.equal((await json('/api/tasks/'+id+'/retry',{method:'POST',headers:{cookie},body:'{}'})).status,409);
 });
 
+test('derived image versions stay grouped under the root original', async () => {
+  const cookie=await register('asset-lineage@example.test','معرض تسلسل الصور');
+  const created=await json('/api/vehicles',{method:'POST',headers:{cookie},body:JSON.stringify({make:'Toyota',model:'Camry'})});
+  const vehicleId=(await created.json()).vehicle.id;
+  const png=await sharp({create:{width:40,height:30,channels:3,background:'#8899aa'}}).png().toBuffer();
+  const originalResponse=await json('/api/vehicles/'+vehicleId+'/assets',{method:'POST',headers:{cookie},body:JSON.stringify({imageBase64:'data:image/png;base64,'+png.toString('base64')})});
+  const original=(await originalResponse.json()).asset;
+  const firstFile=await json('/api/vehicles/'+vehicleId+'/assets/derived',{method:'POST',headers:{cookie},body:JSON.stringify({imageBase64:'data:image/png;base64,'+png.toString('base64'),originalAssetId:original.id,processingStatus:'optimized'})});
+  const first=(await firstFile.json()).asset;
+  const second=await json('/api/vehicles/'+vehicleId+'/assets/derived',{method:'POST',headers:{cookie},body:JSON.stringify({imageBase64:'data:image/png;base64,'+png.toString('base64'),originalAssetId:first.id,processingStatus:'blurred'})});
+  const secondAsset=(await second.json()).asset;
+  assert.equal(first.original_file_id,original.file_id);
+  assert.equal(secondAsset.original_file_id,original.file_id);
+  const gallery=(await (await json('/api/vehicles/'+vehicleId+'/assets',{headers:{cookie}})).json()).assets;
+  assert.equal(gallery.filter(asset=>asset.asset_role==='derived'&&asset.original_file_id===original.file_id).length,2);
+});
+
 test.after(async()=>{
   await new Promise(resolve=>server.close(resolve));
   db.close();

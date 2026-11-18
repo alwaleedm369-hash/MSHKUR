@@ -102,7 +102,7 @@ export function registerMediaAndGrowthRoutes(app) {
     const vehicle=db.prepare('SELECT id FROM vehicles WHERE id=? AND tenant_id=?').get(req.params.id,req.user.tenantId);
     if(!vehicle)return res.status(404).json({error:'not_found'});
     const originalAssetId=typeof req.body?.originalAssetId==='string'?req.body.originalAssetId:null;
-    const original=originalAssetId?db.prepare('SELECT id,file_id FROM vehicle_assets WHERE id=? AND vehicle_id=? AND tenant_id=?').get(originalAssetId,vehicle.id,req.user.tenantId):null;
+    const original=originalAssetId?db.prepare('SELECT id,file_id,original_file_id FROM vehicle_assets WHERE id=? AND vehicle_id=? AND tenant_id=?').get(originalAssetId,vehicle.id,req.user.tenantId):null;
     if(originalAssetId&&!original)return res.status(400).json({error:'invalid_original_asset'});
     const status=['background_removed','optimized','blurred','cropped','enhanced','glass_tinted'].includes(req.body?.processingStatus)?req.body.processingStatus:'derived';
     try{
@@ -116,9 +116,9 @@ export function registerMediaAndGrowthRoutes(app) {
       const id=randomUUID();
       const order=db.prepare('SELECT COALESCE(MAX(sort_order),-1)+1 AS n FROM vehicle_assets WHERE vehicle_id=? AND tenant_id=?').get(vehicle.id,req.user.tenantId).n;
       db.prepare("INSERT INTO vehicle_assets(id,tenant_id,vehicle_id,file_id,original_file_id,asset_role,sort_order,processing_status,created_by,created_at) VALUES(?,?,?,?,?,'derived',?,?,?,?)")
-        .run(id,req.user.tenantId,vehicle.id,stored.id,original?.file_id||null,order,status,req.user.id,nowIso());
+        .run(id,req.user.tenantId,vehicle.id,stored.id,(original?.original_file_id||original?.file_id)||null,order,status,req.user.id,nowIso());
       audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'vehicle.asset_derived',resourceType:'vehicle',resourceId:vehicle.id,details:{assetId:id,originalAssetId,processingStatus:status}});
-      return res.status(201).json({asset:{id,file_id:stored.id,original_file_id:original?.file_id||null,asset_role:'derived',processing_status:status,sort_order:order,url:'/api/files/'+stored.id}});
+      return res.status(201).json({asset:{id,file_id:stored.id,original_file_id:(original?.original_file_id||original?.file_id)||null,asset_role:'derived',processing_status:status,sort_order:order,url:'/api/files/'+stored.id}});
     }catch(error){return res.status(400).json({error:error.code||'derived_asset_save_failed',message:error.message});}
   });
   app.delete('/api/vehicles/:vehicleId/assets/:assetId', requireAuth, (req, res) => {
