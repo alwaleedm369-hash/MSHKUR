@@ -31,6 +31,7 @@ npm test
 npm run typecheck
 npm run build
 npm run db:check
+npm run backup
 npm run check
 ```
 
