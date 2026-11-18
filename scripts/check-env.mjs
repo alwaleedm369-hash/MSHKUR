@@ -1,10 +1,11 @@
+import path from 'node:path';
 const production=process.env.NODE_ENV==='production';
 const errors=[];
 const warnings=[];
 if(production&&!process.env.APP_BASE_URL)errors.push('APP_BASE_URL is required in production.');
-if(production&&!process.env.MSHKUR_DB_PATH)warnings.push('MSHKUR_DB_PATH is using the local default; confirm it points to persistent storage.');
-if(production&&!process.env.MSHKUR_STORAGE_DIR)warnings.push('MSHKUR_STORAGE_DIR is using the local default; confirm it points to persistent storage.');
-if(production&&!process.env.MSHKUR_BACKUP_DIR)warnings.push('MSHKUR_BACKUP_DIR is using the local default; configure a separate backup target and copy backups off-site.');
+if(production&&(!process.env.MSHKUR_DB_PATH||!path.isAbsolute(process.env.MSHKUR_DB_PATH)))errors.push('MSHKUR_DB_PATH must be an absolute path on persistent storage.');
+if(production&&(!process.env.MSHKUR_STORAGE_DIR||!path.isAbsolute(process.env.MSHKUR_STORAGE_DIR)))errors.push('MSHKUR_STORAGE_DIR must be an absolute path on persistent storage.');
+if(production&&(!process.env.MSHKUR_BACKUP_DIR||!path.isAbsolute(process.env.MSHKUR_BACKUP_DIR)))warnings.push('MSHKUR_BACKUP_DIR must point to a separate absolute backup target; copy backups off-site.');
 if(production&&process.env.TRUST_PROXY!=='1')warnings.push('TRUST_PROXY is not enabled; configure it only if a trusted reverse proxy is present.');
 if(process.env.LOCAL_LLM_BASE_URL){
   try{
