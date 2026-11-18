@@ -30,8 +30,8 @@ export default function GuestCarStart({ onContinue, onSignIn, onQuickTool, onOpe
   function addFiles(list: FileList | null) {
     if (!list?.length) return;
     const incoming = Array.from(list);
-    if (incoming.some(file => !file.type.startsWith('image/') || file.size > 12 * 1024 * 1024)) {
-      setError('اختر صوراً صالحة، بحد أقصى 12 ميجابايت للصورة.');
+    if (incoming.some(file => !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 12 * 1024 * 1024)) {
+      setError('الصيغ المدعومة PNG وJPG وWebP، بحد أقصى 12 ميجابايت للصورة.');
       return;
     }
     setPhotos(current => {
@@ -125,7 +125,7 @@ export default function GuestCarStart({ onContinue, onSignIn, onQuickTool, onOpe
       <section className="car-start-upload-actions">
         <button type="button" className="car-start-camera" onClick={() => cameraRef.current?.click()}><Camera size={19}/> تصوير السيارة</button>
         <button type="button" className="car-start-gallery" onClick={() => libraryRef.current?.click()}><ImagePlus size={18}/> اختيار الصور</button>
-        <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={event => { addFiles(event.target.files); event.currentTarget.value = ''; }} hidden/>
+        <input ref={cameraRef} type="file" accept="image/png,image/jpeg,image/webp" capture="environment" onChange={event => { addFiles(event.target.files); event.currentTarget.value = ''; }} hidden/>
         <input ref={libraryRef} type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={event => { addFiles(event.target.files); event.currentTarget.value = ''; }} hidden/>
       </section>
 
