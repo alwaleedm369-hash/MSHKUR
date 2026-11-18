@@ -1,0 +1,419 @@
+/* =========================================================
+   GuestLanding + PublishBottomSheet — MSHKUR Mobile-First
+   خلفية بيضاء، قبل/بعد، قوالب، زر ابدأ، شروحات بالأسفل
+   ========================================================= */
+
+.guest-landing {
+  min-height: 100vh;
+  background: #f8faf9;
+  color: #17232b;
+  padding-bottom: 40px;
+}
+
+.gl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 8px;
+  background: #fff;
+  border-bottom: 1px solid #e8eeea;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.gl-brand {
+  font-weight: 700;
+  font-size: 17px;
+  color: #1a3c38;
+  letter-spacing: -0.3px;
+}
+.gl-brand small {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  color: #8a9a93;
+  letter-spacing: 0.8px;
+  margin-top: 1px;
+}
+
+.gl-menu {
+  border: 0;
+  background: none;
+  font-size: 20px;
+  color: #6b7c74;
+  padding: 6px;
+}
+
+/* ===== معاينة قبل / بعد ===== */
+.gl-hero-preview {
+  padding: 12px 14px 6px;
+  background: #fff;
+}
+
+.gl-before-after {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 11;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #eef2ef;
+  border: 1px solid #e2eae4;
+  user-select: none;
+}
+
+.gl-ba-before,
+.gl-ba-after {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.gl-ba-before {
+  z-index: 2;
+  border-right: 2px solid #fff;
+}
+
+.gl-ba-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #7a8b82;
+}
+.gl-ba-placeholder.before {
+  background: linear-gradient(145deg, #dfe8e2, #c8d5cd);
+}
+.gl-ba-placeholder.after {
+  background: #f8fafc;
+  color: #5a7a6c;
+}
+
+.gl-ba-slider {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 5;
+  cursor: ew-resize;
+  margin: 0;
+}
+
+.gl-ba-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #fff;
+  z-index: 4;
+  transform: translateX(-50%);
+  pointer-events: none;
+  box-shadow: 0 0 0 1px #1a3c3820;
+}
+.gl-ba-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #1d4942;
+  box-shadow: 0 2px 8px #0002;
+}
+
+/* ===== صف المصغّرات ===== */
+.gl-thumbs-row {
+  padding: 10px 14px 4px;
+  background: #fff;
+}
+
+.gl-thumbs-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+.gl-thumbs-scroll::-webkit-scrollbar { display: none; }
+
+.gl-thumb {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  border: 1.5px solid #e2eae4;
+  background: #f4f7f5;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: #7a8b82;
+  padding: 0;
+}
+.gl-thumb.add {
+  border-style: dashed;
+  color: #5a8a72;
+  background: #f0f6f2;
+}
+
+/* ===== زر ابدأ ===== */
+.gl-cta {
+  padding: 12px 16px 8px;
+  background: #fff;
+}
+
+.gl-start-btn {
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #1d4942;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 6px 18px #1d494230;
+}
+.gl-start-btn:active {
+  transform: scale(0.98);
+}
+
+/* ===== قوالب الخلفيات ===== */
+.gl-templates {
+  padding: 14px 16px 18px;
+  background: #fff;
+  border-bottom: 1px solid #e8eeea;
+}
+
+.gl-templates-label {
+  font-size: 11px;
+  color: #7a8b82;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.gl-templates-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.gl-templates-scroll::-webkit-scrollbar { display: none; }
+
+.gl-template-card {
+  flex: 0 0 72px;
+  height: 56px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  display: grid;
+  place-items: end center;
+  padding-bottom: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #334;
+  box-shadow: inset 0 0 0 1px #0001;
+}
+.gl-template-card.active {
+  border-color: #1d4942;
+  box-shadow: 0 0 0 1px #1d4942;
+}
+.gl-template-card span {
+  background: #fff9;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+/* ===== الشروحات بالأسفل ===== */
+.gl-explain {
+  padding: 28px 18px 40px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.gl-explain h2 {
+  font-size: 16px;
+  margin: 0 0 14px;
+  color: #1a3c38;
+}
+
+.gl-explain ol {
+  margin: 0 0 20px;
+  padding-right: 18px;
+  font-size: 13px;
+  line-height: 1.85;
+  color: #4a5c54;
+}
+
+.gl-trust {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #edf5ef;
+  border: 1px solid #d8e8de;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 11px;
+  color: #3d6b55;
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+.gl-secondary-actions {
+  display: grid;
+  gap: 10px;
+}
+.gl-secondary-actions button {
+  height: 42px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #d5e2d8;
+  background: #fff;
+  color: #2d5c4a;
+}
+.gl-secondary-actions button:first-child {
+  background: #1d4942;
+  color: #fff;
+  border-color: #1d4942;
+}
+
+/* =========================================================
+   PublishBottomSheet
+   ========================================================= */
+.publish-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0f1f1c66;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.publish-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  padding: 12px 18px 28px;
+  box-shadow: 0 -8px 40px #0002;
+  animation: sheetUp 0.28s ease;
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(40px); opacity: 0.6; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.publish-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: #d5ddd8;
+  border-radius: 4px;
+  margin: 0 auto 14px;
+}
+
+.publish-sheet h3 {
+  font-size: 15px;
+  margin: 0 0 6px;
+  color: #1a3c38;
+  text-align: center;
+}
+
+.publish-sheet > p {
+  font-size: 11px;
+  color: #7a8b82;
+  text-align: center;
+  margin: 0 0 16px;
+}
+
+.publish-platforms {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.publish-platform {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 4px;
+  border-radius: 12px;
+  border: 1px solid #e5ebe6;
+  background: #f9fbf9;
+  font-size: 10px;
+  color: #3d5c4e;
+  text-decoration: none;
+}
+.publish-platform:active {
+  background: #edf5ef;
+  border-color: #b8d4c4;
+}
+
+.publish-approve-btn {
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: #1d4942;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.publish-cancel {
+  width: 100%;
+  margin-top: 10px;
+  border: 0;
+  background: none;
+  color: #8a9a93;
+  font-size: 12px;
+  padding: 8px;
+}
+
+/* Floating AI Chat button */
+.ai-float-btn {
+  position: fixed;
+  bottom: 78px;
+  left: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 0;
+  background: #1d4942;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 20px #1d494240;
+  z-index: 40;
+}
+.ai-float-btn:active {
+  transform: scale(0.94);
+}
+
+@media (min-width: 768px) {
+  .guest-landing {
+    max-width: 480px;
+    margin: 0 auto;
+    border-left: 1px solid #e8eeea;
+    border-right: 1px solid #e8eeea;
+  }
+  .ai-float-btn {
+    left: calc(50% - 220px);
+  }
+}
