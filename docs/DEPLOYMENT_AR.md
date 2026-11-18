@@ -39,7 +39,7 @@
 - `MSHKUR_BACKUP_DIR=/persistent/mshkur/backups`
 - `MSHKUR_TENANT_STORAGE_LIMIT_BYTES=536870912`
 
-يجب أن تكون قاعدة البيانات ومجلد الملفات على قرص دائم، وليس داخل مجلد نشر يُستبدل عند كل release. إذا كان القرص غير دائم، لا تستخدم SQLite local في الإنتاج.
+يجب أن تكون `MSHKUR_DB_PATH` و`MSHKUR_STORAGE_DIR` مسارات مطلقة على قرص دائم، وليس داخل مجلد نشر يُستبدل عند كل release. يفشل `npm run check:env` في production إذا كانت هذه المسارات مفقودة أو نسبية. إذا كان القرص غير دائم، لا تستخدم SQLite local في الإنتاج.
 
 ## النماذج والتكاملات
 
