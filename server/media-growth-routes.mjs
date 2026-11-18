@@ -104,7 +104,7 @@ export function registerMediaAndGrowthRoutes(app) {
     const originalAssetId=typeof req.body?.originalAssetId==='string'?req.body.originalAssetId:null;
     const original=originalAssetId?db.prepare('SELECT id,file_id FROM vehicle_assets WHERE id=? AND vehicle_id=? AND tenant_id=?').get(originalAssetId,vehicle.id,req.user.tenantId):null;
     if(originalAssetId&&!original)return res.status(400).json({error:'invalid_original_asset'});
-    const status=['background_removed','optimized','blurred','cropped','enhanced'].includes(req.body?.processingStatus)?req.body.processingStatus:'derived';
+    const status=['background_removed','optimized','blurred','cropped','enhanced','glass_tinted'].includes(req.body?.processingStatus)?req.body.processingStatus:'derived';
     try{
       let stored;
       if(typeof req.body?.fileId==='string'){
