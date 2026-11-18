@@ -48,7 +48,7 @@ export default function GlassTintTool({src,onExport}:{src:string;onExport:(dataU
       <label>درجة التظليل<select value={tint} onChange={e=>setTint(e.target.value)}>{tints.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
       <label>قوة التظليل <b>{opacity}%</b><input type="range" min="10" max="65" step="1" value={opacity} onChange={e=>setOpacity(Number(e.target.value))}/></label>
     </div>
-    <div className="glass-tint-footer"><small>{points.length} نقاط · تحتاج 3 نقاط على الأقل لكل مساحة زجاج</small><div><button type="button" className="button-outline" onClick={()=>{setPoints([]);setError('');}}><RotateCcw size={14}/> إعادة</button><button type="button" className="button-primary" disabled={points.length<3} onClick={apply}><Check size={14}/> تطبيق التظليل</button></div></div>
+    <div className="glass-tint-footer"><small>{points.length} نقاط · تحتاج 3 نقاط على الأقل لتحديد نافذة واحدة</small><div><button type="button" className="button-outline" onClick={()=>{setPoints([]);setError('');}}><RotateCcw size={14}/> إعادة</button><button type="button" className="button-primary" disabled={points.length<3} onClick={apply}><Check size={14}/> تطبيق التظليل</button></div></div>
     {error&&<p className="glass-tint-error">{error}</p>}
   </section>;
 }
