@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ArrowLeft, ArrowUpLeft, CarFront, ImagePlus, Plus, Sparkles, ShieldCheck, WandSparkles, Camera, FileText, ScanFace } from 'lucide-react';
 
 type Vehicle = { id:string; make:string; model:string; year?:number|null; price?:number|null; city?:string|null; mileage?:number|null; status:string };
@@ -34,7 +35,7 @@ export default function DashboardHome({name,vehicles,onAddVehicle,onStudio,onAss
         <div className="car-home-visual-grid"/>
         <div className="car-home-visual-frame">
           <div className="car-home-visual-top"><span><i/> مساحة الصورة</span><small>{latest ? 'جاهز لإضافة الصور' : 'بانتظار أول سيارة'}</small></div>
-          <div className="car-home-car-art"><CarFront strokeWidth={1.05}/></div>
+          <div className="car-home-car-art">{activePhoto ? <img src={activePhoto} alt="صورة السيارة المختارة"/> : <CarFront strokeWidth={1.05}/>}</div>
           <div className="car-home-visual-bottom"><span>01 / صورة السيارة</span><span>STUDIO PREVIEW</span></div>
         </div>
         <div className="car-home-floating car-home-float-a"><WandSparkles size={15}/> تجهيز ذكي</div>
