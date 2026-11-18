@@ -8,9 +8,9 @@ const scenes:{id:SceneId;label:string;top:string;bottom:string;floor:string;acce
   {id:'dark',label:'استوديو داكن',top:'#39434a',bottom:'#111a20',floor:'#202a30',accent:'#aab9c1'},
   {id:'warm',label:'استوديو دافئ',top:'#f1e7da',bottom:'#cdbba7',floor:'#d9c9b8',accent:'#fff5e8'}
 ];
-export default function SceneStudio({src,onExport}:{src:string;onExport:(dataUrl:string)=>void}){
+export default function SceneStudio({src,onExport,initialScene='silver'}:{src:string;onExport:(dataUrl:string)=>void;initialScene?:SceneId}){
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
-  const [scene,setScene]=useState<SceneId>('silver');
+  const [scene,setScene]=useState<SceneId>(initialScene);
   const [ready,setReady]=useState(false);
   const [error,setError]=useState('');
   useEffect(()=>{

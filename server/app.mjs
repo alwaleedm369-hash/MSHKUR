@@ -29,6 +29,7 @@ export function createApp({ serveWeb = process.env.NODE_ENV === 'production' } =
     } }
   }));
   app.use(express.json({ limit: '20mb' }));
+  app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 600, standardHeaders: 'draft-8', legacyHeaders: false }));
   app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false }));
   app.use((req,res,next)=>{
     if(!['POST','PUT','PATCH','DELETE'].includes(req.method)||!req.headers.origin||!process.env.APP_BASE_URL) return next();
