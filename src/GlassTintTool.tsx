@@ -6,15 +6,17 @@ type Point={x:number;y:number};
 const tints=[{id:'smoke',label:'دخاني',color:'#17232d'},{id:'black',label:'أسود خفيف',color:'#080d12'},{id:'blue',label:'أزرق داكن',color:'#18384a'}];
 export default function GlassTintTool({src,onExport}:{src:string;onExport:(dataUrl:string)=>void}){
   const canvasRef=useRef<HTMLCanvasElement|null>(null);
+  const imageRef=useRef<HTMLImageElement|null>(null);
   const [points,setPoints]=useState<Point[]>([]);
   const [tint,setTint]=useState('smoke');
   const [opacity,setOpacity]=useState(32);
   const [error,setError]=useState('');
   useEffect(()=>{
     const canvas=canvasRef.current;if(!canvas||!src)return;
-    let active=true;const image=new Image();
+    let active=true;imageRef.current=null;const image=new Image();
     image.onload=()=>{
       if(!active||!canvasRef.current)return;
+      imageRef.current=image;
       const target=canvasRef.current;target.width=image.naturalWidth;target.height=image.naturalHeight;
       const ctx=target.getContext('2d');if(!ctx)return;
       ctx.clearRect(0,0,target.width,target.height);ctx.drawImage(image,0,0);
@@ -37,9 +39,18 @@ export default function GlassTintTool({src,onExport}:{src:string;onExport:(dataU
     setError('');
   }
   function apply(){
-    const canvas=canvasRef.current;if(!canvas||points.length<3)return;
-    try{onExport(canvas.toDataURL('image/png'));setError('');}
-    catch{setError('تعذر تصدير الصورة على هذا الجهاز.');}
+    const image=imageRef.current;if(!image||points.length<3)return;
+    try{
+      const output=document.createElement('canvas');output.width=image.naturalWidth;output.height=image.naturalHeight;
+      const ctx=output.getContext('2d');if(!ctx)throw new Error('canvas_unavailable');
+      ctx.drawImage(image,0,0);
+      ctx.beginPath();ctx.moveTo(points[0].x*output.width,points[0].y*output.height);
+      for(const point of points.slice(1))ctx.lineTo(point.x*output.width,point.y*output.height);
+      ctx.closePath();
+      const color=tints.find(item=>item.id===tint)!.color;
+      ctx.fillStyle=color+Math.round(opacity/100*255).toString(16).padStart(2,'0');ctx.fill();
+      onExport(output.toDataURL('image/png'));setError('');
+    }catch{setError('تعذر تصدير الصورة على هذا الجهاز.');}
   }
   return <section className="glass-tint-tool" dir="rtl">
     <div className="glass-tint-heading"><div><span>أداة يدوية</span><b><GlassWater size={17}/> تضليل الزجاج</b><small>حدد نقاط الزجاج حول النافذة؛ لا يوجد كشف تلقائي.</small></div><MousePointer2 size={19}/></div>
