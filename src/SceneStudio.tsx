@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Sun, Moon, Sparkles, CircleDot } from 'lucide-react';
+import { Check, Sun, Sparkles, CircleDot } from 'lucide-react';
 
 type SceneId = 'silver'|'white'|'dark'|'warm';
 const scenes:{id:SceneId;label:string;top:string;bottom:string;floor:string;accent:string}[]=[
