@@ -69,10 +69,10 @@ export function cancelJobForTenant(jobId, tenantId, userId) {
 }
 
 export async function retryJobForTenant(jobId, tenantId, userId) {
-  const job = db.prepare('SELECT id,skill_id,status FROM jobs WHERE id=? AND tenant_id=?').get(jobId, tenantId);
+  const job = db.prepare('SELECT id,skill_id,status,attempts FROM jobs WHERE id=? AND tenant_id=?').get(jobId, tenantId);
   if (!job) return null;
-  if (job.status !== 'failed') throw Object.assign(new Error('Only failed jobs can be retried'), { code:'job_not_retryable' });
-  const result = db.prepare("UPDATE jobs SET status='queued',output_json=NULL,error_code=NULL,error_message=NULL,updated_at=? WHERE id=? AND tenant_id=? AND status='failed'").run(nowIso(), jobId, tenantId);
+  if (job.status !== 'failed' || job.attempts >= 3) throw Object.assign(new Error(job.attempts >= 3 ? 'Retry limit reached (3 attempts)' : 'Only failed jobs can be retried'), { code:'job_not_retryable' });
+  const result = db.prepare("UPDATE jobs SET status='queued',output_json=NULL,error_code=NULL,error_message=NULL,updated_at=? WHERE id=? AND tenant_id=? AND status='failed' AND attempts < 3").run(nowIso(), jobId, tenantId);
   if (!result.changes) throw Object.assign(new Error('Job state changed; refresh and try again'), { code:'job_state_changed' });
   audit({ tenantId, actorUserId:userId, eventType:'job.retried', resourceType:'job', resourceId:jobId, details:{ skillId:job.skill_id } });
   runJob(jobId).catch(() => {});
@@ -90,6 +90,9 @@ export function listJobsForTenant(tenantId, limit = 30) {
 export function getSkills() { return skillManifests; }
 export async function recoverQueuedJobs() {
   db.prepare("UPDATE jobs SET status='queued',updated_at=? WHERE status='running'").run(nowIso());
-  const rows = db.prepare("SELECT id FROM jobs WHERE status='queued' ORDER BY created_at LIMIT 20").all();
-  for (const row of rows) await runJob(row.id);
+  while (true) {
+    const rows = db.prepare("SELECT id FROM jobs WHERE status='queued' ORDER BY created_at LIMIT 20").all();
+    if (!rows.length) break;
+    for (const row of rows) await runJob(row.id);
+  }
 }
