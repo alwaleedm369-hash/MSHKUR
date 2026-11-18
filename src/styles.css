@@ -338,3 +338,21 @@
 .scene-studio-result>img{display:block;width:100%;height:auto;border-radius:10px;background:#e9eeeb}
 .scene-studio-result .studio-actions{display:flex;flex-wrap:wrap;gap:8px}
 @media(max-width:600px){.scene-studio{padding:12px;margin:16px 0}.scene-studio-presets{grid-template-columns:repeat(2,minmax(0,1fr))}.scene-studio-head b{font-size:12px}.scene-studio-canvas canvas{aspect-ratio:1/1}.scene-studio-result{padding:10px}}
+
+
+.glass-tint-tool{margin:18px 0;padding:16px;border:1px solid #e1e9e4;border-radius:15px;background:#fbfcfb}
+.glass-tint-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;color:#668b74}
+.glass-tint-heading>div{display:grid;gap:5px}.glass-tint-heading>div>span{font-size:9px;color:#8b9b91}.glass-tint-heading b{display:flex;align-items:center;gap:7px;color:#334c3c;font-size:13px}.glass-tint-heading small{color:#8b9990;font-size:9px}
+.glass-tint-canvas-wrap{overflow:hidden;border:1px solid #e1e8e4;border-radius:10px;background:#eef2ef}
+.glass-tint-canvas-wrap canvas{display:block;width:100%;height:auto;cursor:crosshair;touch-action:pan-y}
+.glass-tint-controls{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.glass-tint-controls label{display:grid;gap:6px;color:#65776c;font-size:10px}
+.glass-tint-controls select{height:37px;padding:0 9px;border:1px solid #dfe7e2;border-radius:8px;background:#fff;color:#41564a;font:inherit}
+.glass-tint-controls input[type=range]{width:100%;accent-color:#548567}
+.glass-tint-controls label>b{color:#426c50}
+.glass-tint-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.glass-tint-footer>small{color:#8d9a92;font-size:9px}
+.glass-tint-footer>div{display:flex;gap:7px}
+.glass-tint-footer button{min-height:35px;padding:0 10px;font-size:9px}
+.glass-tint-error{color:#b94d4d;font-size:10px}
+@media(max-width:560px){.glass-tint-tool{padding:11px}.glass-tint-controls{grid-template-columns:1fr}.glass-tint-footer{align-items:flex-start;flex-direction:column}.glass-tint-footer>div{width:100%}.glass-tint-footer button{flex:1}}
