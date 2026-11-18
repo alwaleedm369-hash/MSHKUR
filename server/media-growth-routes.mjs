@@ -98,6 +98,29 @@ export function registerMediaAndGrowthRoutes(app) {
       return res.status(201).json({ asset: { id, file_id: stored.id, url: '/api/files/' + stored.id, asset_role: role, sort_order: order } });
     } catch (error) { return res.status(400).json({ error: error.code || 'asset_upload_failed', message: error.message }); }
   });
+  app.post('/api/vehicles/:id/assets/derived', requireAuth, (req,res) => {
+    const vehicle=db.prepare('SELECT id FROM vehicles WHERE id=? AND tenant_id=?').get(req.params.id,req.user.tenantId);
+    if(!vehicle)return res.status(404).json({error:'not_found'});
+    const originalAssetId=typeof req.body?.originalAssetId==='string'?req.body.originalAssetId:null;
+    const original=originalAssetId?db.prepare('SELECT id,file_id FROM vehicle_assets WHERE id=? AND vehicle_id=? AND tenant_id=?').get(originalAssetId,vehicle.id,req.user.tenantId):null;
+    if(originalAssetId&&!original)return res.status(400).json({error:'invalid_original_asset'});
+    const status=['background_removed','optimized','blurred','cropped','enhanced'].includes(req.body?.processingStatus)?req.body.processingStatus:'derived';
+    try{
+      let stored;
+      if(typeof req.body?.fileId==='string'){
+        stored=db.prepare('SELECT id,mime_type,size_bytes FROM files WHERE id=? AND tenant_id=?').get(req.body.fileId,req.user.tenantId);
+        if(!stored)return res.status(404).json({error:'file_not_found'});
+      }else if(typeof req.body?.imageBase64==='string'){
+        stored=storeImageDataUrl(req.body.imageBase64,{tenantId:req.user.tenantId,userId:req.user.id});
+      }else return res.status(400).json({error:'derived_file_required'});
+      const id=randomUUID();
+      const order=db.prepare('SELECT COALESCE(MAX(sort_order),-1)+1 AS n FROM vehicle_assets WHERE vehicle_id=? AND tenant_id=?').get(vehicle.id,req.user.tenantId).n;
+      db.prepare("INSERT INTO vehicle_assets(id,tenant_id,vehicle_id,file_id,original_file_id,asset_role,sort_order,processing_status,created_by,created_at) VALUES(?,?,?,?,?,'derived',?,?,?,?)")
+        .run(id,req.user.tenantId,vehicle.id,stored.id,original?.file_id||null,order,status,req.user.id,nowIso());
+      audit({tenantId:req.user.tenantId,actorUserId:req.user.id,eventType:'vehicle.asset_derived',resourceType:'vehicle',resourceId:vehicle.id,details:{assetId:id,originalAssetId,processingStatus:status}});
+      return res.status(201).json({asset:{id,file_id:stored.id,original_file_id:original?.file_id||null,asset_role:'derived',processing_status:status,sort_order:order,url:'/api/files/'+stored.id}});
+    }catch(error){return res.status(400).json({error:error.code||'derived_asset_save_failed',message:error.message});}
+  });
   app.delete('/api/vehicles/:vehicleId/assets/:assetId', requireAuth, (req, res) => {
     const result = db.prepare('DELETE FROM vehicle_assets WHERE id=? AND vehicle_id=? AND tenant_id=?').run(req.params.assetId, req.params.vehicleId, req.user.tenantId);
     return result.changes ? res.status(204).end() : res.status(404).json({ error: 'not_found' });
