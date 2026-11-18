@@ -15,7 +15,7 @@ test('GET /api/health returns a non-cached healthy response', async () => {
     const response = await fetch(`${base}/api/health`);
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.deepEqual(await response.json(), { status: 'ok', service: 'mshkur-api', version: '0.1.0' });
+    assert.deepEqual(await response.json(), { status: 'ok', service: 'mshkur-api', version: '0.2.0' });
   });
 });
 
@@ -25,9 +25,21 @@ test('GET /api/readiness does not claim unconfigured integrations', async () => 
     const body = await response.json();
     assert.equal(response.status, 200);
     assert.equal(body.capabilities.api, true);
-    assert.equal(body.capabilities.persistentDatabase, false);
+    assert.equal(body.capabilities.database, 'sqlite-connected');
     assert.equal(body.capabilities.googleOAuth, false);
     assert.equal(body.capabilities.whatsapp, false);
+  });
+});
+
+
+test('derived vehicle assets require an authenticated tenant session', async () => {
+  await withServer(async base => {
+    const response = await fetch(`${base}/api/vehicles/example/assets/derived`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ fileId: 'not-a-file', processingStatus: 'optimized' })
+    });
+    assert.equal(response.status, 401);
   });
 });
 
