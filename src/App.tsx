@@ -225,16 +225,17 @@ export default function App(){
     const reader=new FileReader();reader.onload=()=>{setImageFile(file);setImageData(String(reader.result));setOptimizedImage('');setBlurredImage('');setCroppedImage('');if(removedImage)URL.revokeObjectURL(removedImage);setRemovedImage('');setSelectedRegion({left:0.3,top:0.55,width:0.4,height:0.18});setBgProgress({progress:0,message:''});setError('');};reader.readAsDataURL(file);
   }
   async function saveDerivedAsset({fileId,imageBase64,processingStatus}:{fileId?:string;imageBase64?:string;processingStatus:string}){
-    if(!assetVehicleId)return;
+    if(!assetVehicleId||!selectedAssetId)return false;
     await api('/api/vehicles/'+assetVehicleId+'/assets/derived',{method:'POST',body:JSON.stringify({fileId,imageBase64,originalAssetId:selectedAssetId||undefined,processingStatus})});
     await loadVehicleAssets(assetVehicleId);
+    return true;
   }
   async function optimizeImage(){
     if(!imageData)return;setImageBusy(true);setError('');setMessage('');
     try{
       const task=await runTask('image-optimize',{imageBase64:imageData,maxWidth:2048,quality:84});
       if(task.status!=='succeeded')throw new Error(task.error_message||'فشل تحسين الصورة');
-      setOptimizedImage('/api/files/'+task.output.imageFileId);await saveDerivedAsset({fileId:task.output.imageFileId,processingStatus:'optimized'});setMessage('تم تحسين الصورة وحفظ نسخة مشتقة في ألبوم السيارة. الأصل لم يتغير.');
+      setOptimizedImage('/api/files/'+task.output.imageFileId);const saved=await saveDerivedAsset({fileId:task.output.imageFileId,processingStatus:'optimized'});setMessage(saved?'تم تحسين الصورة وحفظ نسخة مشتقة في ألبوم السيارة. الأصل لم يتغير.':'تم تحسين الصورة. اختر صورة من ألبوم السيارة لحفظ النسخة المشتقة ضمنه.');
     }catch(e){setError(e instanceof Error?e.message:'تعذر معالجة الصورة');}
     finally{setImageBusy(false);}
   }
@@ -248,8 +249,8 @@ export default function App(){
       const url=URL.createObjectURL(result.blob);
       if(removedImage)URL.revokeObjectURL(removedImage);
       setRemovedImage(url);
-      if(assetVehicleId){const reader=new FileReader();const imageBase64=await new Promise<string>((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('تعذر حفظ النسخة الناتجة'));reader.readAsDataURL(result.blob);});await saveDerivedAsset({imageBase64,processingStatus:'background_removed'});}
-      setMessage(assetVehicleId?'أزيلت الخلفية محلياً وحُفظت نسخة مشتقة في ألبوم السيارة.':'أزيلت الخلفية محلياً داخل متصفحك.');
+      let saved=false;if(assetVehicleId&&selectedAssetId){const reader=new FileReader();const imageBase64=await new Promise<string>((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('تعذر حفظ النسخة الناتجة'));reader.readAsDataURL(result.blob);});saved=await saveDerivedAsset({imageBase64,processingStatus:'background_removed'});}
+      setMessage(saved?'أزيلت الخلفية محلياً وحُفظت نسخة مشتقة في ألبوم السيارة.':'أزيلت الخلفية محلياً. اختر صورة من ألبوم السيارة لحفظ النتيجة ضمنه.');
     }catch(e){setError(e instanceof Error?e.message:'تعذرت إزالة الخلفية. يمكنك إعادة المحاولة.');}
     finally{setBgBusy(false);}
   }
@@ -267,8 +268,8 @@ export default function App(){
       const task=await runTask('license-plate-blur-region',{imageBase64:imageData,...selectedRegion});
       if(task.status!=='succeeded')throw new Error(task.error_message||'فشل طمس المنطقة');
       setBlurredImage('/api/files/'+task.output.imageFileId);
-      await saveDerivedAsset({fileId:task.output.imageFileId,processingStatus:'blurred'});
-      setMessage('تم طمس المنطقة وحفظ نسخة مشتقة في ألبوم السيارة. راجع النتيجة قبل استخدامها.');
+      const saved=await saveDerivedAsset({fileId:task.output.imageFileId,processingStatus:'blurred'});
+      setMessage(saved?'تم طمس المنطقة وحفظ نسخة مشتقة في ألبوم السيارة. راجع النتيجة قبل استخدامها.':'تم طمس المنطقة. اختر صورة من ألبوم السيارة لحفظ النسخة المشتقة ضمنه.');
     }catch(e){setError(e instanceof Error?e.message:'تعذر طمس المنطقة');}
     finally{setBlurBusy(false);}
   }
