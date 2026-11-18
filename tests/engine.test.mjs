@@ -380,6 +380,17 @@ test('derived image versions stay grouped under the root original', async () => 
   assert.equal(gallery.filter(asset=>asset.asset_role==='derived'&&asset.original_file_id===original.file_id).length,2);
 });
 
+test('running job cancellation requests are persisted for crash recovery', async () => {
+  const cookie=await register('job-running-cancel@example.test','معرض إلغاء جارٍ');
+  const me=(await (await json('/api/auth/me',{headers:{cookie}})).json()).user;
+  const id=crypto.randomUUID(),now=new Date().toISOString();
+  db.prepare("INSERT INTO jobs(id,tenant_id,user_id,skill_id,status,input_json,created_at,updated_at) VALUES(?,?,?,'vehicle-ad-copy','running','{}',?,?)").run(id,me.tenantId,me.id,now,now);
+  const response=await json('/api/tasks/'+id+'/cancel',{method:'POST',headers:{cookie},body:'{}'});
+  assert.equal(response.status,200);
+  assert.equal((await response.json()).task.cancellationRequested,true);
+  assert.equal(db.prepare('SELECT error_code FROM jobs WHERE id=?').get(id).error_code,'cancel_requested');
+});
+
 test.after(async()=>{
   await new Promise(resolve=>server.close(resolve));
   db.close();

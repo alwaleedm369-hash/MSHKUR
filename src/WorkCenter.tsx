@@ -96,7 +96,7 @@ export function TasksPanel(){
     <div className="ops-heading"><div><span>Maestro</span><h2>مهام العمل</h2><small>سجل التنفيذ ونتائج المهارات في مساحة العمل الحالية</small></div><button onClick={load}><RefreshCw size={16}/> تحديث</button></div>
     {error&&<p className="ops-error">{error}</p>}
     {loading?<p className="ops-note">جارٍ تحميل المهام...</p>:tasks.length===0?<div className="work-empty"><Clock3 size={26}/><b>لا توجد مهام بعد</b><p>عند تنفيذ أداة أو سير عمل ستظهر حالته ونتيجته هنا.</p></div>:<div className="task-history">{tasks.map(task=><article className="task-history-row" key={task.id}>
-      <div className="task-history-icon">{task.status==='succeeded'?<CheckCircle2 size={18}/>:task.status==='failed'?<XCircle size={18}/>:<LoaderCircle className="spin" size={18}/>}</div>
+      <div className="task-history-icon">{task.status==='succeeded'?<CheckCircle2 size={18}/>:task.status==='failed'?<XCircle size={18}/>:task.status==='cancelled'?<Ban size={18}/>:<LoaderCircle className="spin" size={18}/>}</div>
       <div className="task-history-main"><b>{task.skill_id||task.skillId||'مهمة'}</b><small>{task.created_at?new Date(task.created_at).toLocaleString('ar-SA'):'وقت غير متاح'}</small>{task.error_message&&<p>{task.error_message}</p>}</div>
       <div className="task-history-actions"><span className={'task-status status-'+task.status}>{(({succeeded:'مكتملة',failed:'فشلت',running:'قيد التنفيذ',queued:'في الانتظار',cancelled:'ملغاة'} as Record<string,string>)[task.status]||task.status)}</span>
         {(task.status==='queued'||task.status==='running')&&<button type="button" disabled={busyTask===task.id} onClick={()=>taskAction(task.id,'cancel')}><Ban size={13}/> إلغاء</button>}

@@ -31,7 +31,7 @@ export async function runJob(jobId) {
   if (!claimed.changes) { running.delete(jobId); return; }
   try {
     const output = await executeSkill(job.skill_id, JSON.parse(job.input_json), { tenantId:job.tenant_id, userId:job.user_id });
-    if (cancelRequested.has(jobId)) {
+    if (cancelRequested.has(jobId) || db.prepare("SELECT error_code FROM jobs WHERE id=? AND status='running'").get(jobId)?.error_code==='cancel_requested') {
       db.prepare("UPDATE jobs SET status='cancelled',output_json=NULL,error_code='cancelled',error_message='Cancelled by user',updated_at=? WHERE id=? AND status='running'").run(nowIso(), jobId);
       audit({ tenantId:job.tenant_id, actorUserId:job.user_id, eventType:'job.cancelled', resourceType:'job', resourceId:jobId, details:{ skillId:job.skill_id } });
     } else {
@@ -62,6 +62,8 @@ export function cancelJobForTenant(jobId, tenantId, userId) {
     return getJobForTenant(jobId, tenantId);
   }
   if (job.status === 'running') {
+    const updated=db.prepare("UPDATE jobs SET error_code='cancel_requested',error_message='Cancellation requested; current local operation will finish before its result is discarded.',updated_at=? WHERE id=? AND tenant_id=? AND status='running'").run(nowIso(),jobId,tenantId);
+    if(!updated.changes)return getJobForTenant(jobId,tenantId);
     cancelRequested.add(jobId);
     return { ...getJobForTenant(jobId, tenantId), cancellationRequested:true, note:'The current local operation will finish before the result is discarded.' };
   }
@@ -85,11 +87,12 @@ export function getJobForTenant(jobId, tenantId) {
   return { ...row, input:JSON.parse(row.input_json), output:row.output_json ? JSON.parse(row.output_json) : null, input_json:undefined, output_json:undefined };
 }
 export function listJobsForTenant(tenantId, limit = 30) {
-  return db.prepare('SELECT id,skill_id,status,error_code,attempts,created_at,updated_at FROM jobs WHERE tenant_id=? ORDER BY created_at DESC LIMIT ?').all(tenantId, Math.min(Math.max(limit,1),100));
+  return db.prepare('SELECT id,skill_id,status,error_code,error_message,attempts,created_at,updated_at FROM jobs WHERE tenant_id=? ORDER BY created_at DESC LIMIT ?').all(tenantId, Math.min(Math.max(limit,1),100));
 }
 export function getSkills() { return skillManifests; }
 export async function recoverQueuedJobs() {
-  db.prepare("UPDATE jobs SET status='queued',updated_at=? WHERE status='running'").run(nowIso());
+  db.prepare("UPDATE jobs SET status='cancelled',error_message='Cancellation completed during recovery',updated_at=? WHERE status='running' AND error_code='cancel_requested'").run(nowIso());
+  db.prepare("UPDATE jobs SET status='queued',error_code=NULL,error_message=NULL,updated_at=? WHERE status='running'").run(nowIso());
   while (true) {
     const rows = db.prepare("SELECT id FROM jobs WHERE status='queued' ORDER BY created_at LIMIT 20").all();
     if (!rows.length) break;
