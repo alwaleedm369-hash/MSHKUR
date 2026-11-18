@@ -326,6 +326,43 @@ test('photo batch retry only requeues failed items and remains tenant scoped', a
   assert.equal(hidden.status,404);
 });
 
+test('queued jobs can be cancelled by their tenant', async () => {
+  const cookie=await register('job-cancel@example.test','معرض إلغاء المهام');
+  const me=(await (await json('/api/auth/me',{headers:{cookie}})).json()).user;
+  const id=crypto.randomUUID(),now=new Date().toISOString();
+  db.prepare("INSERT INTO jobs(id,tenant_id,user_id,skill_id,status,input_json,created_at,updated_at) VALUES(?,?,?,'vehicle-ad-copy','queued','{}',?,?)").run(id,me.tenantId,me.id,now,now);
+  const cancelled=await json('/api/tasks/'+id+'/cancel',{method:'POST',headers:{cookie},body:'{}'});
+  assert.equal(cancelled.status,200);
+  assert.equal((await cancelled.json()).task.status,'cancelled');
+  const other=await register('job-cancel-other@example.test','معرض آخر');
+  assert.equal((await json('/api/tasks/'+id+'/cancel',{method:'POST',headers:{cookie:other},body:'{}'})).status,404);
+});
+
+test('failed jobs can be retried without creating a duplicate task', async () => {
+  const cookie=await register('job-retry@example.test','معرض إعادة المحاولة');
+  const created=await json('/api/tasks',{method:'POST',headers:{cookie},body:JSON.stringify({skillId:'image-optimize',input:{imageFileId:crypto.randomUUID()}})});
+  assert.equal(created.status,202);
+  const id=(await created.json()).id;
+  let task;
+  for(let i=0;i<50;i++){
+    await new Promise(resolve=>setTimeout(resolve,20));
+    task=(await (await json('/api/tasks/'+id,{headers:{cookie}})).json()).task;
+    if(task.status==='failed')break;
+  }
+  assert.equal(task.status,'failed');
+  const retried=await json('/api/tasks/'+id+'/retry',{method:'POST',headers:{cookie},body:'{}'});
+  assert.equal(retried.status,202);
+  let after;
+  for(let i=0;i<50;i++){
+    await new Promise(resolve=>setTimeout(resolve,20));
+    after=(await (await json('/api/tasks/'+id,{headers:{cookie}})).json()).task;
+    if(after.status==='failed')break;
+  }
+  assert.equal(after.status,'failed');
+  assert.equal(after.attempts,3);
+  assert.equal((await json('/api/tasks/'+id+'/retry',{method:'POST',headers:{cookie},body:'{}'})).status,409);
+});
+
 test.after(async()=>{
   await new Promise(resolve=>server.close(resolve));
   db.close();

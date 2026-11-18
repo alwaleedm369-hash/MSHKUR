@@ -356,3 +356,9 @@
 .glass-tint-footer button{min-height:35px;padding:0 10px;font-size:9px}
 .glass-tint-error{color:#b94d4d;font-size:10px}
 @media(max-width:560px){.glass-tint-tool{padding:11px}.glass-tint-controls{grid-template-columns:1fr}.glass-tint-footer{align-items:flex-start;flex-direction:column}.glass-tint-footer>div{width:100%}.glass-tint-footer button{flex:1}}
+
+.task-history-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}
+.task-history-actions button{display:inline-flex;align-items:center;gap:5px;padding:7px 9px;border:1px solid #dfe8e2;border-radius:8px;background:#fff;color:#587060;font:inherit;font-size:10px;cursor:pointer}
+.task-history-actions button:disabled{opacity:.5;cursor:wait}
+.status-cancelled{color:#8a8f91;background:#f1f2f2}
+@media(max-width:560px){.task-history-actions{grid-column:2;justify-content:flex-start}.task-history-row{grid-template-columns:auto 1fr}.task-history-actions{grid-column:1/-1}}

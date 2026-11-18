@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { registerAuthRoutes, requireAuth } from './auth.mjs';
 import { db, nowIso, audit } from './db.mjs';
-import { createJob, getJobForTenant, getSkills, listJobsForTenant, runJob } from './engine/maestro.mjs';
+import { createJob, getJobForTenant, getSkills, listJobsForTenant, runJob, cancelJobForTenant, retryJobForTenant } from './engine/maestro.mjs';
 import { classifyIntent } from './engine/intent.mjs';
 import { generateWithLocalModel, getLocalModelStatus } from './engine/model-router.mjs';
 import { listAgents } from './agents/registry.mjs';
@@ -156,6 +156,18 @@ export function registerRoutes(app) {
     } catch (error) { return res.status(error.code==='daily_limit_reached'?429:400).json({ error:error.code || 'task_rejected', message:error.message }); }
   });
   app.get('/api/tasks', requireAuth, (req,res) => res.json({ tasks:listJobsForTenant(req.user.tenantId) }));
+  app.post('/api/tasks/:id/cancel', requireAuth, (req,res) => {
+    const task=cancelJobForTenant(req.params.id,req.user.tenantId,req.user.id);
+    return task?res.json({task}):res.status(404).json({error:'not_found'});
+  });
+  app.post('/api/tasks/:id/retry', requireAuth, async (req,res) => {
+    try {
+      const task=await retryJobForTenant(req.params.id,req.user.tenantId,req.user.id);
+      return task?res.status(202).json({task}):res.status(404).json({error:'not_found'});
+    } catch(error) {
+      return res.status(error.code==='job_not_retryable'?409:400).json({error:error.code||'retry_failed',message:error.message});
+    }
+  });
   app.get('/api/tasks/:id', requireAuth, (req,res) => {
     const job = getJobForTenant(req.params.id, req.user.tenantId);
     return job ? res.json({ task:job }) : res.status(404).json({ error:'not_found' });

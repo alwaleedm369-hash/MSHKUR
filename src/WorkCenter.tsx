@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Blocks, Workflow, RefreshCw, Clock3, CheckCircle2, XCircle, LoaderCircle, ShieldCheck, GitBranch, BookOpen } from 'lucide-react';
+import { Blocks, Workflow, RefreshCw, Clock3, CheckCircle2, XCircle, LoaderCircle, ShieldCheck, GitBranch, BookOpen, RotateCcw, Ban } from 'lucide-react';
 
 async function api<T=any>(url:string,options:RequestInit={}):Promise<T>{
   const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
@@ -82,7 +82,15 @@ export function TasksPanel(){
   const [tasks,setTasks]=useState<any[]>([]);
   const [error,setError]=useState('');
   const [loading,setLoading]=useState(true);
+  const [busyTask,setBusyTask]=useState('');
+  const [feedback,setFeedback]=useState('');
   async function load(){setLoading(true);setError('');try{const data=await api<{tasks:any[]}>('/api/tasks');setTasks(data.tasks||[]);}catch(e){setError(e instanceof Error?e.message:'تعذر تحميل سجل المهام');}finally{setLoading(false);}}
+  async function taskAction(id:string,action:'cancel'|'retry'){
+    setBusyTask(id);setFeedback('');
+    try{await api('/api/tasks/'+id+'/'+action,{method:'POST',body:'{}'});setFeedback(action==='cancel'?'تم طلب إلغاء المهمة.':'تمت إعادة وضع المهمة للتنفيذ.');await load();}
+    catch(e){setError(e instanceof Error?e.message:'تعذر تنفيذ الإجراء');}
+    finally{setBusyTask('');}
+  }
   useEffect(()=>{load();const timer=window.setInterval(()=>{api<{tasks:any[]}>('/api/tasks').then(data=>setTasks(data.tasks||[])).catch(()=>{});},5000);return()=>window.clearInterval(timer);},[]);
   return <section className="ops-panel" dir="rtl">
     <div className="ops-heading"><div><span>Maestro</span><h2>مهام العمل</h2><small>سجل التنفيذ ونتائج المهارات في مساحة العمل الحالية</small></div><button onClick={load}><RefreshCw size={16}/> تحديث</button></div>
@@ -90,8 +98,12 @@ export function TasksPanel(){
     {loading?<p className="ops-note">جارٍ تحميل المهام...</p>:tasks.length===0?<div className="work-empty"><Clock3 size={26}/><b>لا توجد مهام بعد</b><p>عند تنفيذ أداة أو سير عمل ستظهر حالته ونتيجته هنا.</p></div>:<div className="task-history">{tasks.map(task=><article className="task-history-row" key={task.id}>
       <div className="task-history-icon">{task.status==='succeeded'?<CheckCircle2 size={18}/>:task.status==='failed'?<XCircle size={18}/>:<LoaderCircle className="spin" size={18}/>}</div>
       <div className="task-history-main"><b>{task.skill_id||task.skillId||'مهمة'}</b><small>{task.created_at?new Date(task.created_at).toLocaleString('ar-SA'):'وقت غير متاح'}</small>{task.error_message&&<p>{task.error_message}</p>}</div>
-      <span className={'task-status status-'+task.status}>{(({succeeded:'مكتملة',failed:'فشلت',running:'قيد التنفيذ',queued:'في الانتظار'} as Record<string,string>)[task.status]||task.status)}</span>
+      <div className="task-history-actions"><span className={'task-status status-'+task.status}>{(({succeeded:'مكتملة',failed:'فشلت',running:'قيد التنفيذ',queued:'في الانتظار',cancelled:'ملغاة'} as Record<string,string>)[task.status]||task.status)}</span>
+        {(task.status==='queued'||task.status==='running')&&<button type="button" disabled={busyTask===task.id} onClick={()=>taskAction(task.id,'cancel')}><Ban size={13}/> إلغاء</button>}
+        {task.status==='failed'&&<button type="button" disabled={busyTask===task.id} onClick={()=>taskAction(task.id,'retry')}><RotateCcw size={13}/> إعادة المحاولة</button>}
+      </div>
     </article>)}</div>}
+    {feedback&&<p className="import-feedback">{feedback}</p>}
     <div className="work-safety-note"><ShieldCheck size={17}/><span>المهام مقيدة بمهارات مسموحة وعزل مساحة العمل. أي نشر أو إرسال خارجي يحتاج موافقة مستقلة.</span></div>
   </section>;
 }
