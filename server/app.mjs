@@ -45,11 +45,19 @@ export function createApp({ serveWeb = process.env.NODE_ENV === 'production' } =
 
   app.get('/api/readiness', (_req, res) => {
     res.set('Cache-Control', 'no-store');
-    res.status(200).json({
-      status: 'ready',
+    let database = 'unavailable';
+    try {
+      if (db.open) {
+        db.prepare('SELECT 1 AS ok').get();
+        database = 'sqlite-connected';
+      }
+    } catch { database = 'unavailable'; }
+    const ready = database === 'sqlite-connected';
+    res.status(ready ? 200 : 503).json({
+      status: ready ? 'ready' : 'not_ready',
       capabilities: {
         api: true,
-        database: db.open ? 'sqlite-connected' : 'unavailable',
+        database,
         googleOAuth: false,
         googleMaps: false,
         whatsapp: false,
