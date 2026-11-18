@@ -2,17 +2,21 @@ import { useState } from 'react';
 import { ArrowLeft, ArrowUpLeft, CarFront, ImagePlus, Plus, Sparkles, ShieldCheck, WandSparkles, Camera, FileText, ScanFace } from 'lucide-react';
 
 type Vehicle = { id:string; make:string; model:string; year?:number|null; price?:number|null; city?:string|null; mileage?:number|null; status:string };
+type Asset = {id:string;url:string;asset_role?:string};
 type Props = {
   name:string;
   vehicles:Vehicle[];
+  assets:Asset[];
   onAddVehicle:()=>void;
   onStudio:()=>void;
   onAssistant:()=>void;
   onCars:()=>void;
 };
 
-export default function DashboardHome({name,vehicles,onAddVehicle,onStudio,onAssistant,onCars}:Props){
+export default function DashboardHome({name,vehicles,assets,onAddVehicle,onStudio,onAssistant,onCars}:Props){
   const latest=vehicles[0];
+  const [activeAsset,setActiveAsset]=useState(0);
+  const activePhoto=assets[activeAsset]?.url;
   return <div className="car-home" dir="rtl">
     <header className="car-home-heading">
       <div><span className="car-home-kicker"><i/> MSHKUR CARS · مساحة العمل</span><h1>أهلاً {name.split(' ')[0]}، لنجهّز سيارتك.</h1><p>اختر صورة أو ابدأ بمهمة. كل أدواتك في مكان واحد.</p></div>
@@ -38,6 +42,7 @@ export default function DashboardHome({name,vehicles,onAddVehicle,onStudio,onAss
           <div className="car-home-car-art">{activePhoto ? <img src={activePhoto} alt="صورة السيارة المختارة"/> : <CarFront strokeWidth={1.05}/>}</div>
           <div className="car-home-visual-bottom"><span>01 / صورة السيارة</span><span>STUDIO PREVIEW</span></div>
         </div>
+        {assets.length>1&&<div className="car-home-thumbs">{assets.slice(0,6).map((asset,index)=><button key={asset.id} className={activeAsset===index?"active":""} onClick={()=>setActiveAsset(index)} aria-label={`عرض الصورة ${index+1}`}><img src={asset.url} alt=""/></button>)}</div>}
         <div className="car-home-floating car-home-float-a"><WandSparkles size={15}/> تجهيز ذكي</div>
         <div className="car-home-floating car-home-float-b"><ShieldCheck size={15}/> مراجعتك أولاً</div>
       </div>

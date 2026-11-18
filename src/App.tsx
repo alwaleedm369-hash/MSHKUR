@@ -316,6 +316,7 @@ export default function App(){
         {screen==='home'&&<DashboardHome
           name={user.name}
           vehicles={vehicles}
+          assets={vehicleAssets}
           onAddVehicle={()=>{setEditingVehicleId('');setNewVehicle({make:'',model:'',trim:'',year:'',mileage:'',fuel:'',transmission:'',color:'',price:'',city:'جدة',notes:''});setShowVehicleForm(true);setScreen('cars');}}
           onStudio={()=>setScreen('studio')}
           onAssistant={()=>setScreen('assistant')}
