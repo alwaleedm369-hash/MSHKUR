@@ -267,7 +267,8 @@ export default function App(){
       const task=await runTask('license-plate-blur-region',{imageBase64:imageData,...selectedRegion});
       if(task.status!=='succeeded')throw new Error(task.error_message||'فشل طمس المنطقة');
       setBlurredImage('/api/files/'+task.output.imageFileId);
-      setMessage('تم طمس المنطقة التي حددتها. راجع النتيجة قبل استخدامها.');
+      await saveDerivedAsset({fileId:task.output.imageFileId,processingStatus:'blurred'});
+      setMessage('تم طمس المنطقة وحفظ نسخة مشتقة في ألبوم السيارة. راجع النتيجة قبل استخدامها.');
     }catch(e){setError(e instanceof Error?e.message:'تعذر طمس المنطقة');}
     finally{setBlurBusy(false);}
   }
