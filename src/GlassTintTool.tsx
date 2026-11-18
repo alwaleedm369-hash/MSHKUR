@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { MouseEvent } from 'react';
 import { Check, RotateCcw, GlassWater, MousePointer2 } from 'lucide-react';
 
 type Point={x:number;y:number};
@@ -28,7 +29,7 @@ export default function GlassTintTool({src,onExport}:{src:string;onExport:(dataU
     image.onerror=()=>{if(active)setError('تعذر تحميل الصورة في أداة الزجاج.');};
     image.src=src;return()=>{active=false;image.onload=null;image.onerror=null;};
   },[src,points,tint,opacity]);
-  function addPoint(event:React.MouseEvent<HTMLCanvasElement>){
+  function addPoint(event:MouseEvent<HTMLCanvasElement>){
     const canvas=canvasRef.current;if(!canvas)return;
     if(points.length>=16){setError('وصلت إلى 16 نقطة. طبّق التحديد أو أعد ضبطه.');return;}
     const rect=canvas.getBoundingClientRect();
