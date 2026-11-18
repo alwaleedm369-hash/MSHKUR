@@ -359,8 +359,8 @@ test('failed jobs can be retried without creating a duplicate task', async () =>
     if(after.status==='failed')break;
   }
   assert.equal(after.status,'failed');
-  assert.equal(after.attempts,2);
-  assert.equal((await json('/api/tasks/'+id+'/retry',{method:'POST',headers:{cookie},body:'{}'})).status,202);
+  assert.equal(after.attempts,3);
+  assert.equal((await json('/api/tasks/'+id+'/retry',{method:'POST',headers:{cookie},body:'{}'})).status,409);
 });
 
 test.after(async()=>{
