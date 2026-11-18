@@ -386,3 +386,20 @@
 .asset-version-list article button{padding:7px 9px;border:1px solid #dce7df;border-radius:7px;background:#fff;color:#4f725b;font:inherit;font-size:9px}
 .asset-history-empty{display:flex;align-items:center;gap:8px;padding:18px;color:#8b9990;font-size:10px}
 @media(max-width:560px){.asset-history-panel{padding:11px}.asset-version-list article{flex-wrap:wrap}.asset-version-list article button{margin-right:auto}.asset-compare-stage{aspect-ratio:1/1}}
+
+
+.offline-ad-kit{margin:15px 0;padding:15px;border:1px solid #e2e9e4;border-radius:15px;background:#fbfcfb}
+.offline-ad-kit-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;color:#6b8a76}
+.offline-ad-kit-head>div{display:grid;gap:4px}.offline-ad-kit-head>div>span{font-size:9px;color:#8a9b90}.offline-ad-kit-head b{display:flex;align-items:center;gap:7px;color:#344d3c;font-size:13px}.offline-ad-kit-head small{color:#8b9990;font-size:9px}
+.offline-ad-kit-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.offline-ad-kit-grid label{overflow:hidden;border:1px solid #e3eae5;border-radius:9px;background:#fff;cursor:pointer}
+.offline-ad-kit-grid label.chosen{border-color:#80a98b;background:#f1f7f2}
+.offline-ad-kit-grid img{display:block;width:100%;height:82px;object-fit:contain;background:#edf1ee}
+.offline-ad-kit-grid label>span{display:flex;align-items:center;gap:5px;padding:6px;color:#65776b;font-size:9px}
+.offline-ad-kit-grid input{accent-color:#528064}
+.offline-ad-kit-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+.offline-ad-kit-actions small{color:#87958c;font-size:9px}
+.offline-ad-kit-actions button{display:flex;align-items:center;gap:7px;padding:9px 12px;border:0;border-radius:8px;background:#155c53;color:#fff;font:inherit;font-size:10px}
+.offline-ad-kit-actions button:disabled{opacity:.45}
+.offline-ad-kit>p{margin:9px 0 0;color:#63816c;font-size:10px}
+@media(max-width:560px){.offline-ad-kit{padding:11px}.offline-ad-kit-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.offline-ad-kit-grid img{height:68px}.offline-ad-kit-actions{align-items:flex-start;flex-direction:column}.offline-ad-kit-actions button{width:100%;justify-content:center}}
