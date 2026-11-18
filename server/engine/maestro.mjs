@@ -62,8 +62,9 @@ export function cancelJobForTenant(jobId, tenantId, userId) {
     return getJobForTenant(jobId, tenantId);
   }
   if (job.status === 'running') {
+    const updated=db.prepare("UPDATE jobs SET error_code='cancel_requested',error_message='Cancellation requested; current local operation will finish before its result is discarded.',updated_at=? WHERE id=? AND tenant_id=? AND status='running'").run(nowIso(),jobId,tenantId);
+    if(!updated.changes)return getJobForTenant(jobId,tenantId);
     cancelRequested.add(jobId);
-    db.prepare("UPDATE jobs SET error_code='cancel_requested',error_message='Cancellation requested; current local operation will finish before its result is discarded.',updated_at=? WHERE id=? AND tenant_id=? AND status='running'").run(nowIso(),jobId,tenantId);
     return { ...getJobForTenant(jobId, tenantId), cancellationRequested:true, note:'The current local operation will finish before the result is discarded.' };
   }
   return getJobForTenant(jobId, tenantId);
