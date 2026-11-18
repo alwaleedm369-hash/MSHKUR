@@ -15,6 +15,8 @@ type Props = {
 
 export default function DashboardHome({name,vehicles,assets,onAddVehicle,onStudio,onAssistant,onCars}:Props){
   const latest=vehicles[0];
+  const [activeAsset,setActiveAsset]=useState(0);
+  const activePhoto=assets[activeAsset]?.url;
   return <div className="car-home" dir="rtl">
     <header className="car-home-heading">
       <div><span className="car-home-kicker"><i/> MSHKUR CARS · مساحة العمل</span><h1>أهلاً {name.split(' ')[0]}، لنجهّز سيارتك.</h1><p>اختر صورة أو ابدأ بمهمة. كل أدواتك في مكان واحد.</p></div>
