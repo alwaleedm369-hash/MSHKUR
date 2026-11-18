@@ -1,438 +1,389 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FormEvent, PointerEvent } from 'react';
-import { askLocalModel } from './localModel';
+/**
+ * MSHKUR App — commercial mobile-first entry
+ * GuestLanding + CommercialShell + AdminControls + full workspace wiring
+ * Branch: docs/mobile-and-commercial-launch
+ */
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { OperationsPanel, GrowthPanel, InboxPanel } from './Operations';
 import PublicShowroom from './PublicShowroom';
 import GuestStudio from './GuestStudio';
-import GuestCarStart from './GuestCarStart';
 import DashboardHome from './DashboardHome';
-import SceneStudio from './SceneStudio';
-import GlassTintTool from './GlassTintTool';
-import ImageCropTool from './ImageCropTool';
 import AssetHistoryPanel from './AssetHistoryPanel';
 import OfflineAdKit from './OfflineAdKit';
 import { SkillsPanel, TasksPanel } from './WorkCenter';
+import GuestLanding from './GuestLanding';
+import CommercialShell from './CommercialShell';
+import AdminControlsPanel from './AdminControlsPanel';
 import {
-  ArrowDownToLine, ArrowUpLeft, Bell, Check, ChevronLeft, CircleHelp, Clock3, Blocks, ListTodo,
-  ImagePlus, LayoutDashboard, LogOut, Menu, Plus, Search, Settings2, ShieldCheck,
-  Sparkles, Upload, WandSparkles, X, CarFront, Users, Zap, FileText, LoaderCircle, MapPin, MessageCircle
+  CarFront, LayoutDashboard, ListTodo, LogOut, Menu, MessageCircle,
+  Settings2, Sparkles, WandSparkles, X, Blocks, LoaderCircle
 } from 'lucide-react';
 
-type User = { id:string; tenantId:string; tenantName:string; tenantSlug?:string; tenantType?:string; name:string; email:string; role:string };
-type Vehicle = { id:string; make:string; model:string; trim?:string|null; year?:number|null; mileage?:number|null; fuel?:string|null; transmission?:string|null; color?:string|null; price?:number|null; city?:string|null; notes?:string|null; status:string };
-type Task = { id:string; status:string; output?:any; error_message?:string|null };
-type Agent = {id:string;name:string;title:string;description:string;skills:string[]};
-type Screen = 'home'|'cars'|'studio'|'assistant'|'growth'|'inbox'|'admin'|'skills'|'tasks';
-const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
+type User = {
+  id: string; tenantId: string; tenantName: string; tenantSlug?: string;
+  tenantType?: string; name: string; email: string; role: string;
+};
+type Vehicle = {
+  id: string; make: string; model: string; trim?: string | null;
+  year?: number | null; mileage?: number | null; fuel?: string | null;
+  transmission?: string | null; color?: string | null; price?: number | null;
+  city?: string | null; notes?: string | null; status: string;
+};
+type Screen = 'home' | 'cars' | 'studio' | 'assistant' | 'growth' | 'inbox' | 'admin' | 'skills' | 'tasks';
 
-async function api<T=any>(url:string,options:RequestInit={}):Promise<T>{
-  const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
-  const body=await response.json().catch(()=>({}));
-  if(!response.ok) throw new Error(body.message||body.error||'تعذر تنفيذ الطلب');
+async function api<T = any>(url: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(url, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.message || body.error || 'تعذر تنفيذ الطلب');
   return body as T;
 }
-async function runTask(skillId:string,input:any):Promise<Task>{
-  const created=await api<{id:string}>('/api/tasks',{method:'POST',body:JSON.stringify({skillId,input})});
-  for(let i=0;i<40;i++){
-    await wait(150);
-    const result=await api<{task:Task}>('/api/tasks/'+created.id);
-    if(result.task.status==='succeeded'||result.task.status==='failed') return result.task;
-  }
-  throw new Error('المهمة ما زالت قيد التنفيذ. يمكنك متابعة حالتها من سجل المهام.');
-}
 
-export default function App(){
-  const [user,setUser]=useState<User|null>(null);
-  const [authMode,setAuthMode]=useState<'login'|'register'>('register');
-  const [guestMode,setGuestMode]=useState(true);
-  const [quickTool,setQuickTool]=useState(false);
-  const [pendingCarPhotos,setPendingCarPhotos]=useState<File[]>([]);
-  const [pendingScreen,setPendingScreen]=useState<Screen>('home');
-  const [pendingVehicleId,setPendingVehicleId]=useState('');
-  const [pendingPhotoIndex,setPendingPhotoIndex]=useState(0);
-  const [pendingScene,setPendingScene]=useState<'silver'|'dark'|'warm'|'white'>('silver');
-  const [auth,setAuth]=useState({name:'',tenantName:'معرضي',tenantType:'dealer',email:'',password:''});
-  const [authBusy,setAuthBusy]=useState(false);
-  const [screen,setScreen]=useState<Screen>('home');
-  const [vehicles,setVehicles]=useState<Vehicle[]>([]);
-  const [agents,setAgents]=useState<Agent[]>([]);
-  const [loading,setLoading]=useState(true);
-  const [message,setMessage]=useState('');
-  const [error,setError]=useState('');
-  const [newVehicle,setNewVehicle]=useState({make:'',model:'',trim:'',year:'',mileage:'',fuel:'',transmission:'',color:'',price:'',city:'جدة',notes:''});
-  const [showVehicleForm,setShowVehicleForm]=useState(false);
-  const [editingVehicleId,setEditingVehicleId]=useState('');
-  const [selectedVehicle,setSelectedVehicle]=useState('');
-  const [adDraft,setAdDraft]=useState('');
-  const [adValidation,setAdValidation]=useState<any>(null);
-  const [imageData,setImageData]=useState('');
-  const [imageFile,setImageFile]=useState<File|null>(null);
-  const [optimizedImage,setOptimizedImage]=useState('');
-  const [removedImage,setRemovedImage]=useState('');
-  const [blurredImage,setBlurredImage]=useState('');
-  const [croppedImage,setCroppedImage]=useState('');
-  const [sceneImage,setSceneImage]=useState('');
-  const [glassImage,setGlassImage]=useState('');
-  const [blurBusy,setBlurBusy]=useState(false);
-  const [selectedRegion,setSelectedRegion]=useState({left:0.3,top:0.55,width:0.4,height:0.18});
-  const [imageBusy,setImageBusy]=useState(false);
-  const [bgBusy,setBgBusy]=useState(false);
-  const [bgProgress,setBgProgress]=useState({progress:0,message:''});
-  const [assistantRequest,setAssistantRequest]=useState('');
-  const [assistantPlan,setAssistantPlan]=useState<any>(null);
-  const [assistantReply,setAssistantReply]=useState('');
-  const [assistantModelBusy,setAssistantModelBusy]=useState(false);
-  const [busy,setBusy]=useState(false);
-  const [menuOpen,setMenuOpen]=useState(false);
-  const [assetVehicleId,setAssetVehicleId]=useState('');
-  const [selectedAssetId,setSelectedAssetId]=useState('');
-  const [vehicleAssets,setVehicleAssets]=useState<any[]>([]);
-  const [assetUploadBusy,setAssetUploadBusy]=useState(false);
-  const [batchBusy,setBatchBusy]=useState(false);
-  const [batchStatus,setBatchStatus]=useState('');
-  const [batchRunId,setBatchRunId]=useState('');
-  const [batchRunStatus,setBatchRunStatus]=useState('');
+export default function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
+  const [guestMode, setGuestMode] = useState(true);
+  const [quickTool, setQuickTool] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [auth, setAuth] = useState({
+    name: '', tenantName: 'معرضي', tenantType: 'dealer', email: '', password: '',
+  });
+  const [screen, setScreen] = useState<Screen>('home');
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleAssets, setVehicleAssets] = useState<any[]>([]);
+  const [assetVehicleId, setAssetVehicleId] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [aiFloatVisible, setAiFloatVisible] = useState(true);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [whatsappNumber, setWhatsappNumber] = useState(
+    () => localStorage.getItem('mshkur_wa') || ''
+  );
+  const [showVehicleForm, setShowVehicleForm] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({
+    make: '', model: '', trim: '', year: '', mileage: '', fuel: '',
+    transmission: '', color: '', price: '', city: 'جدة', notes: '',
+  });
+  const [busy, setBusy] = useState(false);
 
-  const loadVehicles=useCallback(async()=>{const data=await api<{vehicles:Vehicle[]}>('/api/vehicles');setVehicles(data.vehicles);},[]);
-  const loadVehicleAssets=useCallback(async(vehicleId:string)=>{if(!vehicleId){setVehicleAssets([]);return;}const data=await api<{assets:any[]}>('/api/vehicles/'+vehicleId+'/assets');setVehicleAssets(data.assets);},[]);
-  useEffect(()=>{if(vehicles.length&&!assetVehicleId)setAssetVehicleId(vehicles[0].id);},[vehicles,assetVehicleId]);
-  useEffect(()=>{if(assetVehicleId)loadVehicleAssets(assetVehicleId).catch(e=>setError(e.message));},[assetVehicleId,loadVehicleAssets]);
-  useEffect(()=>{
-    api<{user:User}>('/api/auth/me').then(async data=>{setUser(data.user);}).catch(()=>{}).finally(()=>setLoading(false));
-  },[]);
-  useEffect(()=>{if(user){loadVehicles().catch(e=>setError(e.message));api<{agents:Agent[]}>('/api/agents').then(data=>setAgents(data.agents)).catch(()=>{});}},[user,loadVehicles]);
+  const loadVehicles = useCallback(async () => {
+    const data = await api<{ vehicles: Vehicle[] }>('/api/vehicles');
+    setVehicles(data.vehicles);
+  }, []);
 
-  async function submitAuth(e:FormEvent){
-    e.preventDefault();setError('');setAuthBusy(true);
-    try{
-      const body=authMode==='register'?auth:{email:auth.email,password:auth.password};
-      const data=await api<{user:User}>('/api/auth/'+authMode,{method:'POST',body:JSON.stringify(body)});
+  const loadVehicleAssets = useCallback(async (vehicleId: string) => {
+    if (!vehicleId) { setVehicleAssets([]); return; }
+    const data = await api<{ assets: any[] }>(`/api/vehicles/${vehicleId}/assets`);
+    setVehicleAssets(data.assets);
+  }, []);
+
+  useEffect(() => {
+    api<{ user: User }>('/api/auth/me')
+      .then((data) => setUser(data.user))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (user) loadVehicles().catch((e) => setError(e.message));
+  }, [user, loadVehicles]);
+
+  useEffect(() => {
+    if (vehicles.length && !assetVehicleId) setAssetVehicleId(vehicles[0].id);
+  }, [vehicles, assetVehicleId]);
+
+  useEffect(() => {
+    if (assetVehicleId) loadVehicleAssets(assetVehicleId).catch((e) => setError(e.message));
+  }, [assetVehicleId, loadVehicleAssets]);
+
+  async function submitAuth(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    setAuthBusy(true);
+    try {
+      const body = authMode === 'register' ? auth : { email: auth.email, password: auth.password };
+      const data = await api<{ user: User }>(`/api/auth/${authMode}`, {
+        method: 'POST', body: JSON.stringify(body),
+      });
       setUser(data.user);
-      if(pendingCarPhotos.length){
-        setScreen('cars');setShowVehicleForm(true);
-        setMessage('تم فتح مساحة العمل. أكمل بيانات السيارة لحفظ الصور التي اخترتها.');
-      } else if(pendingScreen!=='home') {
-        setScreen(pendingScreen);
-        if(pendingScreen==='cars')setShowVehicleForm(true);
-        setMessage('أهلاً بك. يمكنك الآن متابعة المهمة التي اخترتها.');
-      } else setMessage(authMode==='register'?'تم إنشاء مساحة معرضك بنجاح.':'مرحباً بعودتك.');
-      setPendingScreen('home');
-      setError('');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر تسجيل الدخول');}
-    finally{setAuthBusy(false);}
-  }
-  async function logout(){await api('/api/auth/logout',{method:'POST'}).catch(()=>{});setUser(null);setVehicles([]);setScreen('home');}
-  function startEditVehicle(vehicle:Vehicle){
-    setNewVehicle({make:vehicle.make||'',model:vehicle.model||'',trim:vehicle.trim||'',year:vehicle.year?String(vehicle.year):'',mileage:vehicle.mileage?String(vehicle.mileage):'',fuel:vehicle.fuel||'',transmission:vehicle.transmission||'',color:vehicle.color||'',price:vehicle.price?String(vehicle.price):'',city:vehicle.city||'',notes:vehicle.notes||''});
-    setEditingVehicleId(vehicle.id);setShowVehicleForm(true);setScreen('cars');setError('');
-  }
-  async function addVehicle(e:FormEvent){
-    e.preventDefault();setError('');setBusy(true);
-    try{
-      const payload={...newVehicle,year:newVehicle.year?Number(newVehicle.year):undefined,mileage:newVehicle.mileage?Number(newVehicle.mileage):undefined,price:newVehicle.price?Number(newVehicle.price):undefined};
-      let savedVehicleId=editingVehicleId||pendingVehicleId;
-      if(editingVehicleId||pendingVehicleId){
-        await api('/api/vehicles/'+savedVehicleId,{method:'PUT',body:JSON.stringify(payload)});
-      } else {
-        const created=await api<{vehicle:Vehicle}>('/api/vehicles',{method:'POST',body:JSON.stringify(payload)});
-        savedVehicleId=created.vehicle.id;
-        if(pendingCarPhotos.length) setPendingVehicleId(savedVehicleId);
-      }
-      const hasPendingPhotos=pendingCarPhotos.length>0;
-      if(hasPendingPhotos&&savedVehicleId){
-        for(let index=pendingPhotoIndex;index<pendingCarPhotos.length;index++){
-          const file=pendingCarPhotos[index];
-          const imageBase64=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('تعذرت قراءة إحدى الصور'));reader.readAsDataURL(file);});
-          await api('/api/vehicles/'+savedVehicleId+'/assets',{method:'POST',body:JSON.stringify({imageBase64})});
-          setPendingPhotoIndex(index+1);
-        }
-        setPendingCarPhotos([]);setPendingPhotoIndex(0);setPendingVehicleId('');
-        setAssetVehicleId(savedVehicleId);await loadVehicleAssets(savedVehicleId);setScreen('studio');
-      } else if(savedVehicleId===pendingVehicleId) {
-        setPendingVehicleId('');
-      }
-      await loadVehicles();
-      setNewVehicle({make:'',model:'',trim:'',year:'',mileage:'',fuel:'',transmission:'',color:'',price:'',city:'جدة',notes:''});
-      setShowVehicleForm(false);setEditingVehicleId('');
-      setMessage(hasPendingPhotos?'تم حفظ السيارة وصورها الأصلية. اختر أداة التجهيز من الاستوديو.':editingVehicleId?'تم تحديث بيانات السيارة.':'تم حفظ السيارة في مخزون معرضك.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر حفظ السيارة أو صورها');}
-    finally{setBusy(false);}
-  }
-  async function generateAd(vehicle:Vehicle){
-    setError('');setMessage('');setBusy(true);setSelectedVehicle(vehicle.id);
-    try{
-      const result=await api<{workflow:any}>('/api/workflows/vehicle-ad-draft/run',{method:'POST',body:JSON.stringify({vehicleId:vehicle.id})});
-      if(result.workflow.status!=='succeeded')throw new Error(result.workflow.error_message||'فشل سير عمل الإعلان');
-      setAdDraft(result.workflow.output.adDraft.description);setAdValidation(result.workflow.output.validation);setScreen('cars');setMessage('اكتمل سير العمل: فحص البيانات ثم إنشاء مسودة الإعلان. راجع النواقص قبل استخدامها.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر إنشاء الإعلان');}
-    finally{setBusy(false);}
-  }
-  async function pollPhotoBatch(runId:string){
-    let latest:any=null;
-    for(let i=0;i<120;i++){
-      await wait(500);
-      latest=await api<any>('/api/photo-batches/'+runId);
-      setBatchRunStatus(latest.run.status);
-      setBatchStatus('اكتمل '+latest.run.completed_items+' من '+latest.run.total_items+' صورة'+(latest.run.failed_items?' · تعذر '+latest.run.failed_items:''));
-      if(['succeeded','completed_with_errors','cancelled'].includes(latest.run.status))break;
+      setGuestMode(false);
+      setMessage(authMode === 'register' ? 'تم إنشاء مساحة معرضك بنجاح.' : 'مرحباً بعودتك.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'تعذر تسجيل الدخول');
+    } finally {
+      setAuthBusy(false);
     }
-    return latest;
-  }
-  async function cancelPhotoBatch(){
-    if(!batchRunId)return;
-    try{
-      await api('/api/photo-batches/'+batchRunId+'/cancel',{method:'POST',body:JSON.stringify({})});
-      setBatchStatus('تم طلب الإيقاف؛ ستكتمل الصورة الحالية أولاً إن وجدت.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر إيقاف المعالجة');}
-  }
-  async function retryPhotoBatch(){
-    if(!batchRunId)return;
-    setBatchBusy(true);setError('');setBatchStatus('إعادة محاولة الصور المتعثرة...');
-    try{
-      await api('/api/photo-batches/'+batchRunId+'/retry',{method:'POST',body:JSON.stringify({})});
-      const state=await pollPhotoBatch(batchRunId);
-      await loadVehicleAssets(assetVehicleId);
-      setMessage(state.run.status==='succeeded'?'نجحت إعادة المحاولة وأضيفت الصور المحسنة.':'بقيت صور متعثرة بعد إعادة المحاولة.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذرت إعادة المحاولة');}
-    finally{setBatchBusy(false);}
-  }
-  async function optimizeVehicleBatch(){
-    if(!assetVehicleId||!vehicleAssets.length)return;
-    setBatchBusy(true);setBatchRunStatus('queued');setBatchRunId('');setBatchStatus('بدء تجهيز الصور بالتسلسل...');setError('');
-    try{
-      const started=await api<{runId:string}>('/api/vehicles/'+assetVehicleId+'/photo-batch',{method:'POST',body:JSON.stringify({assetIds:vehicleAssets.filter(a=>a.asset_role!=='derived').map(a=>a.id)})});
-      setBatchRunId(started.runId);
-      const state=await pollPhotoBatch(started.runId);
-      await loadVehicleAssets(assetVehicleId);
-      if(state.run.status==='cancelled')setMessage('تم إيقاف المعالجة بعد الصورة الجاري العمل عليها.');
-      else if(state.run.status==='completed_with_errors')setMessage('اكتملت المعالجة مع صور متعثرة. يمكنك إعادة محاولة الصور الفاشلة فقط.');
-      else if(state.run.status==='succeeded')setMessage('انتهى سير تجهيز الصور. تمت إضافة النسخ المحسنة دون استبدال الأصول.');
-      else throw new Error('ما زالت المعالجة تعمل. يمكنك العودة إلى الألبوم لاحقاً.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر تشغيل سير الصور');}
-    finally{setBatchBusy(false);}
-  }
-  async function uploadVehiclePhotos(files:FileList|null){
-    if(!files||!assetVehicleId)return;
-    setAssetUploadBusy(true);setError('');setMessage('');
-    try{
-      for(const file of Array.from(files)){
-        if(!file.type.startsWith('image/')||file.size>12*1024*1024)throw new Error('كل صورة يجب أن تكون صورة PNG أو JPG أو WebP وأقل من 12 ميجابايت.');
-        const dataUrl=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('تعذرت قراءة الصورة'));reader.readAsDataURL(file);});
-        await api('/api/vehicles/'+assetVehicleId+'/assets',{method:'POST',body:JSON.stringify({imageBase64:dataUrl})});
-      }
-      await loadVehicleAssets(assetVehicleId);setMessage('تم حفظ الصور الأصلية في ملف السيارة. يمكنك اختيار أي صورة لبدء تجهيزها.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر رفع الصور');}
-    finally{setAssetUploadBusy(false);}
-  }
-  async function openAssetInStudio(assetId:string){
-    const asset=vehicleAssets.find(item=>item.id===assetId);if(!asset)return;
-    try{
-      const response=await fetch(asset.url);if(!response.ok)throw new Error('تعذر تحميل النسخة');
-      const blob=await response.blob();
-      const file=new File([blob],'vehicle-version.'+((blob.type.split('/')[1])||'png'),{type:blob.type});
-      await chooseImage(file,asset.id);setScreen('studio');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر فتح النسخة في الاستوديو');}
-  }
-  async function chooseImage(file?:File,assetId?:string){
-    if(!file)return;
-    if(!file.type.startsWith('image/')){setError('اختر ملف صورة صالحاً.');return;}
-    if(file.size>12*1024*1024){setError('حجم الصورة يجب ألا يتجاوز 12 ميجابايت.');return;}
-    setSelectedAssetId(assetId||'');
-    const reader=new FileReader();reader.onload=()=>{setImageFile(file);setImageData(String(reader.result));setOptimizedImage('');setBlurredImage('');setCroppedImage('');setSceneImage('');setGlassImage('');if(removedImage)URL.revokeObjectURL(removedImage);setRemovedImage('');setSelectedRegion({left:0.3,top:0.55,width:0.4,height:0.18});setBgProgress({progress:0,message:''});setError('');};reader.readAsDataURL(file);
-  }
-  async function saveDerivedAsset({fileId,imageBase64,processingStatus}:{fileId?:string;imageBase64?:string;processingStatus:string}){
-    if(!assetVehicleId||!selectedAssetId)return false;
-    await api('/api/vehicles/'+assetVehicleId+'/assets/derived',{method:'POST',body:JSON.stringify({fileId,imageBase64,originalAssetId:selectedAssetId||undefined,processingStatus})});
-    await loadVehicleAssets(assetVehicleId);
-    return true;
-  }
-  async function optimizeImage(){
-    if(!imageData)return;setImageBusy(true);setError('');setMessage('');
-    try{
-      const task=await runTask('image-optimize',{imageBase64:imageData,maxWidth:2048,quality:84});
-      if(task.status!=='succeeded')throw new Error(task.error_message||'فشل تحسين الصورة');
-      setOptimizedImage('/api/files/'+task.output.imageFileId);const saved=await saveDerivedAsset({fileId:task.output.imageFileId,processingStatus:'optimized'});setMessage(saved?'تم تحسين الصورة وحفظ نسخة مشتقة في ألبوم السيارة. الأصل لم يتغير.':'تم تحسين الصورة. اختر صورة من ألبوم السيارة لحفظ النسخة المشتقة ضمنه.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر معالجة الصورة');}
-    finally{setImageBusy(false);}
-  }
-  async function removeBackgroundLocal(){
-    if(!imageFile)return;
-    setBgBusy(true);setError('');setMessage('');setBgProgress({progress:0,message:'تحميل أداة إزالة الخلفية...'});
-    try{
-      const [{removeBackground},{env}]=await Promise.all([import('@bg0/browser'),import('@huggingface/transformers')]);
-      env.backends.onnx.wasm.wasmPaths='/onnx/';
-      const result=await removeBackground(imageFile,{quality:'quality',model:'lite',onProgress:progress=>setBgProgress({progress:progress.progress,message:progress.message})});
-      const url=URL.createObjectURL(result.blob);
-      if(removedImage)URL.revokeObjectURL(removedImage);
-      setRemovedImage(url);
-      let saved=false;if(assetVehicleId&&selectedAssetId){const reader=new FileReader();const imageBase64=await new Promise<string>((resolve,reject)=>{reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('تعذر حفظ النسخة الناتجة'));reader.readAsDataURL(result.blob);});saved=await saveDerivedAsset({imageBase64,processingStatus:'background_removed'});}
-      setMessage(saved?'أزيلت الخلفية محلياً وحُفظت نسخة مشتقة في ألبوم السيارة.':'أزيلت الخلفية محلياً. اختر صورة من ألبوم السيارة لحفظ النتيجة ضمنه.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذرت إزالة الخلفية. يمكنك إعادة المحاولة.');}
-    finally{setBgBusy(false);}
-  }
-  async function chatWithLocalModel(){
-    if(!assistantRequest.trim())return;
-    setAssistantModelBusy(true);setAssistantReply('');setError('');
-    try{const result=await askLocalModel(assistantRequest);setAssistantReply(result.reply+'\n\n— '+result.model);}
-    catch(e){const message=e instanceof Error?e.message:'تعذر الوصول إلى النموذج المحلي';setAssistantReply(message.includes('لم يتم إعداد نموذج محلي')?'لم يتم إعداد نموذج محلي بعد. لا يتصل مشكور بأي نموذج مدفوع كبديل.':'تعذر الوصول إلى النموذج المحلي. تحقق من إعداد النموذج المحلي.');}
-    finally{setAssistantModelBusy(false);}
-  }
-  async function saveCroppedImage(){
-    if(!croppedImage)return;
-    try{
-      const saved=await saveDerivedAsset({imageBase64:croppedImage,processingStatus:'cropped'});
-      setMessage(saved?'تم حفظ النسخة المقصوصة في سجل الصورة. الأصل لم يتغير.':'تم تجهيز القص. اختر صورة من ألبوم السيارة لحفظ النسخة.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر حفظ النسخة المقصوصة');}
-  }
-  async function saveGlassImage(){
-    if(!glassImage)return;
-    try{
-      const saved=await saveDerivedAsset({imageBase64:glassImage,processingStatus:'glass_tinted'});
-      setMessage(saved?'تم حفظ نسخة الزجاج المظلّل في ألبوم السيارة.':'اختر الصورة الأصلية من ألبوم السيارة قبل حفظ نسخة الزجاج.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر حفظ نسخة الزجاج');}
-  }
-  async function saveSceneImage(){
-    if(!sceneImage)return;
-    try{
-      const saved=await saveDerivedAsset({imageBase64:sceneImage,processingStatus:'scene_studio'});
-      setMessage(saved?'تم حفظ نسخة الاستوديو في ألبوم السيارة.':'اختر الصورة الأصلية من ألبوم السيارة قبل حفظ نسخة الاستوديو.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر حفظ نسخة الاستوديو');}
-  }
-  async function blurSelectedRegion(){
-    if(!imageData)return;
-    setBlurBusy(true);setError('');setMessage('');
-    try{
-      const task=await runTask('license-plate-blur-region',{imageBase64:imageData,...selectedRegion});
-      if(task.status!=='succeeded')throw new Error(task.error_message||'فشل طمس المنطقة');
-      setBlurredImage('/api/files/'+task.output.imageFileId);
-      const saved=await saveDerivedAsset({fileId:task.output.imageFileId,processingStatus:'blurred'});
-      setMessage(saved?'تم طمس المنطقة وحفظ نسخة مشتقة في ألبوم السيارة. راجع النتيجة قبل استخدامها.':'تم طمس المنطقة. اختر صورة من ألبوم السيارة لحفظ النسخة المشتقة ضمنه.');
-    }catch(e){setError(e instanceof Error?e.message:'تعذر طمس المنطقة');}
-    finally{setBlurBusy(false);}
-  }
-  async function planAssistant(e:FormEvent){
-    e.preventDefault();setAssistantPlan(null);setError('');setBusy(true);
-    try{setAssistantPlan(await api('/api/assistant/plan',{method:'POST',body:JSON.stringify({request:assistantRequest})}));}
-    catch(e){setError(e instanceof Error?e.message:'تعذر تحليل الطلب');}
-    finally{setBusy(false);}
   }
 
-  const publicSlug=window.location.pathname.match(/^\/s\/([a-z0-9\p{L}-]+)\/?$/iu)?.[1];
-  if(publicSlug)return <PublicShowroom slug={decodeURIComponent(publicSlug)}/>;
-  if(loading)return <div className="boot-screen"><div className="brand-symbol">م</div><span>مشكور</span><div className="boot-loader"/></div>;
-  if(quickTool&&!user)return <GuestStudio onAccount={()=>{setQuickTool(false);setGuestMode(false);setAuthMode('register');}}/>;
-  if(guestMode&&!user)return <GuestCarStart
-    onContinue={(files,scene)=>{setPendingScene(scene);setPendingCarPhotos(files);setPendingScreen('cars');setGuestMode(false);setAuthMode('register');setScreen('cars');setShowVehicleForm(true);}}
-    onSignIn={()=>{setPendingScreen('home');setGuestMode(false);setAuthMode('login');}}
-    onQuickTool={()=>{setPendingScreen('home');setQuickTool(true);}}
-    onOpenTask={target=>{setPendingScreen(target);setQuickTool(false);setGuestMode(false);setAuthMode('register');setError('');setMessage('');}}
-  />;
-  if(!user)return <div className="auth-shell" dir="rtl">
-    <div className="auth-brand"><div className="brand-symbol">م</div><span>مشكور</span><small>مساحة عملك الذكية</small></div>
-    <div className="auth-layout"><div className="auth-story"><div className="story-label"><span/> مساحة واحدة. عمل أقل.</div><h1>أنجز عملك.<br/><em>واترك الباقي لمشكور.</em></h1><p>أضف سياراتك، جهّز صورها، وأنشئ إعلاناتها من مكان واحد. بدون تعقيد أو اشتراكات ذكاء اصطناعي مفروضة.</p><div className="story-points"><span><Check size={16}/> أدوات محلية بلا API مدفوع</span><span><Check size={16}/> بيانات مستقلة لكل معرض</span><span><Check size={16}/> موافقتك قبل أي إجراء خارجي</span></div><div className="auth-orbit"><div className="orbit-ring ring-one"/><div className="orbit-ring ring-two"/><div className="orbit-core"><WandSparkles size={35}/></div><div className="orbit-node node-one"><CarFront size={18}/></div><div className="orbit-node node-two"><ImagePlus size={18}/></div><div className="orbit-node node-three"><FileText size={18}/></div></div></div>
-    <div className="auth-card"><div className="auth-card-head"><span>{authMode==='register'?'ابدأ مجاناً':'مرحباً بعودتك'}</span><h2>{authMode==='register'?'أنشئ مساحة معرضك':'سجّل دخولك'}</h2><p>{authMode==='register'?'بياناتك تبقى في مساحة عمل مستقلة.':'تابع عملك من حيث توقفت.'}</p></div>
-      <form onSubmit={submitAuth} className="auth-form">
-        {authMode==='register'&&<><label>اسمك<input required minLength={2} maxLength={80} value={auth.name} onChange={e=>setAuth({...auth,name:e.target.value})} placeholder="الاسم الكامل"/></label>{!pendingCarPhotos.length&&<><label>نوع الحساب<select value={auth.tenantType} onChange={e=>setAuth({...auth,tenantType:e.target.value})}><option value="individual">حساب فردي</option><option value="dealer">معرض / تاجر</option></select></label><label>اسم المعرض<input required minLength={2} maxLength={100} value={auth.tenantName} onChange={e=>setAuth({...auth,tenantName:e.target.value})} placeholder="اسم المعرض أو النشاط"/></label></>}</>}
-        <label>البريد الإلكتروني<input required type="email" value={auth.email} onChange={e=>setAuth({...auth,email:e.target.value})} placeholder="name@gmail.com" dir="ltr"/></label><small className="auth-google-note">يمكن استخدام بريد Gmail. تسجيل الدخول المباشر بزر Google لم يُفعّل بعد.</small>
-        <label>كلمة المرور<input required type="password" minLength={12} value={auth.password} onChange={e=>setAuth({...auth,password:e.target.value})} placeholder="12 حرفاً على الأقل" dir="ltr"/></label>
-        {error&&<div className="inline-error">{error}</div>}
-        <button className="button-primary auth-submit" disabled={authBusy}>{authBusy?<LoaderCircle className="spin" size={17}/>:null}{authMode==='register'?'إنشاء مساحة العمل':'تسجيل الدخول'}<ArrowUpLeft size={17}/></button>
-      </form>
-      <button type="button" className="guest-entry" onClick={()=>setQuickTool(true)}><WandSparkles size={16}/> جرّب إزالة الخلفية دون تسجيل</button><div className="auth-switch">{authMode==='register'?'لديك حساب بالفعل؟':'ليس لديك حساب؟'} <button onClick={()=>{setAuthMode(authMode==='register'?'login':'register');setError('');}}>{authMode==='register'?'سجّل الدخول':'أنشئ حساباً'}</button></div>
-      <div className="auth-security"><ShieldCheck size={15}/> جلسات آمنة وتشفير كلمات المرور</div>
-    </div></div><footer className="auth-footer">MSHKUR OS <span>نسخة تأسيسية مستقلة</span></footer></div>;
+  async function logout() {
+    await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    setUser(null); setVehicles([]); setScreen('home'); setGuestMode(true);
+  }
 
-  const navItems:[Screen,string,any][]=[['home','الرئيسية',LayoutDashboard],['cars','السيارات والإعلانات',CarFront],['studio','استوديو الصور',ImagePlus],['assistant','مساعد مشكور',Sparkles],['skills','المهارات وسير العمل',Blocks],['tasks','مهام العمل',ListTodo],['growth','التسويق والخرائط',MapPin],['inbox','محادثات العملاء',MessageCircle],...(user.role==='owner'||user.role==='admin'?[['admin','الإدارة والتشغيل',ShieldCheck] as [Screen,string,any]]:[])];
-  const currentLabel=navItems.find(item=>item[0]===screen)?.[1]||'الرئيسية';
-  return <div className="workspace" dir="rtl">
-    <aside className={`side-nav ${menuOpen?'side-nav-open':''}`}>
-      <div className="side-brand"><div className="brand-symbol">م</div><div><b>مشكور</b><small>MSHKUR WORKSPACE</small></div><button className="side-close" onClick={()=>setMenuOpen(false)}><X size={18}/></button></div>
-      <div className="workspace-switch"><span className="workspace-avatar">{user.tenantName.slice(0,1)}</span><div><b>{user.tenantName}</b><small>{user.tenantType==='individual'?'مساحة فردية':'مساحة المعرض'}</small></div><ChevronLeft size={15}/></div>
-      <div className="nav-caption">مساحة العمل</div>
-      <nav>{navItems.map(([id,label,Icon])=><button key={id} className={`side-link ${screen===id?'selected':''}`} onClick={()=>{setScreen(id);setMenuOpen(false);setError('');}}><Icon size={18}/><span>{label}</span>{id==='cars'&&vehicles.length>0?<small>{vehicles.length}</small>:null}</button>)}</nav>
-      <div className="side-spacer"/>
-      <div className="side-trust"><ShieldCheck size={17}/><div><b>أنت المتحكم</b><small>لن ننشر أو نرسل دون موافقتك.</small></div></div>
-      <button className="side-link muted-link"><Settings2 size={18}/><span>الإعدادات</span></button>
-      <div className="side-profile"><div className="profile-avatar">{user.name.slice(0,1)}</div><div><b>{user.name}</b><small>{user.role==='owner'?'مالك مساحة العمل':'عضو الفريق'}</small></div><button title="تسجيل الخروج" onClick={logout}><LogOut size={17}/></button></div>
-    </aside>
-    {menuOpen&&<button className="nav-scrim" onClick={()=>setMenuOpen(false)} aria-label="إغلاق القائمة"/>}
-    <main className="work-main">
-      <header className="work-topbar"><button className="mobile-nav-trigger" onClick={()=>setMenuOpen(true)}><Menu size={20}/></button><div className="crumb"><span>مساحة العمل</span><b>/</b><strong>{currentLabel}</strong></div><div className="topbar-right"><span className="local-indicator"><i/> المحرك المحلي</span><button className="top-icon" aria-label="مساعدة"><CircleHelp size={18}/></button><button className="top-icon" aria-label="التنبيهات"><Bell size={18}/></button><div className="top-avatar">{user.name.slice(0,1)}</div></div></header>
-      <div className="page-content">
-        {(error||message)&&<div className={`toast ${error?'toast-error':''}`}>{error||message}<button onClick={()=>{setError('');setMessage('');}}><X size={15}/></button></div>}
-        {screen==='home'&&<DashboardHome
-          name={user.name}
-          vehicles={vehicles}
-          assets={vehicleAssets}
-          onAddVehicle={()=>{setEditingVehicleId('');setNewVehicle({make:'',model:'',trim:'',year:'',mileage:'',fuel:'',transmission:'',color:'',price:'',city:'جدة',notes:''});setShowVehicleForm(true);setScreen('cars');}}
-          onStudio={()=>setScreen('studio')}
-          onAssistant={()=>setScreen('assistant')}
-          onCars={()=>setScreen('cars')}
-        />}
-        {screen==='cars'&&<><section className="page-intro"><div><div className="overline"><span/> سجل موحد</div><h1>السيارات والإعلانات</h1><p>أدخل بيانات السيارة مرة واحدة، وأعد استخدامها في كل إعلان.</p></div><button className="button-primary" onClick={()=>{if(!showVehicleForm){setEditingVehicleId('');setNewVehicle({make:'',model:'',trim:'',year:'',mileage:'',fuel:'',transmission:'',color:'',price:'',city:'جدة',notes:''});}setShowVehicleForm(!showVehicleForm);}}><Plus size={18}/> إضافة سيارة</button></section>
-          {showVehicleForm&&<form className="form-panel" onSubmit={addVehicle}><div className="form-heading"><div><b>{editingVehicleId?'تعديل بيانات السيارة':'بيانات السيارة'}</b><small>الحقول غير المتوفرة اتركها فارغة.</small></div><button type="button" onClick={()=>{setShowVehicleForm(false);setEditingVehicleId('');}}><X size={18}/></button></div><div className="form-grid vehicle-core-fields"><label>الماركة *<input required value={newVehicle.make} onChange={e=>setNewVehicle({...newVehicle,make:e.target.value})} placeholder="تويوتا"/></label><label>الطراز *<input required value={newVehicle.model} onChange={e=>setNewVehicle({...newVehicle,model:e.target.value})} placeholder="كامري"/></label><label>السنة<input type="number" min="1950" max="2100" value={newVehicle.year} onChange={e=>setNewVehicle({...newVehicle,year:e.target.value})} placeholder="2022"/></label><label>السعر (ر.س)<input type="number" min="0" value={newVehicle.price} onChange={e=>setNewVehicle({...newVehicle,price:e.target.value})} placeholder="85000"/></label></div><details className="vehicle-extra-fields"><summary>تفاصيل إضافية (اختياري)</summary><div className="form-grid"><label>الفئة<input value={newVehicle.trim} onChange={e=>setNewVehicle({...newVehicle,trim:e.target.value})} placeholder="GLE / LE"/></label><label>الممشى (كم)<input type="number" min="0" value={newVehicle.mileage} onChange={e=>setNewVehicle({...newVehicle,mileage:e.target.value})} placeholder="85000"/></label><label>الوقود<input value={newVehicle.fuel} onChange={e=>setNewVehicle({...newVehicle,fuel:e.target.value})} placeholder="بنزين"/></label><label>ناقل الحركة<input value={newVehicle.transmission} onChange={e=>setNewVehicle({...newVehicle,transmission:e.target.value})} placeholder="أوتوماتيك"/></label><label>اللون<input value={newVehicle.color} onChange={e=>setNewVehicle({...newVehicle,color:e.target.value})} placeholder="أبيض"/></label><label>المدينة / الموقع<input value={newVehicle.city} onChange={e=>setNewVehicle({...newVehicle,city:e.target.value})} placeholder="جدة، الحي أو العنوان"/></label><label className="form-full-width">ملاحظات<input value={newVehicle.notes} onChange={e=>setNewVehicle({...newVehicle,notes:e.target.value})} placeholder="ملاحظات إضافية موثقة عن السيارة"/></label></div></details><div className="form-actions"><button className="button-primary" disabled={busy}>{busy?<LoaderCircle className="spin" size={16}/>:<Check size={16}/>} {editingVehicleId?'حفظ التعديلات':'حفظ السيارة'}</button><button type="button" className="button-text" onClick={()=>{setShowVehicleForm(false);setEditingVehicleId('');}}>إلغاء</button></div></form>}
-          {adDraft&&<div className="draft-panel"><div className="draft-head"><div><span className="draft-tag">مسودة إعلان</span><b>تم تجهيز النص من بيانات السيارة</b></div><button onClick={()=>navigator.clipboard?.writeText(adDraft)}><ArrowDownToLine size={15}/> نسخ النص</button></div><pre>{adDraft}</pre>{adValidation?.missingFields?.length>0&&<div className="draft-warning"><b>بيانات تحتاج استكمالاً</b><span>{adValidation.missingFields.map((field:string)=>({make:'الماركة',model:'الطراز',year:'السنة',mileage:'الممشى',fuel:'الوقود',transmission:'ناقل الحركة',color:'اللون',price:'السعر',city:'الموقع'}[field]||field).join('، '))}</span></div>}{adValidation?.warnings?.length>0&&<div className="draft-warning"><b>ملاحظات التحقق</b><span>{adValidation.warnings.join('، ')}</span></div>}<small>هذه مسودة فقط. راجع البيانات قبل نشرها على أي منصة.</small></div>}
-          {vehicles.length===0?<div className="empty-inventory"><div className="empty-car"><CarFront size={27}/></div><b>مخزونك فارغ حالياً</b><span>أضف أول سيارة حتى تبدأ تجهيز إعلاناتها.</span><button className="button-outline" onClick={()=>setShowVehicleForm(true)}><Plus size={16}/> إضافة سيارة</button></div>:<div className="vehicle-grid">{vehicles.map(v=><VehicleCard key={v.id} vehicle={v} onAd={()=>generateAd(v)} onEdit={()=>startEditVehicle(v)}} busy={busy&&selectedVehicle===v.id}/>)}</div>}
-        </>}
-        {screen==='studio'&&<><section className="page-intro"><div><div className="overline"><span/> معالجة محلية</div><h1>استوديو الصور</h1><p>جهّز صور السيارة دون إرسالها إلى خدمة ذكاء اصطناعي مدفوعة.</p></div></section><div className="studio-panel"><div className="studio-header"><div className="tile-icon tile-lilac"><ImagePlus size={22}/></div><div><b>أدوات تجهيز الصورة</b><small>اختر الصورة ثم نفّذ المهمة التي تحتاجها.</small></div><span className="local-chip"><i/> محلي</span></div>{vehicles.length>0&&<div className="vehicle-photo-library"><div className="photo-library-controls"><label>ملف السيارة<select value={assetVehicleId} onChange={e=>{setAssetVehicleId(e.target.value);setSelectedAssetId('');setImageData('');setImageFile(null);setRemovedImage('');setSceneImage('');}}>{vehicles.map(v=><option key={v.id} value={v.id}>{v.year||""} {v.make} {v.model}</option>)}</select></label><label className="button-outline photo-multi-upload"><Upload size={15}/>{assetUploadBusy?"جارٍ حفظ الصور...":"إضافة صور متعددة"}<input type="file" accept="image/png,image/jpeg,image/webp" multiple disabled={assetUploadBusy} onChange={e=>{uploadVehiclePhotos(e.target.files);e.currentTarget.value="";}} hidden/></label></div>{vehicleAssets.length>0?<div className="vehicle-photo-strip">{vehicleAssets.map((asset:any)=><button key={asset.id} className="vehicle-photo-thumb" onClick={async()=>{const response=await fetch(asset.url);const blob=await response.blob();const file=new File([blob],"vehicle-photo."+((blob.type.split("/")[1])||"jpg"),{type:blob.type});chooseImage(file,asset.id);}}><img src={asset.url} alt="صورة محفوظة للسيارة"/><span>فتح في الاستوديو</span></button>)}</div>:<p className="photo-library-empty">لم تُحفظ صور لهذه السيارة بعد. أضف مجموعة صور مرة واحدة.</p>}{vehicleAssets.some((a:any)=>a.asset_role!=='derived')&&<div className="photo-batch-action"><button className="button-primary" disabled={batchBusy} onClick={optimizeVehicleBatch}>{batchBusy?<LoaderCircle className="spin" size={15}/>:<WandSparkles size={15}/>} تجهيز كل الصور بالتسلسل</button><small>{batchStatus||"تحسين WebP لكل الصور مع حفظ الأصل والنتيجة منفصلين."}</small>{batchBusy&&batchRunId&&<button className="button-outline" type="button" onClick={cancelPhotoBatch}>إيقاف</button>}{batchRunStatus==='completed_with_errors'&&batchRunId&&<button className="button-outline" type="button" disabled={batchBusy} onClick={retryPhotoBatch}>إعادة محاولة المتعثر</button>}</div>}</div>}{vehicleAssets.length>0&&<AssetHistoryPanel assets={vehicleAssets} onOpen={openAssetInStudio}/>}{vehicles.find(v=>v.id===assetVehicleId)&&<OfflineAdKit vehicle={vehicles.find(v=>v.id===assetVehicleId)!} assets={vehicleAssets}/>}</div>}<label className="upload-zone">{imageData?<img src={imageData} alt="الصورة الأصلية"/>:<><div className="upload-symbol"><Upload size={24}/></div><b>اختر صورة السيارة</b><span>PNG أو JPG أو WebP · حتى 12 ميجابايت</span></>}<input type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>chooseImage(e.target.files?.[0])} hidden/></label>{imageData&&<GlassTintTool src={imageData} onExport={setGlassImage}/>}{glassImage&&<div className="scene-studio-result"><div><b>نسخة الزجاج المظلّل</b><small>راجع حدود التحديد قبل حفظ الصورة.</small></div><img src={glassImage} alt="صورة السيارة بعد تضليل الزجاج"/><div className="studio-actions"><button className="button-primary" onClick={saveGlassImage}><Check size={15}/> حفظ في ألبوم السيارة</button><a className="button-outline" href={glassImage} download="mshkur-glass-tint.png"><ArrowDownToLine size={15}/> تنزيل PNG</a></div></div>}{imageData&&<div className="region-selector-wrap"><div><b>حدد منطقة الطمس</b><small>اسحب فوق اللوحة أو أي منطقة تريد إخفاءها.</small></div><ImageRegionSelector key={imageData} src={imageData} onSelect={setSelectedRegion}/></div>}{imageData&&<ImageCropTool key={imageData} src={imageData} onExport={setCroppedImage}/>}{croppedImage&&<div className="scene-studio-result"><div><b>نسخة القص جاهزة</b><small>تم إنشاء نسخة مستقلة؛ الصورة الأصلية محفوظة كما هي.</small></div><img src={croppedImage} alt="نسخة الصورة بعد القص"/><div className="studio-actions"><button className="button-primary" onClick={saveCroppedImage}><Check size={15}/> حفظ في سجل الصورة</button><a className="button-outline" href={croppedImage} download="mshkur-cropped.png"><ArrowDownToLine size={15}/> تنزيل PNG</a></div></div>}<div className="tool-options"><div className="tool-option"><div><b>إزالة الخلفية</b><small>BiRefNet · يعمل على جهازك · تنزيل أول مرة نحو 98 ميجابايت</small></div><button className="button-primary" disabled={!imageFile||bgBusy} onClick={removeBackgroundLocal}>{bgBusy?<LoaderCircle className="spin" size={16}/>:<WandSparkles size={16}/>} إزالة الخلفية</button></div><div className="tool-option"><div><b>تحسين وضغط الصورة</b><small>تصحيح الاتجاه وتحويل WebP على خادمك الخاص.</small></div><button className="button-outline" disabled={!imageData||imageBusy} onClick={optimizeImage}>{imageBusy?<LoaderCircle className="spin" size={16}/>:<ImagePlus size={16}/>} تحسين الصورة</button></div><div className="tool-option"><div><b>طمس اللوحة أو منطقة محددة</b><small>حدد المستطيل يدوياً فوق الصورة؛ لا يوجد كشف تلقائي حتى الآن.</small></div><button className="button-outline" disabled={!imageData||blurBusy} onClick={blurSelectedRegion}>{blurBusy?<LoaderCircle className="spin" size={16}/>:<ShieldCheck size={16}/>} طمس المنطقة</button></div></div>{bgBusy&&<div className="model-progress"><div><span>{bgProgress.message||'جارٍ تجهيز النموذج...'}</span><b>{Math.round(bgProgress.progress*100)}%</b></div><div className="progress-track"><i style={{width:Math.round(bgProgress.progress*100)+'%'}}/></div></div>}{removedImage&&<SceneStudio src={removedImage} initialScene={pendingScene} onExport={setSceneImage}/>}{sceneImage&&<div className="scene-studio-result"><div><b>نسخة الاستوديو جاهزة</b><small>راجع الصورة ثم احفظها في ألبوم السيارة أو نزّلها.</small></div><img src={sceneImage} alt="السيارة في مشهد الاستوديو"/><div className="studio-actions"><button className="button-primary" onClick={saveSceneImage}><Check size={15}/> حفظ في ألبوم السيارة</button><a className="button-outline" href={sceneImage} download="mshkur-studio-scene.png"><ArrowDownToLine size={15}/> تنزيل PNG</a></div></div>}{(optimizedImage||removedImage||blurredImage)&&<div className={`image-result ${removedImage||blurredImage?'image-result-three':''}`}><div><span>الأصل</span><img src={imageData} alt="الأصل"/></div>{removedImage&&<div><span>خلفية شفافة</span><img className="transparent-preview" src={removedImage} alt="السيارة بعد إزالة الخلفية"/></div>}{optimizedImage&&<div><span>WebP محسن</span><img src={optimizedImage} alt="الصورة المحسنة"/></div>}{blurredImage&&<div><span>بعد الطمس</span><img src={blurredImage} alt="الصورة بعد طمس المنطقة"/></div>}</div>}<div className="studio-actions">{removedImage&&<a className="button-outline" href={removedImage} download="mshkur-background-removed.png"><ArrowDownToLine size={16}/> تنزيل PNG شفاف</a>}{optimizedImage&&<a className="button-outline" href={optimizedImage} download="mshkur-optimized.webp"><ArrowDownToLine size={16}/> تنزيل WebP</a>}{blurredImage&&<a className="button-outline" href={blurredImage} download="mshkur-blurred.png"><ArrowDownToLine size={16}/> تنزيل الصورة المطموسة</a>}{croppedImage&&<a className="button-outline" href={croppedImage} download="mshkur-cropped.png"><ArrowDownToLine size={16}/> تنزيل النسخة المقصوصة</a>}</div><p className="studio-foot"><ShieldCheck size={15}/> إزالة الخلفية تتم داخل المتصفح. تحسين WebP يتم على خادم مشكور. الأصل لا يُستبدل في الحالتين.</p></div></>}
-        {screen==='assistant'&&<><section className="page-intro"><div><div className="overline"><span/> مدير المهام</div><h1>مساعد مشكور</h1><p>اكتب ما تريد إنجازه. سيقترح المحرك مهارة محلية مناسبة إن توفرت.</p></div></section><div className="assistant-panel"><div className="assistant-avatar"><Sparkles size={22}/></div><div className="assistant-greeting"><b>كيف أساعدك اليوم؟</b><p>أفهم طلبك وأبحث عن مهارة متاحة. لن أنفذ إجراءً خارجياً دون موافقتك.</p></div><form onSubmit={planAssistant}><textarea value={assistantRequest} onChange={e=>setAssistantRequest(e.target.value)} placeholder="مثلاً: جهّز إعلاناً لسيارة تويوتا كامري 2022..." rows={4}/><div className="assistant-buttons"><button className="button-primary" disabled={busy||!assistantRequest.trim()}>{busy?<LoaderCircle className="spin" size={16}/>:<Sparkles size={16}/>} حلّل الطلب</button><button type="button" className="button-outline" disabled={assistantModelBusy||!assistantRequest.trim()} onClick={chatWithLocalModel}>{assistantModelBusy?<LoaderCircle className="spin" size={16}/>:<Zap size={16}/>} اسأل النموذج المحلي</button></div></form>{assistantReply&&<div className="assistant-reply"><b>رد النموذج المحلي</b><p>{assistantReply}</p></div>}{assistantPlan&&<div className="plan-result">{assistantPlan.intent.matched?<><span className="plan-match"><Check size={15}/> وجدت مهارة مناسبة</span><b>{assistantPlan.intent.skillId}</b><p>المحرك يوصي بهذه المهارة. انتقل إلى القسم المناسب وأدخل بياناتها قبل التنفيذ.</p><button className="button-outline" onClick={()=>setScreen(assistantPlan.intent.skillId.includes('image')||assistantPlan.intent.skillId.includes('blur')||assistantPlan.intent.skillId.includes('background')?'studio':'cars')}>فتح الأداة <ArrowUpLeft size={15}/></button></>:<><b>لم أجد مهارة مطابقة بعد</b><p>{assistantPlan.intent.message}</p></>}</div>}</div><div className="assistant-note"><Zap size={16}/><span>المحرك يعمل حالياً بمهارات محلية محددة. النموذج المفتوح المصدر اختياري ولا يوجد fallback مدفوع.</span></div><div className="agent-roster"><div className="section-head"><div><h2>فريق التنفيذ</h2><p>تخصصات تعمل عند الحاجة إلى المهمة.</p></div><span className="tiny-note">{agents.length} مساعدين</span></div><div className="agent-grid">{agents.map(agent=><div className="agent-card" key={agent.id}><div className="agent-mark">{agent.id==='maestro'?<Sparkles size={19}/>:agent.id==='vehicle-specialist'?<CarFront size={19}/>:agent.id==='photo-specialist'?<ImagePlus size={19}/>:<ShieldCheck size={19}/>}</div><div><b>{agent.name}</b><small>{agent.title}</small><p>{agent.description}</p></div><span>{agent.skills.length} مهارات</span></div>)}</div></div></>}
-        {screen==='skills'&&<SkillsPanel/>}
-        {screen==='tasks'&&<TasksPanel/>}
-        {screen==='growth'&&<GrowthPanel/>}
-        {screen==='inbox'&&<InboxPanel/>}
-        {screen==='admin'&&(user.role==='owner'||user.role==='admin')&&<OperationsPanel/>}
-        <footer className="page-footer">مشكور <span>مساحة عمل بسيطة، ونتائج حقيقية.</span><span className="version-label">BUILD 0.2</span></footer>
+  async function addVehicle(e: FormEvent) {
+    e.preventDefault();
+    setError(''); setBusy(true);
+    try {
+      const payload = {
+        ...newVehicle,
+        year: newVehicle.year ? Number(newVehicle.year) : undefined,
+        mileage: newVehicle.mileage ? Number(newVehicle.mileage) : undefined,
+        price: newVehicle.price ? Number(newVehicle.price) : undefined,
+      };
+      const created = await api<{ vehicle: Vehicle }>('/api/vehicles', {
+        method: 'POST', body: JSON.stringify(payload),
+      });
+      await loadVehicles();
+      setAssetVehicleId(created.vehicle.id);
+      setShowVehicleForm(false);
+      setNewVehicle({ make: '', model: '', trim: '', year: '', mileage: '', fuel: '', transmission: '', color: '', price: '', city: 'جدة', notes: '' });
+      setMessage('تم حفظ السيارة. يمكنك رفع الصور من الاستوديو.');
+      setScreen('studio');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'تعذر حفظ السيارة');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const publicSlug = window.location.pathname.match(/^\/s\/([a-z0-9\p{L}-]+)\/?$/iu)?.[1];
+  if (publicSlug) return <PublicShowroom slug={decodeURIComponent(publicSlug)} />;
+
+  if (loading) {
+    return (
+      <div className="boot-screen">
+        <div className="brand-symbol">م</div>
+        <span>مشكور</span>
+        <div className="boot-loader" />
       </div>
-    </main>
-  </div>;
-}
+    );
+  }
 
+  if (quickTool && !user) {
+    return (
+      <GuestStudio onAccount={() => { setQuickTool(false); setGuestMode(false); setAuthMode('register'); }} />
+    );
+  }
 
-function paintRegion(canvas:HTMLCanvasElement,image:HTMLImageElement,region:{left:number;top:number;width:number;height:number}){
-  if(canvas.width!==image.naturalWidth)canvas.width=image.naturalWidth;
-  if(canvas.height!==image.naturalHeight)canvas.height=image.naturalHeight;
-  const ctx=canvas.getContext('2d');if(!ctx)return;
-  ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0);
-  const x=region.left*canvas.width,y=region.top*canvas.height,w=region.width*canvas.width,h=region.height*canvas.height;
-  ctx.fillStyle='rgba(220,70,70,.28)';ctx.fillRect(x,y,w,h);
-  ctx.strokeStyle='#e65f58';ctx.lineWidth=Math.max(2,canvas.width/500);ctx.strokeRect(x,y,w,h);
-}
-function ImageRegionSelector({src,onSelect}:{src:string;onSelect:(region:{left:number;top:number;width:number;height:number})=>void}){
-  const canvasRef=useRef<HTMLCanvasElement|null>(null);
-  const imageRef=useRef<HTMLImageElement|null>(null);
-  const startRef=useRef<{x:number;y:number}|null>(null);
-  const [region,setRegion]=useState({left:0.3,top:0.55,width:0.4,height:0.18});
-  const regionRef=useRef(region);
-  useEffect(()=>{
-    regionRef.current=region;
-    if(canvasRef.current&&imageRef.current)paintRegion(canvasRef.current,imageRef.current,region);
-  },[region]);
-  useEffect(()=>{
-    const image=new Image();
-    image.onload=()=>{
-      imageRef.current=image;
-      if(canvasRef.current)paintRegion(canvasRef.current,image,regionRef.current);
-    };
-    image.src=src;
-    return ()=>{image.onload=null;};
-  },[src]);
-  function point(event:PointerEvent<HTMLCanvasElement>){
-    const rect=event.currentTarget.getBoundingClientRect();
-    return {x:Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width)),y:Math.max(0,Math.min(1,(event.clientY-rect.top)/rect.height))};
+  if (guestMode && !user) {
+    return (
+      <GuestLanding
+        onStartStudio={() => { setGuestMode(false); setQuickTool(true); }}
+        onRegister={() => { setGuestMode(false); setAuthMode('register'); }}
+      />
+    );
   }
-  function move(event:PointerEvent<HTMLCanvasElement>){
-    if(!startRef.current)return;
-    const p=point(event),s=startRef.current;
-    setRegion({left:Math.min(s.x,p.x),top:Math.min(s.y,p.y),width:Math.max(.01,Math.abs(p.x-s.x)),height:Math.max(.01,Math.abs(p.y-s.y))});
+
+  if (!user) {
+    return (
+      <div className="auth-shell" dir="rtl">
+        <div className="auth-brand">
+          <div className="brand-symbol">م</div>
+          <span>مشكور</span>
+          <small>مساحة عملك الذكية</small>
+        </div>
+        <div className="auth-card" style={{ maxWidth: 420, margin: '40px auto' }}>
+          <div className="auth-card-head">
+            <span>{authMode === 'register' ? 'ابدأ مجاناً' : 'مرحباً بعودتك'}</span>
+            <h2>{authMode === 'register' ? 'إنشاء مساحة معرض' : 'تسجيل الدخول'}</h2>
+          </div>
+          <form onSubmit={submitAuth} className="auth-form">
+            {authMode === 'register' && (
+              <>
+                <label>اسمك<input required minLength={2} value={auth.name} onChange={(e) => setAuth({ ...auth, name: e.target.value })} /></label>
+                <label>اسم المعرض<input required value={auth.tenantName} onChange={(e) => setAuth({ ...auth, tenantName: e.target.value })} /></label>
+              </>
+            )}
+            <label>البريد الإلكتروني<input required type="email" value={auth.email} onChange={(e) => setAuth({ ...auth, email: e.target.value })} /></label>
+            <label>كلمة المرور<input required type="password" minLength={12} value={auth.password} onChange={(e) => setAuth({ ...auth, password: e.target.value })} /></label>
+            {error && <div className="inline-error">{error}</div>}
+            <button className="button-primary auth-submit" disabled={authBusy}>
+              {authBusy ? <LoaderCircle className="spin" size={16} /> : null}
+              {authMode === 'register' ? 'إنشاء الحساب' : 'دخول'}
+            </button>
+          </form>
+          <div className="auth-switch">
+            {authMode === 'register' ? (
+              <>لديك حساب؟ <button type="button" onClick={() => setAuthMode('login')}>سجّل الدخول</button></>
+            ) : (
+              <>جديد؟ <button type="button" onClick={() => setAuthMode('register')}>أنشئ مساحة</button></>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
-  function end(event:PointerEvent<HTMLCanvasElement>){
-    if(!startRef.current)return;
-    const p=point(event),s=startRef.current;
-    const next={left:Math.min(s.x,p.x),top:Math.min(s.y,p.y),width:Math.max(.01,Math.abs(p.x-s.x)),height:Math.max(.01,Math.abs(p.y-s.y))};
-    startRef.current=null;setRegion(next);onSelect(next);
-  }
-  return <canvas ref={canvasRef} className="region-canvas" onPointerDown={event=>{startRef.current=point(event);event.currentTarget.setPointerCapture(event.pointerId);}} onPointerMove={move} onPointerUp={end} onPointerCancel={()=>{startRef.current=null;}} aria-label="اسحب لتحديد المنطقة المراد طمسها"/>;
-}
-function VehicleCard({vehicle,onAd,onEdit,busy}:{vehicle:Vehicle;onAd:()=>void;onEdit:()=>void;busy:boolean}){
-  return <article className="vehicle-card"><div className="vehicle-card-art"><CarFront size={40}/><span>مسودة</span></div><div className="vehicle-card-body"><b>{[vehicle.year,vehicle.make,vehicle.model,vehicle.trim].filter(Boolean).join(' ')}</b><small>{[vehicle.city,vehicle.mileage?new Intl.NumberFormat('ar-SA').format(vehicle.mileage)+' كم':null].filter(Boolean).join(' · ')||'بيانات أولية'}</small>{vehicle.city&&<a className="vehicle-map-link" href={'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(vehicle.city)} target="_blank" rel="noreferrer"><MapPin size={12}/> فتح الموقع على الخرائط</a>}<div className="vehicle-card-bottom"><strong>{vehicle.price?new Intl.NumberFormat('ar-SA').format(vehicle.price)+' ر.س':'السعر غير محدد'}</strong><div className="vehicle-card-buttons"><button className="vehicle-edit-button" onClick={onEdit}>تعديل</button><button onClick={onAd} disabled={busy}>{busy?<LoaderCircle size={15} className="spin"/>:<FileText size={15}/>} تجهيز الإعلان</button></div></div></div></article>;
+
+  const navItems: { id: Screen; label: string; icon: typeof LayoutDashboard }[] = [
+    { id: 'home', label: 'الرئيسية', icon: LayoutDashboard },
+    { id: 'cars', label: 'السيارات', icon: CarFront },
+    { id: 'studio', label: 'الاستوديو', icon: WandSparkles },
+    { id: 'skills', label: 'المهارات', icon: Blocks },
+    { id: 'tasks', label: 'المهام', icon: ListTodo },
+    { id: 'admin', label: 'الإدارة', icon: Settings2 },
+  ];
+
+  return (
+    <CommercialShell
+      aiFloatVisible={aiFloatVisible}
+      whatsappNumber={whatsappNumber}
+      publishOpen={publishOpen}
+      onPublishClose={() => setPublishOpen(false)}
+      onPublishApprove={() => { setMessage('تمت الموافقة على النشر.'); setPublishOpen(false); }}
+      onAssistantSend={async (text) => {
+        try {
+          const plan = await api('/api/assistant/plan', { method: 'POST', body: JSON.stringify({ request: text }) });
+          return plan?.summary || plan?.message || 'تم تحليل الطلب.';
+        } catch {
+          return 'تعذر الاتصال بالمساعد حالياً.';
+        }
+      }}
+    >
+      <div className="workspace" dir="rtl">
+        <aside className={`side-nav ${menuOpen ? 'side-nav-open' : ''}`}>
+          <div className="side-brand">
+            <div className="brand-symbol">م</div>
+            <div><b>مشكور</b><small>MSHKUR</small></div>
+            <button className="side-close" onClick={() => setMenuOpen(false)}><X size={18} /></button>
+          </div>
+          <div className="workspace-switch">
+            <div className="workspace-avatar">{user.name[0]}</div>
+            <div><b>{user.tenantName}</b><small>{user.name}</small></div>
+          </div>
+          <nav>
+            {navItems.map((item) => (
+              <button key={item.id} className={`side-link ${screen === item.id ? 'selected' : ''}`}
+                onClick={() => { setScreen(item.id); setMenuOpen(false); }}>
+                <item.icon size={16} />{item.label}
+              </button>
+            ))}
+          </nav>
+          <div className="side-spacer" />
+          <button className="side-link muted-link" onClick={logout}><LogOut size={16} /> خروج</button>
+        </aside>
+        {menuOpen && <button className="nav-scrim" onClick={() => setMenuOpen(false)} />}
+
+        <main className="work-main">
+          <header className="work-topbar">
+            <button className="mobile-nav-trigger" onClick={() => setMenuOpen(true)}><Menu size={20} /></button>
+            <div className="crumb"><strong>{navItems.find((n) => n.id === screen)?.label || 'الرئيسية'}</strong></div>
+            <div className="topbar-right">
+              <span className="local-indicator"><i /> محلي</span>
+              <button className="top-icon" onClick={() => setPublishOpen(true)} title="النشر"><MessageCircle size={18} /></button>
+            </div>
+          </header>
+
+          <div className="page-content">
+            {message && <div className="toast">{message}<button onClick={() => setMessage('')}>×</button></div>}
+            {error && <div className="toast toast-error">{error}<button onClick={() => setError('')}>×</button></div>}
+
+            {screen === 'home' && (
+              <DashboardHome name={user.name} vehicles={vehicles} assets={vehicleAssets}
+                onAddVehicle={() => { setShowVehicleForm(true); setScreen('cars'); }}
+                onStudio={() => setScreen('studio')} onAssistant={() => setScreen('assistant')} onCars={() => setScreen('cars')} />
+            )}
+
+            {screen === 'cars' && (
+              <>
+                <section className="page-intro">
+                  <div><div className="overline"><span /> سجل موحد</div><h1>السيارات والإعلانات</h1></div>
+                  <button className="button-primary" onClick={() => setShowVehicleForm(true)}>سيارة جديدة</button>
+                </section>
+                {showVehicleForm && (
+                  <form className="form-panel" onSubmit={addVehicle}>
+                    <div className="form-heading">
+                      <div><b>بيانات السيارة</b><small>املأ الأساسيات ثم احفظ</small></div>
+                      <button type="button" onClick={() => setShowVehicleForm(false)}><X size={16} /></button>
+                    </div>
+                    <div className="form-grid">
+                      <label>الماركة<input required value={newVehicle.make} onChange={(e) => setNewVehicle({ ...newVehicle, make: e.target.value })} /></label>
+                      <label>الموديل<input required value={newVehicle.model} onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })} /></label>
+                      <label>السنة<input value={newVehicle.year} onChange={(e) => setNewVehicle({ ...newVehicle, year: e.target.value })} /></label>
+                      <label>السعر<input value={newVehicle.price} onChange={(e) => setNewVehicle({ ...newVehicle, price: e.target.value })} /></label>
+                      <label>المدينة<input value={newVehicle.city} onChange={(e) => setNewVehicle({ ...newVehicle, city: e.target.value })} /></label>
+                    </div>
+                    <div className="form-actions">
+                      <button className="button-primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={16} /> : null} حفظ السيارة</button>
+                    </div>
+                  </form>
+                )}
+                {vehicles.length === 0 ? (
+                  <div className="empty-inventory">
+                    <div className="empty-car"><CarFront size={27} /></div>
+                    <b>مخزونك فارغ حالياً</b><span>أضف أول سيارة لبدء التجهيز</span>
+                  </div>
+                ) : (
+                  <div className="vehicle-grid">
+                    {vehicles.map((v) => (
+                      <article key={v.id} className="vehicle-card">
+                        <div className="vehicle-card-art"><CarFront size={40} /><span>{v.status || 'مسودة'}</span></div>
+                        <div className="vehicle-card-body">
+                          <b>{[v.year, v.make, v.model].filter(Boolean).join(' ')}</b>
+                          <small>{[v.city, v.mileage ? `${v.mileage} كم` : null].filter(Boolean).join(' · ') || 'بيانات أولية'}</small>
+                          <div className="vehicle-card-bottom">
+                            <strong>{v.price ? new Intl.NumberFormat('ar-SA').format(v.price) + ' ر.س' : 'السعر غير محدد'}</strong>
+                            <button onClick={() => { setAssetVehicleId(v.id); setScreen('studio'); }}>تجهيز</button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {screen === 'studio' && (
+              <>
+                <section className="page-intro">
+                  <div><div className="overline"><span /> معالجة محلية</div><h1>استوديو الصور</h1><p>ارفع صوراً، أزل الخلفية، جهّز الإعلان</p></div>
+                  <button className="button-primary" onClick={() => setPublishOpen(true)}>جاهز للنشر؟</button>
+                </section>
+                {assetVehicleId ? (
+                  <AssetHistoryPanel assets={vehicleAssets} onOpen={(id) => { setMessage('فتح الأصل ' + id); }} />
+                ) : (
+                  <div className="empty-inventory"><b>اختر سيارة أولاً من قائمة السيارات</b></div>
+                )}
+                {(() => {
+                  const v = vehicles.find(x => x.id === assetVehicleId);
+                  return v ? <OfflineAdKit vehicle={v} assets={vehicleAssets} /> : null;
+                })()}
+              </>
+            )}
+
+            {screen === 'skills' && <SkillsPanel />}
+            {screen === 'tasks' && <TasksPanel />}
+            {screen === 'growth' && <GrowthPanel />}
+            {screen === 'inbox' && <InboxPanel />}
+            {screen === 'assistant' && (
+              <section className="assistant-panel">
+                <div className="assistant-avatar"><Sparkles size={20} /></div>
+                <div className="assistant-greeting"><b>مساعد مشكور</b><p>استخدم الزر العائم أو اطلب مهمة من هنا</p></div>
+              </section>
+            )}
+
+            {screen === 'admin' && (user.role === 'owner' || user.role === 'admin') && (
+              <>
+                <AdminControlsPanel
+                  aiFloatVisible={aiFloatVisible}
+                  onToggleAiFloat={setAiFloatVisible}
+                  whatsappNumber={whatsappNumber}
+                  onSaveWhatsapp={(n) => { setWhatsappNumber(n); localStorage.setItem('mshkur_wa', n); }}
+                />
+                <OperationsPanel />
+              </>
+            )}
+
+            <footer className="page-footer">
+              مشكور <span>مساحة عمل بسيطة، ونتائج حقيقية.</span>
+              <span className="version-label">BUILD commercial-0.4</span>
+            </footer>
+          </div>
+        </main>
+      </div>
+    </CommercialShell>
+  );
 }
