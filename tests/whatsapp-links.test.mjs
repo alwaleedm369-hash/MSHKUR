@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeWhatsAppNumber, buildWhatsAppShareUrl, validateWhatsAppChannelUrl } from '../src/whatsappLinks.mjs';
+import { normalizeWhatsAppNumber, buildWhatsAppShareUrl, buildWhatsAppWebUrl, validateWhatsAppChannelUrl } from '../src/whatsappLinks.mjs';
 
 test('normalizes international phone number without changing digits', () => {
   assert.equal(normalizeWhatsAppNumber('+966 55 123 4567'), '966551234567');
@@ -25,4 +25,12 @@ test('accepts only official WhatsApp channel URLs', () => {
   assert.equal(validateWhatsAppChannelUrl('https://example.com/channel/AbCdEf123'), null);
   assert.equal(validateWhatsAppChannelUrl('javascript:alert(1)'), null);
   assert.equal(validateWhatsAppChannelUrl('https://whatsapp.com/channel/'), null);
+});
+
+test('builds a WhatsApp Web compose URL without invoking an API', () => {
+  const url = new URL(buildWhatsAppWebUrl('إعلان جاهز', '+966551234567'));
+  assert.equal(url.origin, 'https://web.whatsapp.com');
+  assert.equal(url.pathname, '/send');
+  assert.equal(url.searchParams.get('phone'), '966551234567');
+  assert.equal(url.searchParams.get('text'), 'إعلان جاهز');
 });
