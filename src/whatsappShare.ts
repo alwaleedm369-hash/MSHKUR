@@ -11,9 +11,14 @@ export type AdSharePayload = {
   year?: string | number;
   price?: string | number;
   city?: string;
+  mileage?: string | number;
   notes?: string;
   publicUrl?: string;
+  dealerName?: string;
 };
+
+export { buildAdCopy, buildWhatsAppAd, buildHarajAd, buildStoryHeadline, NOTE_PRESETS } from './adCopy';
+import { buildWhatsAppAd } from './adCopy';
 
 /** تطبيع رقم سعودي/دولي لأرقام فقط مع رمز الدولة */
 export function normalizeWaNumber(raw: string, defaultCountry = '966'): string {
@@ -26,17 +31,7 @@ export function normalizeWaNumber(raw: string, defaultCountry = '966'): string {
 }
 
 export function buildCarAdMessage(p: AdSharePayload): string {
-  const title = [p.year, p.make, p.model].filter(Boolean).join(' ') || 'سيارة';
-  const lines = [
-    `🚗 ${title}`,
-    p.price ? `💰 السعر: ${p.price}` : '',
-    p.city ? `📍 ${p.city}` : '',
-    p.notes ? String(p.notes).trim() : '',
-    p.publicUrl ? `🔗 ${p.publicUrl}` : '',
-    '',
-    'تم تجهيز الصور عبر مشكور MSHKUR',
-  ].filter((x) => x !== '');
-  return lines.join('\n');
+  return buildWhatsAppAd(p);
 }
 
 /** رابط واتساب ويب/تطبيق — بدون API */
