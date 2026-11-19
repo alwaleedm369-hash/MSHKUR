@@ -16,6 +16,8 @@ import {
 import BeforeAfterSlider from './components/BeforeAfterSlider';
 import { runCarStudioPipeline } from './mshkurImageEngine';
 import { applyFreeWatermark, isFreeWatermarkEnabled } from './mshkurWatermark';
+import { compressImageFile } from './compressImage';
+import { buildCarAdMessage, getSavedWaNumber, openWhatsAppShare } from './whatsappShare';
 
 type Result = { name: string; beforeUrl: string; url: string };
 type Props = { onAccount?: () => void; onDone?: () => void };
@@ -85,8 +87,10 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
     try {
       const done: Result[] = [];
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const beforeUrl = URL.createObjectURL(file);
+        const raw = files[i];
+        setProgress(`صورة ${i + 1}/${files.length} — ضغط للجوال...`);
+        const file = await compressImageFile(raw, { maxEdge: 1600, quality: 0.85 });
+        const beforeUrl = URL.createObjectURL(raw);
         try {
           const result = await runCarStudioPipeline(file, {
             studioBg: 'white',
@@ -213,6 +217,18 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
                 >
                   <ArrowDownToLine size={15} /> تنزيل PNG
                   {isFreeWatermarkEnabled() ? ' · علامة مشكور' : ''}
+                </button>
+                <button
+                  type="button"
+                  className="guest-dl guest-wa"
+                  onClick={() => {
+                    const msg = buildCarAdMessage({
+                      notes: 'صورة سيارة جاهزة بعد إزالة الخلفية عبر مشكور. أرفق الصورة يدوياً من المعرض بعد التنزيل.',
+                    });
+                    openWhatsAppShare(getSavedWaNumber(), msg);
+                  }}
+                >
+                  واتساب
                 </button>
               </div>
               <small>{r.name}</small>
