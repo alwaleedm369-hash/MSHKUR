@@ -37,6 +37,7 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const resultsRef = useRef<Result[]>([]);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     resultsRef.current = results;
@@ -149,6 +150,22 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
           onChange={(e) => choose(e.target.files)}
         />
       </label>
+      <button
+        type="button"
+        className="guest-camera"
+        onClick={() => cameraInputRef.current?.click()}
+        disabled={busy}
+      >
+        <ImagePlus size={17} /> تصوير السيارة الآن
+      </button>
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        onChange={(e) => choose(e.target.files)}
+      />
 
       {files.length > 0 && (
         <div className="guest-file-list">
