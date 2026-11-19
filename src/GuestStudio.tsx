@@ -1,7 +1,6 @@
 /**
  * GuestStudio — استوديو الزائر
  * يستخدم mshkurImageEngine (SEGMENT + MATTE refine + استوديو) وليس BG0 مباشرة.
- * العلامة المائية عند التصدير فقط (قابلة للتعطيل من الأدمن).
  */
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -15,7 +14,7 @@ import {
 } from 'lucide-react';
 import BeforeAfterSlider from './components/BeforeAfterSlider';
 import { runCarStudioPipeline } from './mshkurImageEngine';
-import { applyFreeWatermark, isFreeWatermarkEnabled } from './mshkurWatermark';
+import { renderMshkurWatermark } from './mshkurWatermark';
 
 type Result = { name: string; beforeUrl: string; url: string };
 type Props = { onAccount?: () => void; onDone?: () => void };
@@ -87,54 +86,24 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const beforeUrl = URL.createObjectURL(file);
-        try {
-          const result = await runCarStudioPipeline(file, {
-            studioBg: 'white',
-            contactShadow: true,
-            enhanceLight: true,
-            refineMatte: true,
-            onProgress: (msg) => setProgress(`صورة ${i + 1}/${files.length} — ${msg}`),
-          });
-          done.push({ name: file.name, beforeUrl, url: result.url });
-          setResults([...done]);
-          resultsRef.current = [...done];
-          const used = Number(localStorage.getItem('mshkur_guest_' + today) || 0) + 1;
-          localStorage.setItem('mshkur_guest_' + today, String(used));
-          setRemaining(Math.max(0, 3 - used));
-        } catch (inner) {
-          URL.revokeObjectURL(beforeUrl);
-          throw inner;
-        }
+        const result = await runCarStudioPipeline(file, {
+          studioBg: 'white',
+          contactShadow: true,
+          enhanceLight: true,
+          refineMatte: true,
+          onProgress: (msg) => setProgress(`صورة ${i + 1}/${files.length} — ${msg}`),
+        });
+        done.push({ name: file.name, beforeUrl, url: result.url });
+        setResults([...done]);
+        const used = Number(localStorage.getItem('mshkur_guest_' + today) || 0) + 1;
+        localStorage.setItem('mshkur_guest_' + today, String(used));
+        setRemaining(Math.max(0, 3 - used));
       }
       setProgress('اكتملت المعالجة عبر محرك مشكور المحلي');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'تعذرت معالجة الصور على هذا الجهاز.');
     } finally {
       setBusy(false);
-    }
-  }
-
-  async function downloadResult(url: string, filename: string) {
-    try {
-      let blob: Blob;
-      if (isFreeWatermarkEnabled()) {
-        blob = await applyFreeWatermark(url, {
-          mode: 'signature',
-          position: 'bottom-right',
-          opacity: 0.7,
-        });
-      } else {
-        const res = await fetch(url);
-        blob = await res.blob();
-      }
-      const a = document.createElement('a');
-      const href = URL.createObjectURL(blob);
-      a.href = href;
-      a.download = filename;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(href), 1500);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'تعذر التنزيل');
     }
   }
 
@@ -205,16 +174,10 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
           {results.map((r, i) => (
             <article key={i}>
               <BeforeAfterSlider before={r.beforeUrl} after={r.url} label={'مقارنة ' + r.name} />
-              <div className="guest-dl-row">
-                <button
-                  type="button"
-                  className="guest-dl"
-                  onClick={() => downloadResult(r.url, 'mshkur-' + (i + 1) + '.png')}
-                >
-                  <ArrowDownToLine size={15} /> تنزيل PNG
-                  {isFreeWatermarkEnabled() ? ' · علامة مشكور' : ''}
-                </button>
-              </div>
+              <a href={r.url} download={'mshkur-' + (i + 1) + '.png'}>
+                <ArrowDownToLine size={15} /> تنزيل PNG
+              </a>
+              <button type="button" onClick={async () => { try { const source = await fetch(r.url).then(res => res.blob()); const branded = await renderMshkurWatermark(source, { enabled: true, text: 'مشكور', secondaryText: 'MSHKUR', opacity: 0.22, corner: 'bottom-right' }, { type: 'image/png' }); const downloadUrl = URL.createObjectURL(branded); const link = document.createElement('a'); link.href = downloadUrl; link.download = 'mshkur-branded-' + (i + 1) + '.png'; link.click(); URL.revokeObjectURL(downloadUrl); } catch (e) { setError(e instanceof Error ? e.message : 'تعذر إنشاء النسخة التسويقية'); } }}><ArrowDownToLine size={15} /> تنزيل نسخة تسويقية بعلامة مشكور</button>
               <small>{r.name}</small>
             </article>
           ))}
@@ -228,7 +191,7 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
 
       <footer>
         <ShieldCheck size={15} /> المعالجة على جهازك عبر mshkurImageEngine — لا رفع لخدمات مدفوعة.
-        الحفظ يتطلب حساباً. العلامة (إن وُجدت) عند التنزيل فقط ويمكن تعطيلها من الإدارة.
+        الحفظ يتطلب حساباً.
       </footer>
     </main>
   );
