@@ -16,7 +16,7 @@ import {
 import BeforeAfterSlider from './components/BeforeAfterSlider';
 import { runCarStudioPipeline } from './mshkurImageEngine';
 import { renderMshkurWatermark } from './mshkurWatermark';
-import { buildWhatsAppShareUrl } from './whatsappLinks.mjs';
+import { buildWhatsAppShareUrl, buildWhatsAppWebUrl } from './whatsappLinks.mjs';
 
 type Result = { name: string; beforeUrl: string; url: string };
 type Props = { onAccount?: () => void; onDone?: () => void };
@@ -197,11 +197,18 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
                 <ArrowDownToLine size={15} /> تنزيل PNG
               </a>
               <a
-                href={buildWhatsAppShareUrl('تم تجهيز صورة السيارة عبر مشكور. أرسل لك رسالة لتنسيق استلام الصورة.)}
+                href={buildWhatsAppShareUrl('تم تجهيز صورة السيارة عبر مشكور. أرسل لك رسالة لتنسيق استلام الصورة.')}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <Share2 size={15} /> مشاركة عبر واتساب
+              </a>
+              <a
+                href={buildWhatsAppWebUrl('تم تجهيز صورة السيارة عبر مشكور. أرسل لك رسالة لتنسيق استلام الصورة.')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Share2 size={15} /> فتح واتساب ويب
               </a>
               <button
                 type="button"
