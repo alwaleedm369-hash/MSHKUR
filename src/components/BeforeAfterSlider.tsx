@@ -6,9 +6,7 @@ export default function BeforeAfterSlider({ before, after, label = 'مقارنة
   return (
     <div dir="rtl" aria-label={label} style={{ position:'relative', overflow:'hidden', width:'100%', aspectRatio:'4/3', borderRadius:14, background:'#e9eeeb', border:'1px solid #dce6e0' }}>
       <img src={after} alt="بعد المعالجة" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain'}} />
-      <div style={{position:'absolute',inset:0,width:position+'%',overflow:'hidden',borderLeft:'2px solid white'}}>
-        <img src={before} alt="الصورة الأصلية قبل المعالجة" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain'}} />
-      </div>
+      <img src={before} alt="الصورة الأصلية قبل المعالجة" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain',clipPath:'inset(0 '+(100-position)+'% 0 0)'}} />
       <span style={{position:'absolute',top:10,right:10,padding:'4px 9px',borderRadius:20,background:'#172b27c9',color:'#fff',fontSize:11}}>قبل</span>
       <span style={{position:'absolute',top:10,left:10,padding:'4px 9px',borderRadius:20,background:'#147a68',color:'#fff',fontSize:11}}>بعد</span>
       <input aria-label="اسحب لمقارنة الأصل والنتيجة" type="range" min="0" max="100" value={position} onChange={e=>setPosition(Number(e.target.value))} style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0,cursor:'ew-resize'}} />
