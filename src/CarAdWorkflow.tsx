@@ -4,18 +4,19 @@
  */
 import { useCallback, useRef, useState, type PointerEvent as PtrEv } from 'react';
 import GlassTintTool from './GlassTintTool';
+import SceneStudio from './SceneStudio';
 import {
   ArrowLeft, Camera, Check, ChevronLeft, LoaderCircle,
   ShieldCheck, WandSparkles, Scan
 } from 'lucide-react';
 import {
-  processCarAdImage,
+  removeBackgroundOnly,
+  refineCutoutMatte,
   enhanceLighting,
   blurPlateRegion,
-  compositeStudio,
 } from './mshkurImageEngine';
 
-type Step = 'upload' | 'process' | 'next' | 'plate' | 'glass' | 'draft' | 'review';
+type Step = 'upload' | 'process' | 'next' | 'scene' | 'plate' | 'glass' | 'draft' | 'review';
 
 type Props = {
   onBack?: () => void;
@@ -31,7 +32,7 @@ const NEXT_ACTIONS = [
   { id: 'plate', label: 'طمس اللوحة', desc: 'ارسم مستطيلاً على الرقم' },
   { id: 'glass', label: 'تضليل الزجاج', desc: 'حدد حدود النوافذ يدوياً' },
   { id: 'light', label: 'تحسين الإضاءة', desc: 'ضبط التعريض والحدة' },
-  { id: 'bg', label: 'توحيد الخلفية', desc: 'خلفية استوديو بيضاء' },
+  { id: 'scene', label: 'خلفية الاستوديو', desc: 'فضي أو أبيض أو داكن أو دافئ' },
   { id: 'ad', label: 'تجهيز الإعلان', desc: 'مسودة نص + صور جاهزة' },
 ];
 
@@ -44,6 +45,7 @@ export default function CarAdWorkflow({
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [resultUrl, setResultUrl] = useState('');
+  const [cutoutUrl, setCutoutUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressMsg, setProgressMsg] = useState('');
@@ -58,6 +60,7 @@ export default function CarAdWorkflow({
   const [plateNorm, setPlateNorm] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [plateBoxPx, setPlateBoxPx] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const onGlassExport = useCallback((dataUrl: string) => setResultUrl(dataUrl), []);
+  const onSceneExport = useCallback((dataUrl: string) => setResultUrl(dataUrl), []);
 
   const pickFile = useCallback((f: File | null) => {
     if (!f || !f.type.startsWith('image/')) return;
@@ -77,22 +80,33 @@ export default function CarAdWorkflow({
     setProgress(8);
     setProgressMsg('تحضير محرك مشكور المحلي...');
     try {
+      let cutout: Blob;
       if (onRemoveBackground) {
         setProgress(30);
-        setProgressMsg('إزالة الخلفية (مخصص)...');
-        const out = await onRemoveBackground(file);
-        setResultUrl(out);
+        setProgressMsg('إزالة الخلفية (محرك مخصص)...');
+        const outputUrl = await onRemoveBackground(file);
+        const response = await fetch(outputUrl);
+        cutout = await response.blob();
       } else {
-        const out = await processCarAdImage(file, (msg) => {
-          setProgressMsg(msg);
-          if (msg.includes('1/')) setProgress(25);
-          else if (msg.includes('2/')) setProgress(55);
-          else if (msg.includes('3/')) setProgress(80);
-          else setProgress(100);
+        cutout = await removeBackgroundOnly(file, {
+          model: 'lite',
+          quality: 'quality',
+          onProgress: (msg) => {
+            setProgressMsg(msg);
+            if (msg.includes('إزالة')) setProgress(30);
+          },
         });
-        setResultUrl(out);
       }
-      setDoneActions(['bg', 'light']);
+      setProgress(60);
+      setProgressMsg('تنعيم الحواف وإزالة الهالة...');
+      cutout = await refineCutoutMatte(cutout);
+      setProgress(80);
+      setProgressMsg('تحسين الإضاءة...');
+      cutout = await enhanceLighting(cutout, 0.1);
+      const cutoutObjectUrl = URL.createObjectURL(cutout);
+      setCutoutUrl(cutoutObjectUrl);
+      setResultUrl(cutoutObjectUrl);
+      setDoneActions(['light']);
       setProgress(100);
       setProgressMsg('اكتملت المعالجة المحلية');
       setStep('next');
@@ -110,6 +124,10 @@ export default function CarAdWorkflow({
 
   async function applyExtraAction(id: string) {
     if (!resultUrl && !previewUrl) return;
+    if (id === 'scene') {
+      setStep('scene');
+      return;
+    }
     if (id === 'glass') {
       setStep('glass');
       return;
@@ -134,11 +152,6 @@ export default function CarAdWorkflow({
         const out = await enhanceLighting(blob, 0.14);
         setResultUrl(URL.createObjectURL(out));
         setDoneActions((p) => (p.includes('light') ? p : [...p, 'light']));
-      } else if (id === 'bg') {
-        setProgressMsg('توحيد خلفية الاستوديو...');
-        const out = await compositeStudio(blob, { studioBg: 'white', contactShadow: true });
-        setResultUrl(URL.createObjectURL(out));
-        setDoneActions((p) => (p.includes('bg') ? p : [...p, 'bg']));
       } else if (id === 'ad') {
         setStep('draft');
       }
@@ -279,6 +292,7 @@ export default function CarAdWorkflow({
           {step === 'upload' && '1/5'}
           {step === 'process' && '2/5'}
           {step === 'next' && '3/5'}
+          {step === 'scene' && 'خلفية'}
           {step === 'plate' && 'لوحة'}
           {step === 'glass' && 'زجاج'}
           {step === 'draft' && '4/5'}
@@ -349,6 +363,26 @@ export default function CarAdWorkflow({
           </div>
           <button type="button" className="caw-btn primary wide" onClick={() => setStep('draft')}>
             متابعة لتجهيز الإعلان <ArrowLeft size={16} />
+          </button>
+        </section>
+      )}
+
+      {step === 'scene' && (
+        <section className="caw-scene">
+          {cutoutUrl && <SceneStudio src={cutoutUrl} onExport={onSceneExport} />}
+          <button
+            type="button"
+            className="caw-btn primary wide"
+            disabled={!resultUrl}
+            onClick={() => {
+              setDoneActions((previous) => previous.includes('scene') ? previous : [...previous, 'scene']);
+              setStep('next');
+            }}
+          >
+            اعتماد الخلفية والمتابعة
+          </button>
+          <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
+            رجوع دون اعتماد
           </button>
         </section>
       )}
