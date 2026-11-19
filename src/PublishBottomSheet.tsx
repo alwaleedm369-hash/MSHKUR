@@ -1,15 +1,16 @@
 /**
- * PublishBottomSheet.tsx
- * بطاقة النشر الموحدة + موافقة بشرية إلزامية
- * منصات: حراج · مستعمل · 𝕏 · واتساب (wa.me فقط)
+ * بطاقة النشر الموحدة + موافقة بشرية
+ * واتساب: wa.me فقط — بدون Meta Cloud API
  */
 import { Check, MessageCircle } from 'lucide-react';
+import { buildWaMeLink, getSavedWaNumber } from './whatsappShare';
 
 type Props = {
   open: boolean;
   carTitle?: string;
   whatsappNumber?: string;
   publicUrl?: string;
+  adText?: string;
   onApprove: () => void;
   onClose: () => void;
 };
@@ -19,53 +20,52 @@ export default function PublishBottomSheet({
   carTitle = 'السيارة',
   whatsappNumber,
   publicUrl,
+  adText,
   onApprove,
   onClose,
 }: Props) {
   if (!open) return null;
 
-  const waLink = whatsappNumber
-    ? `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(
-        `مرحباً، أستفسر عن ${carTitle}${publicUrl ? '\n' + publicUrl : ''}`
-      )}`
-    : null;
+  const phone = whatsappNumber || getSavedWaNumber();
+  const text =
+    adText?.trim() ||
+    `مرحباً، أستفسر عن ${carTitle}${publicUrl ? '\n' + publicUrl : ''}`;
+  const waLink = buildWaMeLink(phone, text);
 
   return (
     <div className="publish-sheet-overlay" onClick={onClose}>
       <div className="publish-sheet" onClick={(e) => e.stopPropagation()} dir="rtl">
         <div className="publish-sheet-handle" />
         <h3>تم تجهيز السيارة</h3>
-        <p>راجع المحتوى ثم وافق قبل أي نشر</p>
+        <p>راجع المحتوى ثم وافق. واتساب يفتح عبر الرابط الرسمي wa.me بدون اشتراك Meta.</p>
 
         <div className="publish-platforms">
-          <button type="button" className="publish-platform">
-            <span>حراج</span>
+          <button type="button" className="publish-platform" disabled title="قريباً مع مهارة تدريب بشري">
+            حراج
           </button>
-          <button type="button" className="publish-platform">
-            <span>مستعمل</span>
+          <button type="button" className="publish-platform" disabled>
+            مستعمل
           </button>
-          <button type="button" className="publish-platform">
-            <span>𝕏</span>
+          <button type="button" className="publish-platform" disabled>
+            𝕏
           </button>
-          {waLink ? (
-            <a href={waLink} target="_blank" rel="noreferrer" className="publish-platform">
-              <MessageCircle size={18} />
-              <span>واتساب</span>
-            </a>
-          ) : (
-            <button type="button" className="publish-platform" disabled>
-              <MessageCircle size={18} />
-              <span>واتساب</span>
-            </button>
-          )}
+          <a href={waLink} target="_blank" rel="noreferrer" className="publish-platform publish-wa">
+            <MessageCircle size={18} /> واتساب
+          </a>
         </div>
 
-        <button type="button" className="publish-approve-btn" onClick={onApprove}>
-          <Check size={18} />
-          راجع ووافق على النشر
+        <button
+          type="button"
+          className="publish-approve-btn"
+          onClick={() => {
+            onApprove();
+            window.open(waLink, '_blank', 'noopener,noreferrer');
+          }}
+        >
+          <Check size={18} /> راجع ووافق · افتح واتساب
         </button>
         <button type="button" className="publish-cancel" onClick={onClose}>
-          لاحقاً
+          إغلاق
         </button>
       </div>
     </div>
