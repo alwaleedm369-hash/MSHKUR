@@ -2,22 +2,19 @@
  * CarAdWorkflow — سير عمل تجهيز إعلان السيارة (أداة أولاً)
  * تسلسل: رفع → محرك مشكور → خطوات → تحديد لوحة يدوي → مسودة → موافقة
  */
-import { useCallback, useEffect, useRef, useState, type PointerEvent as PtrEv } from 'react';
-import GlassTintTool from './GlassTintTool';
-import SceneStudio from './SceneStudio';
-import ImageCropTool from './ImageCropTool';
+import { useCallback, useRef, useState, type PointerEvent as PtrEv } from 'react';
 import {
   ArrowLeft, Camera, Check, ChevronLeft, LoaderCircle,
   ShieldCheck, WandSparkles, Scan
 } from 'lucide-react';
 import {
-  removeBackgroundOnly,
-  refineCutoutMatte,
+  processCarAdImage,
   enhanceLighting,
   blurPlateRegion,
+  compositeStudio,
 } from './mshkurImageEngine';
 
-type Step = 'upload' | 'process' | 'next' | 'scene' | 'plate' | 'glass' | 'crop' | 'draft' | 'review';
+type Step = 'upload' | 'process' | 'next' | 'plate' | 'draft' | 'review';
 
 type Props = {
   onBack?: () => void;
@@ -31,10 +28,8 @@ type Props = {
 
 const NEXT_ACTIONS = [
   { id: 'plate', label: 'طمس اللوحة', desc: 'ارسم مستطيلاً على الرقم' },
-  { id: 'glass', label: 'تضليل الزجاج', desc: 'حدد حدود النوافذ يدوياً' },
-  { id: 'crop', label: 'قص الصورة', desc: 'اضبط مقاس صورة الإعلان' },
   { id: 'light', label: 'تحسين الإضاءة', desc: 'ضبط التعريض والحدة' },
-  { id: 'scene', label: 'خلفية الاستوديو', desc: 'فضي أو أبيض أو داكن أو دافئ' },
+  { id: 'bg', label: 'توحيد الخلفية', desc: 'خلفية استوديو بيضاء' },
   { id: 'ad', label: 'تجهيز الإعلان', desc: 'مسودة نص + صور جاهزة' },
 ];
 
@@ -47,14 +42,10 @@ export default function CarAdWorkflow({
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [resultUrl, setResultUrl] = useState('');
-  const [cutoutUrl, setCutoutUrl] = useState('');
-  const [sceneResultUrl, setSceneResultUrl] = useState('');
-  const [glassResultUrl, setGlassResultUrl] = useState('');
-  const [cropResultUrl, setCropResultUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressMsg, setProgressMsg] = useState('');
-  const [doneActions, setDoneActions] = useState<string[]>([]);
+  const [doneActions, setDoneActions] = useState<string[]>(['bg']);
   const [draft, setDraft] = useState({
     make: '', model: '', year: '', price: '', city: 'جدة', notes: '',
   });
@@ -64,23 +55,6 @@ export default function CarAdWorkflow({
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const [plateNorm, setPlateNorm] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [plateBoxPx, setPlateBoxPx] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const onGlassExport = useCallback((dataUrl: string) => setGlassResultUrl(dataUrl), []);
-  const onCropExport = useCallback((dataUrl: string) => { if (dataUrl) setCropResultUrl(dataUrl); }, []);
-  const onSceneExport = useCallback((dataUrl: string) => setSceneResultUrl(dataUrl), []);
-
-  useEffect(() => () => {
-    if (previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
-  }, [previewUrl]);
-
-  useEffect(() => () => {
-    if (cutoutUrl.startsWith('blob:')) URL.revokeObjectURL(cutoutUrl);
-  }, [cutoutUrl]);
-
-  useEffect(() => () => {
-    if (resultUrl.startsWith('blob:') && resultUrl !== cutoutUrl && resultUrl !== previewUrl) {
-      URL.revokeObjectURL(resultUrl);
-    }
-  }, [resultUrl, cutoutUrl, previewUrl]);
 
   const pickFile = useCallback((f: File | null) => {
     if (!f || !f.type.startsWith('image/')) return;
@@ -91,11 +65,6 @@ export default function CarAdWorkflow({
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
     setResultUrl('');
-    setCutoutUrl('');
-    setSceneResultUrl('');
-    setGlassResultUrl('');
-    setCropResultUrl('');
-    setDoneActions([]);
     setStep('process');
   }, []);
 
@@ -105,33 +74,22 @@ export default function CarAdWorkflow({
     setProgress(8);
     setProgressMsg('تحضير محرك مشكور المحلي...');
     try {
-      let cutout: Blob;
       if (onRemoveBackground) {
         setProgress(30);
-        setProgressMsg('إزالة الخلفية (محرك مخصص)...');
-        const outputUrl = await onRemoveBackground(file);
-        const response = await fetch(outputUrl);
-        cutout = await response.blob();
+        setProgressMsg('إزالة الخلفية (مخصص)...');
+        const out = await onRemoveBackground(file);
+        setResultUrl(out);
       } else {
-        cutout = await removeBackgroundOnly(file, {
-          model: 'lite',
-          quality: 'quality',
-          onProgress: (msg) => {
-            setProgressMsg(msg);
-            if (msg.includes('إزالة')) setProgress(30);
-          },
+        const out = await processCarAdImage(file, (msg) => {
+          setProgressMsg(msg);
+          if (msg.includes('1/')) setProgress(25);
+          else if (msg.includes('2/')) setProgress(55);
+          else if (msg.includes('3/')) setProgress(80);
+          else setProgress(100);
         });
+        setResultUrl(out);
       }
-      setProgress(60);
-      setProgressMsg('تنعيم الحواف وإزالة الهالة...');
-      cutout = await refineCutoutMatte(cutout);
-      setProgress(80);
-      setProgressMsg('تحسين الإضاءة...');
-      cutout = await enhanceLighting(cutout, 0.1);
-      const cutoutObjectUrl = URL.createObjectURL(cutout);
-      setCutoutUrl(cutoutObjectUrl);
-      setResultUrl(cutoutObjectUrl);
-      setDoneActions(['light']);
+      setDoneActions(['bg', 'light']);
       setProgress(100);
       setProgressMsg('اكتملت المعالجة المحلية');
       setStep('next');
@@ -149,22 +107,7 @@ export default function CarAdWorkflow({
 
   async function applyExtraAction(id: string) {
     if (!resultUrl && !previewUrl) return;
-    if (id === 'scene') {
-      setSceneResultUrl('');
-      setStep('scene');
-      return;
-    }
-    if (id === 'glass') {
-      setGlassResultUrl('');
-      setStep('glass');
-      return;
-    }
-    if (id === 'crop') {
-      setCropResultUrl('');
-      setStep('crop');
-      return;
-    }
-    if (doneActions.includes(id) && id !== 'plate' && id !== 'light') {
+    if (doneActions.includes(id) && id !== 'plate') {
       setDoneActions((prev) => prev.filter((x) => x !== id));
       return;
     }
@@ -184,6 +127,11 @@ export default function CarAdWorkflow({
         const out = await enhanceLighting(blob, 0.14);
         setResultUrl(URL.createObjectURL(out));
         setDoneActions((p) => (p.includes('light') ? p : [...p, 'light']));
+      } else if (id === 'bg') {
+        setProgressMsg('توحيد خلفية الاستوديو...');
+        const out = await compositeStudio(blob, { studioBg: 'white', contactShadow: true });
+        setResultUrl(URL.createObjectURL(out));
+        setDoneActions((p) => (p.includes('bg') ? p : [...p, 'bg']));
       } else if (id === 'ad') {
         setStep('draft');
       }
@@ -324,10 +272,7 @@ export default function CarAdWorkflow({
           {step === 'upload' && '1/5'}
           {step === 'process' && '2/5'}
           {step === 'next' && '3/5'}
-          {step === 'scene' && 'خلفية'}
           {step === 'plate' && 'لوحة'}
-          {step === 'glass' && 'زجاج'}
-          {step === 'crop' && 'قص'}
           {step === 'draft' && '4/5'}
           {step === 'review' && '5/5'}
         </span>
@@ -400,27 +345,6 @@ export default function CarAdWorkflow({
         </section>
       )}
 
-      {step === 'scene' && (
-        <section className="caw-scene">
-          {cutoutUrl && <SceneStudio src={cutoutUrl} onExport={onSceneExport} />}
-          <button
-            type="button"
-            className="caw-btn primary wide"
-            disabled={!sceneResultUrl}
-            onClick={() => {
-              setResultUrl(sceneResultUrl);
-              setDoneActions((previous) => previous.includes('scene') ? previous : [...previous, 'scene']);
-              setStep('next');
-            }}
-          >
-            اعتماد الخلفية والمتابعة
-          </button>
-          <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
-            رجوع دون اعتماد
-          </button>
-        </section>
-      )}
-
       {step === 'plate' && (
         <section className="caw-plate">
           <h2>
@@ -463,55 +387,6 @@ export default function CarAdWorkflow({
           </button>
           <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
             تخطي / رجوع
-          </button>
-        </section>
-      )}
-
-      {step === 'glass' && (
-        <section className="caw-glass">
-          <h2>تضليل زجاج السيارة</h2>
-          <p className="caw-hint">حدد نقاط الزجاج حول النافذة؛ هذه أداة يدوية وليست كشفاً آلياً.</p>
-          {(resultUrl || previewUrl) && (
-            <GlassTintTool src={resultUrl || previewUrl} onExport={onGlassExport} />
-          )}
-          <button
-            type="button"
-            className="caw-btn primary wide"
-            disabled={!glassResultUrl}
-            onClick={() => {
-              setResultUrl(glassResultUrl);
-              setDoneActions((previous) => previous.includes('glass') ? previous : [...previous, 'glass']);
-              setStep('next');
-            }}
-          >
-            اعتماد التظليل والمتابعة
-          </button>
-          <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
-            رجوع دون اعتماد
-          </button>
-        </section>
-      )}
-
-      {step === 'crop' && (
-        <section className="caw-crop">
-          <h2>قص صورة الإعلان</h2>
-          {(resultUrl || previewUrl) && (
-            <ImageCropTool src={resultUrl || previewUrl} onExport={onCropExport} />
-          )}
-          <button
-            type="button"
-            className="caw-btn primary wide"
-            disabled={!cropResultUrl}
-            onClick={() => {
-              setResultUrl(cropResultUrl);
-              setDoneActions((previous) => previous.includes('crop') ? previous : [...previous, 'crop']);
-              setStep('next');
-            }}
-          >
-            اعتماد القص والمتابعة
-          </button>
-          <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
-            رجوع دون اعتماد
           </button>
         </section>
       )}
