@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import BeforeAfterSlider from './components/BeforeAfterSlider';
 import { runCarStudioPipeline } from './mshkurImageEngine';
+import { applyFreeWatermark } from './mshkurWatermark';
 
 type Result = { name: string; beforeUrl: string; url: string };
 type Props = { onAccount?: () => void; onDone?: () => void };
@@ -92,7 +93,12 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
           refineMatte: true,
           onProgress: (msg) => setProgress(`صورة ${i + 1}/${files.length} — ${msg}`),
         });
-        done.push({ name: file.name, beforeUrl, url: result.url });
+        // Free guest exports receive a watermark on the exported derivative only.
+        const resultBlob = await fetch(result.url).then((r) => r.blob());
+        const markedBlob = await applyFreeWatermark(resultBlob);
+        URL.revokeObjectURL(result.url);
+        const markedUrl = URL.createObjectURL(markedBlob);
+        done.push({ name: file.name, beforeUrl, url: markedUrl });
         setResults([...done]);
         const used = Number(localStorage.getItem('mshkur_guest_' + today) || 0) + 1;
         localStorage.setItem('mshkur_guest_' + today, String(used));
