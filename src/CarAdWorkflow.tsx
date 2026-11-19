@@ -145,7 +145,7 @@ export default function CarAdWorkflow({
       setStep('crop');
       return;
     }
-    if (doneActions.includes(id) && id !== 'plate') {
+    if (doneActions.includes(id) && id !== 'plate' && id !== 'light') {
       setDoneActions((prev) => prev.filter((x) => x !== id));
       return;
     }
