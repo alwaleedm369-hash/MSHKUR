@@ -1,6 +1,6 @@
 /**
  * MSHKUR App — commercial mobile-first entry
- * GuestLanding + CarAdWorkflow + CommercialShell + AdminControls
+ * GuestLanding + CarAdWorkflow + ApprovalQueue + HarajPublishPanel + Admin
  */
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { OperationsPanel, GrowthPanel, InboxPanel } from './Operations';
@@ -13,6 +13,8 @@ import { SkillsPanel, TasksPanel } from './WorkCenter';
 import GuestLanding from './GuestLanding';
 import CommercialShell from './CommercialShell';
 import CarAdWorkflow from './CarAdWorkflow';
+import ApprovalQueue from './ApprovalQueue';
+import HarajPublishPanel from './HarajPublishPanel';
 import AdminControlsPanel from './AdminControlsPanel';
 import {
   CarFront, LayoutDashboard, ListTodo, LogOut, Menu, MessageCircle,
@@ -29,7 +31,7 @@ type Vehicle = {
   transmission?: string | null; color?: string | null; price?: number | null;
   city?: string | null; notes?: string | null; status: string;
 };
-type Screen = 'home' | 'cars' | 'studio' | 'assistant' | 'growth' | 'inbox' | 'admin' | 'skills' | 'tasks';
+type Screen = 'home' | 'cars' | 'studio' | 'assistant' | 'growth' | 'inbox' | 'admin' | 'skills' | 'tasks' | 'approvals' | 'haraj';
 
 async function api<T = any>(url: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(url, {
@@ -225,13 +227,41 @@ export default function App() {
           {screen === 'tasks' && <TasksPanel />}
           {screen === 'growth' && <GrowthPanel />}
           {screen === 'inbox' && <InboxPanel />}
-          {screen === 'admin' && (
-            <AdminControlsPanel
-              aiFloatVisible={aiFloatVisible}
-              onAiFloatChange={setAiFloatVisible}
-              whatsappNumber={whatsappNumber}
-              onWhatsappChange={setWhatsappNumber}
+          {screen === 'approvals' && (
+            <ApprovalQueue
+              onApprove={(id) => setMessage('تمت الموافقة على #' + id)}
+              onReject={(id) => setMessage('تم رفض #' + id)}
             />
+          )}
+          {screen === 'haraj' && (
+            <HarajPublishPanel
+              vehicles={vehicles.map((v) => ({
+                id: v.id,
+                title: `${v.make} ${v.model}${v.year ? ' ' + v.year : ''}`,
+                price: v.price != null ? String(v.price) : undefined,
+                city: v.city || undefined,
+              }))}
+              onApprovedPublish={(p) => {
+                setPublishMeta({ title: p.title, draft: p.description });
+                setPublishOpen(true);
+                setMessage('تمت الموافقة — اختر قناة النشر');
+              }}
+            />
+          )}
+          {screen === 'admin' && (
+            <div>
+              <div style={{ display: 'flex', gap: 8, padding: '12px 16px', flexWrap: 'wrap' }}>
+                <button type="button" className="caw-btn primary" onClick={() => setScreen('approvals')}>المراجعات</button>
+                <button type="button" className="caw-btn ghost" onClick={() => setScreen('haraj')}>نشر حراج</button>
+                <button type="button" className="caw-btn ghost" onClick={() => setAdWorkflowOpen(true)}>تجهيز إعلان</button>
+              </div>
+              <AdminControlsPanel
+                aiFloatVisible={aiFloatVisible}
+                onAiFloatChange={setAiFloatVisible}
+                whatsappNumber={whatsappNumber}
+                onWhatsappChange={setWhatsappNumber}
+              />
+            </div>
           )}
           {screen === 'assistant' && (
             <section className="panel">
@@ -248,7 +278,7 @@ export default function App() {
           <button type="button" className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}><LayoutDashboard size={18} /><span>الرئيسية</span></button>
           <button type="button" className={screen === 'studio' ? 'active' : ''} onClick={() => setScreen('studio')}><WandSparkles size={18} /><span>الاستوديو</span></button>
           <button type="button" className={screen === 'cars' ? 'active' : ''} onClick={() => setScreen('cars')}><CarFront size={18} /><span>السيارات</span></button>
-          <button type="button" className={screen === 'tasks' ? 'active' : ''} onClick={() => setScreen('tasks')}><ListTodo size={18} /><span>المهام</span></button>
+          <button type="button" className={screen === 'tasks' || screen === 'approvals' ? 'active' : ''} onClick={() => setScreen('approvals')}><ListTodo size={18} /><span>مراجعات</span></button>
           <button type="button" className={screen === 'admin' ? 'active' : ''} onClick={() => setScreen('admin')}><Settings2 size={18} /><span>إدارة</span></button>
         </nav>
       </div>
