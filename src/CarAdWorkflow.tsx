@@ -110,12 +110,12 @@ export default function CarAdWorkflow({
 
   async function applyExtraAction(id: string) {
     if (!resultUrl && !previewUrl) return;
-    if (doneActions.includes(id) && id !== 'plate') {
-      setDoneActions((prev) => prev.filter((x) => x !== id));
-      return;
-    }
     if (id === 'glass') {
       setStep('glass');
+      return;
+    }
+    if (doneActions.includes(id) && id !== 'plate') {
+      setDoneActions((prev) => prev.filter((x) => x !== id));
       return;
     }
     if (id === 'plate') {
@@ -280,6 +280,7 @@ export default function CarAdWorkflow({
           {step === 'process' && '2/5'}
           {step === 'next' && '3/5'}
           {step === 'plate' && 'لوحة'}
+          {step === 'glass' && 'زجاج'}
           {step === 'draft' && '4/5'}
           {step === 'review' && '5/5'}
         </span>
