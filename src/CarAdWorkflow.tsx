@@ -1,11 +1,11 @@
 /**
  * CarAdWorkflow — سير عمل تجهيز إعلان السيارة (أداة أولاً)
- * تسلسل: رفع → محرك مشكور المحلي → خطوة تالية → مسودة → راجع ووافق → نشر
+ * تسلسل: رفع → محرك مشكور → خطوات → تحديد لوحة يدوي → مسودة → موافقة
  */
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, type PointerEvent as PtrEv } from 'react';
 import {
-  ArrowLeft, Camera, Check, ChevronLeft, ImagePlus, LoaderCircle,
-  ShieldCheck, Sparkles, Upload, WandSparkles
+  ArrowLeft, Camera, Check, ChevronLeft, LoaderCircle,
+  ShieldCheck, WandSparkles, Scan
 } from 'lucide-react';
 import {
   processCarAdImage,
@@ -14,7 +14,7 @@ import {
   compositeStudio,
 } from './mshkurImageEngine';
 
-type Step = 'upload' | 'process' | 'next' | 'draft' | 'review';
+type Step = 'upload' | 'process' | 'next' | 'plate' | 'draft' | 'review';
 
 type Props = {
   onBack?: () => void;
@@ -27,9 +27,9 @@ type Props = {
 };
 
 const NEXT_ACTIONS = [
-  { id: 'plate', label: 'طمس اللوحة', desc: 'إخفاء رقم اللوحة قبل النشر' },
+  { id: 'plate', label: 'طمس اللوحة', desc: 'ارسم مستطيلاً على الرقم' },
   { id: 'light', label: 'تحسين الإضاءة', desc: 'ضبط التعريض والحدة' },
-  { id: 'bg', label: 'توحيد الخلفية', desc: 'خلفية استوديو بيضاء أو معرض' },
+  { id: 'bg', label: 'توحيد الخلفية', desc: 'خلفية استوديو بيضاء' },
   { id: 'ad', label: 'تجهيز الإعلان', desc: 'مسودة نص + صور جاهزة' },
 ];
 
@@ -51,6 +51,10 @@ export default function CarAdWorkflow({
   });
   const [adText, setAdText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const plateImgRef = useRef<HTMLImageElement>(null);
+  const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const [plateNorm, setPlateNorm] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [plateBoxPx, setPlateBoxPx] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
   const pickFile = useCallback((f: File | null) => {
     if (!f || !f.type.startsWith('image/')) return;
@@ -107,6 +111,12 @@ export default function CarAdWorkflow({
       setDoneActions((prev) => prev.filter((x) => x !== id));
       return;
     }
+    if (id === 'plate') {
+      setStep('plate');
+      setPlateNorm(null);
+      setPlateBoxPx(null);
+      return;
+    }
     setBusy(true);
     try {
       const srcUrl = resultUrl || previewUrl;
@@ -122,16 +132,89 @@ export default function CarAdWorkflow({
         const out = await compositeStudio(blob, { studioBg: 'white', contactShadow: true });
         setResultUrl(URL.createObjectURL(out));
         setDoneActions((p) => (p.includes('bg') ? p : [...p, 'bg']));
-      } else if (id === 'plate') {
-        setProgressMsg('طمس منطقة اللوحة (وسط-أسفل تقريبي)...');
-        const out = await blurPlateRegion(blob, { x: 0.35, y: 0.62, w: 0.3, h: 0.12 });
-        setResultUrl(URL.createObjectURL(out));
-        setDoneActions((p) => (p.includes('plate') ? p : [...p, 'plate']));
       } else if (id === 'ad') {
         setStep('draft');
       }
     } catch (e) {
       alert(e instanceof Error ? e.message : 'تعذر تطبيق الخطوة');
+    } finally {
+      setBusy(false);
+      setProgressMsg('');
+    }
+  }
+
+  function platePointerPos(e: PtrEv<HTMLImageElement>) {
+    const img = plateImgRef.current;
+    if (!img) return null;
+    const r = img.getBoundingClientRect();
+    return {
+      x: Math.max(0, Math.min(r.width, e.clientX - r.left)),
+      y: Math.max(0, Math.min(r.height, e.clientY - r.top)),
+      rw: r.width,
+      rh: r.height,
+    };
+  }
+
+  function onPlatePointerDown(e: PtrEv<HTMLImageElement>) {
+    const p = platePointerPos(e);
+    if (!p) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    dragStart.current = { x: p.x, y: p.y };
+    setPlateBoxPx({ x: p.x, y: p.y, w: 0, h: 0 });
+  }
+
+  function onPlatePointerMove(e: PtrEv<HTMLImageElement>) {
+    if (!dragStart.current) return;
+    const p = platePointerPos(e);
+    if (!p) return;
+    const x = Math.min(dragStart.current.x, p.x);
+    const y = Math.min(dragStart.current.y, p.y);
+    const w = Math.abs(p.x - dragStart.current.x);
+    const h = Math.abs(p.y - dragStart.current.y);
+    setPlateBoxPx({ x, y, w, h });
+  }
+
+  function onPlatePointerUp(e: PtrEv<HTMLImageElement>) {
+    if (!dragStart.current) return;
+    const p = platePointerPos(e);
+    const start = dragStart.current;
+    dragStart.current = null;
+    if (!p || !start) return;
+    const x = Math.min(start.x, p.x);
+    const y = Math.min(start.y, p.y);
+    const w = Math.abs(p.x - start.x);
+    const h = Math.abs(p.y - start.y);
+    if (w < 8 || h < 8) {
+      setPlateBoxPx(null);
+      setPlateNorm(null);
+      return;
+    }
+    setPlateBoxPx({ x, y, w, h });
+    setPlateNorm({
+      x: x / p.rw,
+      y: y / p.rh,
+      w: w / p.rw,
+      h: h / p.rh,
+    });
+  }
+
+  async function applyManualPlateBlur() {
+    if (!plateNorm || !(resultUrl || previewUrl)) {
+      alert('ارسم مستطيلاً على اللوحة أولاً');
+      return;
+    }
+    setBusy(true);
+    setProgressMsg('طمس المنطقة المحددة...');
+    try {
+      const res = await fetch(resultUrl || previewUrl);
+      const blob = await res.blob();
+      const out = await blurPlateRegion(blob, plateNorm);
+      setResultUrl(URL.createObjectURL(out));
+      setDoneActions((p) => (p.includes('plate') ? p : [...p, 'plate']));
+      setStep('next');
+      setPlateBoxPx(null);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'تعذر طمس اللوحة');
     } finally {
       setBusy(false);
       setProgressMsg('');
@@ -189,6 +272,7 @@ export default function CarAdWorkflow({
           {step === 'upload' && '1/5'}
           {step === 'process' && '2/5'}
           {step === 'next' && '3/5'}
+          {step === 'plate' && 'لوحة'}
           {step === 'draft' && '4/5'}
           {step === 'review' && '5/5'}
         </span>
@@ -196,11 +280,7 @@ export default function CarAdWorkflow({
 
       {step === 'upload' && (
         <section className="caw-upload">
-          <button
-            type="button"
-            className="caw-drop"
-            onClick={() => inputRef.current?.click()}
-          >
+          <button type="button" className="caw-drop" onClick={() => inputRef.current?.click()}>
             <Camera size={28} />
             <b>ارفع صورة السيارة</b>
             <small>PNG / JPG / WebP · حتى 12MB</small>
@@ -213,7 +293,7 @@ export default function CarAdWorkflow({
             onChange={(e) => pickFile(e.target.files?.[0] || null)}
           />
           <p className="caw-hint">
-            <WandSparkles size={14} /> إزالة الخلفية والظل والإضاءة تتم على جهازك (BG0 + Canvas)
+            <WandSparkles size={14} /> محرك مشكور: إزالة خلفية + تنعيم حواف + ظل + إضاءة
           </p>
         </section>
       )}
@@ -261,6 +341,52 @@ export default function CarAdWorkflow({
           </div>
           <button type="button" className="caw-btn primary wide" onClick={() => setStep('draft')}>
             متابعة لتجهيز الإعلان <ArrowLeft size={16} />
+          </button>
+        </section>
+      )}
+
+      {step === 'plate' && (
+        <section className="caw-plate">
+          <h2>
+            <Scan size={18} /> تحديد اللوحة يدوياً
+          </h2>
+          <p className="caw-hint">اسحب مستطيلاً فوق رقم اللوحة، ثم اضغط طمس.</p>
+          <div className="caw-plate-stage">
+            {(resultUrl || previewUrl) && (
+              <img
+                ref={plateImgRef}
+                src={resultUrl || previewUrl}
+                alt="تحديد اللوحة"
+                draggable={false}
+                onPointerDown={onPlatePointerDown}
+                onPointerMove={onPlatePointerMove}
+                onPointerUp={onPlatePointerUp}
+              />
+            )}
+            {plateBoxPx && plateBoxPx.w > 2 && (
+              <div
+                className="caw-plate-rect"
+                style={{
+                  left: plateBoxPx.x,
+                  top: plateBoxPx.y,
+                  width: plateBoxPx.w,
+                  height: plateBoxPx.h,
+                }}
+              />
+            )}
+          </div>
+          {plateNorm && <p className="caw-hint">تم تحديد المنطقة — أعد السحب للتعديل إن لزم</p>}
+          <button
+            type="button"
+            className="caw-btn primary wide"
+            disabled={busy || !plateNorm}
+            onClick={applyManualPlateBlur}
+          >
+            {busy ? <LoaderCircle className="spin" size={16} /> : <Scan size={16} />}
+            طمس المنطقة المحددة
+          </button>
+          <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
+            تخطي / رجوع
           </button>
         </section>
       )}
