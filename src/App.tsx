@@ -3,6 +3,7 @@
  * GuestLanding + CarAdWorkflow + ApprovalQueue + HarajPublishPanel + Admin
  */
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import './mobile-polish.css';
 import { OperationsPanel, GrowthPanel, InboxPanel } from './Operations';
 import PublicShowroom from './PublicShowroom';
 import GuestStudio from './GuestStudio';
