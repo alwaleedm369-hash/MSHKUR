@@ -48,12 +48,13 @@ export default function CarAdWorkflow({
   const [previewUrl, setPreviewUrl] = useState('');
   const [resultUrl, setResultUrl] = useState('');
   const [cutoutUrl, setCutoutUrl] = useState('');
+  const [sceneResultUrl, setSceneResultUrl] = useState('');
   const [glassResultUrl, setGlassResultUrl] = useState('');
   const [cropResultUrl, setCropResultUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressMsg, setProgressMsg] = useState('');
-  const [doneActions, setDoneActions] = useState<string[]>(['bg']);
+  const [doneActions, setDoneActions] = useState<string[]>([]);
   const [draft, setDraft] = useState({
     make: '', model: '', year: '', price: '', city: 'جدة', notes: '',
   });
@@ -65,7 +66,7 @@ export default function CarAdWorkflow({
   const [plateBoxPx, setPlateBoxPx] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const onGlassExport = useCallback((dataUrl: string) => setGlassResultUrl(dataUrl), []);
   const onCropExport = useCallback((dataUrl: string) => { if (dataUrl) setCropResultUrl(dataUrl); }, []);
-  const onSceneExport = useCallback((dataUrl: string) => setResultUrl(dataUrl), []);
+  const onSceneExport = useCallback((dataUrl: string) => setSceneResultUrl(dataUrl), []);
 
   const pickFile = useCallback((f: File | null) => {
     if (!f || !f.type.startsWith('image/')) return;
@@ -130,6 +131,7 @@ export default function CarAdWorkflow({
   async function applyExtraAction(id: string) {
     if (!resultUrl && !previewUrl) return;
     if (id === 'scene') {
+      setSceneResultUrl('');
       setStep('scene');
       return;
     }
@@ -385,8 +387,9 @@ export default function CarAdWorkflow({
           <button
             type="button"
             className="caw-btn primary wide"
-            disabled={!resultUrl}
+            disabled={!sceneResultUrl}
             onClick={() => {
+              setResultUrl(sceneResultUrl);
               setDoneActions((previous) => previous.includes('scene') ? previous : [...previous, 'scene']);
               setStep('next');
             }}
@@ -455,7 +458,9 @@ export default function CarAdWorkflow({
           <button
             type="button"
             className="caw-btn primary wide"
+            disabled={!glassResultUrl}
             onClick={() => {
+              setResultUrl(glassResultUrl);
               setDoneActions((previous) => previous.includes('glass') ? previous : [...previous, 'glass']);
               setStep('next');
             }}
