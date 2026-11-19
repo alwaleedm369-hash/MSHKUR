@@ -54,9 +54,19 @@ async function ensureBg0() {
 function loadImage(src: Blob | string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('تعذر قراءة الصورة'));
-    img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
+    const temporaryUrl = typeof src === 'string' ? null : URL.createObjectURL(src);
+    const cleanup = () => {
+      if (temporaryUrl) URL.revokeObjectURL(temporaryUrl);
+    };
+    img.onload = () => {
+      cleanup();
+      resolve(img);
+    };
+    img.onerror = () => {
+      cleanup();
+      reject(new Error('تعذر قراءة الصورة'));
+    };
+    img.src = temporaryUrl ?? src;
   });
 }
 
@@ -228,10 +238,16 @@ export async function blurPlateRegion(
   const ctx = canvas.getContext('2d')!;
   ctx.drawImage(img, 0, 0);
 
-  const x = Math.max(0, Math.floor(region.x * W));
-  const y = Math.max(0, Math.floor(region.y * H));
-  const rw = Math.min(W - x, Math.floor(region.w * W));
-  const rh = Math.min(H - y, Math.floor(region.h * H));
+  // Region is normalized (0..1); clamp both corners to prevent overflow
+  // or negative-size crops from malformed UI coordinates.
+  const nx = Math.max(0, Math.min(1, region.x));
+  const ny = Math.max(0, Math.min(1, region.y));
+  const nw = Math.max(0, Math.min(1 - nx, region.w));
+  const nh = Math.max(0, Math.min(1 - ny, region.h));
+  const x = Math.floor(nx * W);
+  const y = Math.floor(ny * H);
+  const rw = Math.min(W - x, Math.floor(nw * W));
+  const rh = Math.min(H - y, Math.floor(nh * H));
   if (rw < 2 || rh < 2) return blob;
 
   const small = document.createElement('canvas');
