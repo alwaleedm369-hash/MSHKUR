@@ -9,12 +9,14 @@ import {
   LoaderCircle,
   LogIn,
   ShieldCheck,
+  Share2,
   Upload,
   WandSparkles,
 } from 'lucide-react';
 import BeforeAfterSlider from './components/BeforeAfterSlider';
 import { runCarStudioPipeline } from './mshkurImageEngine';
 import { renderMshkurWatermark } from './mshkurWatermark';
+import { buildWhatsAppShareUrl, buildWhatsAppWebUrl, validateWhatsAppChannelUrl } from './whatsappLinks.mjs';
 
 type Result = { name: string; beforeUrl: string; url: string };
 type Props = { onAccount?: () => void; onDone?: () => void };
@@ -34,7 +36,9 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
+  const [channelUrl, setChannelUrl] = useState(() => localStorage.getItem('mshkur_whatsapp_channel_url') || '');
   const resultsRef = useRef<Result[]>([]);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     resultsRef.current = results;
@@ -147,6 +151,22 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
           onChange={(e) => choose(e.target.files)}
         />
       </label>
+      <button
+        type="button"
+        className="guest-camera"
+        onClick={() => cameraInputRef.current?.click()}
+        disabled={busy}
+      >
+        <ImagePlus size={17} /> تصوير السيارة الآن
+      </button>
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        onChange={(e) => choose(e.target.files)}
+      />
 
       {files.length > 0 && (
         <div className="guest-file-list">
@@ -171,12 +191,71 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
       {results.length > 0 && (
         <section className="guest-results">
           <h2>نتائجك جاهزة</h2>
+          <div className="guest-channel-share">
+            <label htmlFor="mshkur-whatsapp-channel">رابط قناة واتساب</label>
+            <input
+              id="mshkur-whatsapp-channel"
+              type="url"
+              inputMode="url"
+              placeholder="https://whatsapp.com/channel/..."
+              value={channelUrl}
+              onChange={(e) => {
+                setChannelUrl(e.target.value);
+                localStorage.setItem('mshkur_whatsapp_channel_url', e.target.value);
+              }}
+            />
+            <small>يفتح القناة فقط؛ راجع الصورة والوصف ثم أرفقهما وانشر يدوياً.</small>
+            <button
+              type="button"
+              disabled={!validateWhatsAppChannelUrl(channelUrl)}
+              onClick={() => {
+                const url = validateWhatsAppChannelUrl(channelUrl);
+                if (url) window.open(url, '_blank', 'noopener,noreferrer');
+              }}
+            >
+              فتح قناة واتساب
+            </button>
+          </div>
           {results.map((r, i) => (
             <article key={i}>
               <BeforeAfterSlider before={r.beforeUrl} after={r.url} label={'مقارنة ' + r.name} />
               <a href={r.url} download={'mshkur-' + (i + 1) + '.png'}>
                 <ArrowDownToLine size={15} /> تنزيل PNG
               </a>
+              <a
+                href={buildWhatsAppShareUrl('تم تجهيز صورة السيارة عبر مشكور. أرسل لك رسالة لتنسيق استلام الصورة.')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Share2 size={15} /> مشاركة عبر واتساب
+              </a>
+              <a
+                href={buildWhatsAppWebUrl('تم تجهيز صورة السيارة عبر مشكور. أرسل لك رسالة لتنسيق استلام الصورة.')}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Share2 size={15} /> فتح واتساب ويب
+              </a>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const blob = await fetch(r.url).then((response) => response.blob());
+                    const file = new File([blob], 'mshkur-' + (i + 1) + '.png', { type: blob.type || 'image/png' });
+                    if (!navigator.share || !navigator.canShare?.({ files: [file] })) {
+                      window.location.href = buildWhatsAppShareUrl('صورة السيارة جاهزة للمشاركة. افتح مشكور لتنزيلها ثم أرفقها في واتساب.');
+                      return;
+                    }
+                    await navigator.share({ files: [file], title: 'صورة سيارة جاهزة من مشكور', text: 'تم تجهيز الصورة عبر مشكور' });
+                  } catch (shareError) {
+                    if (shareError instanceof Error && shareError.name !== 'AbortError') {
+                      setError('تعذرت المشاركة المباشرة؛ نزّل الصورة ثم أرفقها في واتساب.');
+                    }
+                  }
+                }}
+              >
+                <Share2 size={15} /> مشاركة الصورة من الجوال
+              </button>
               <button type="button" onClick={async () => { try { const source = await fetch(r.url).then(res => res.blob()); const branded = await renderMshkurWatermark(source, { enabled: true, text: 'مشكور', secondaryText: 'MSHKUR', opacity: 0.22, corner: 'bottom-right' }, { type: 'image/png' }); const downloadUrl = URL.createObjectURL(branded); const link = document.createElement('a'); link.href = downloadUrl; link.download = 'mshkur-branded-' + (i + 1) + '.png'; link.click(); URL.revokeObjectURL(downloadUrl); } catch (e) { setError(e instanceof Error ? e.message : 'تعذر إنشاء النسخة التسويقية'); } }}><ArrowDownToLine size={15} /> تنزيل نسخة تسويقية بعلامة مشكور</button>
               <small>{r.name}</small>
             </article>

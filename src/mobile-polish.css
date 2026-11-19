@@ -33,3 +33,15 @@
   .guest-intro h1 { font-size:26px!important; }
   .ops-panel { padding:12px!important; }
 }
+
+.guest-camera { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; margin:10px 0; padding:10px 16px; border:1px solid #d8e4de; border-radius:12px; background:#fff; color:#1d4942; font:inherit; cursor:pointer; }
+.guest-camera:disabled { opacity:.55; cursor:not-allowed; }
+@media (max-width:760px) { .guest-camera { width:100%; min-height:48px; } }
+
+.guest-channel-share { display:grid; gap:8px; margin:14px 0; padding:14px; border:1px solid #dfe9e4; border-radius:14px; background:#f8fbf9; }
+.guest-channel-share label { font-weight:600; color:#244b42; }
+.guest-channel-share input { width:100%; min-width:0; min-height:44px; padding:10px 12px; border:1px solid #d6e1db; border-radius:10px; direction:ltr; text-align:left; background:#fff; }
+.guest-channel-share small { color:#66776f; line-height:1.6; }
+.guest-channel-share button { min-height:44px; border:0; border-radius:10px; padding:10px 14px; background:#1d4942; color:#fff; font:inherit; }
+.guest-channel-share button:disabled { opacity:.45; cursor:not-allowed; }
+@media (max-width:760px) { .guest-channel-share { padding:12px; } .guest-channel-share button { width:100%; min-height:48px; } }
