@@ -42,12 +42,12 @@ export default function App(){
   const [guestMode,setGuestMode]=useState(true);
   const [quickTool,setQuickTool]=useState(false);
   const [pendingCarPhotos,setPendingCarPhotos]=useState<File[]>([]);
-  const [pendingScreen,setPendingScreen]=useState<Screen>('home');
+  const [pendingScreen,setPendingScreen]=useState<Screen>('studio');
   const [pendingVehicleId,setPendingVehicleId]=useState('');
   const [pendingPhotoIndex,setPendingPhotoIndex]=useState(0);
   const [auth,setAuth]=useState({name:'',tenantName:'معرضي',tenantType:'dealer',email:'',password:''});
   const [authBusy,setAuthBusy]=useState(false);
-  const [screen,setScreen]=useState<Screen>('home');
+  const [screen,setScreen]=useState<Screen>('studio');
   const [vehicles,setVehicles]=useState<Vehicle[]>([]);
   const [agents,setAgents]=useState<Agent[]>([]);
   const [loading,setLoading]=useState(true);
@@ -63,6 +63,7 @@ export default function App(){
   const [imageFile,setImageFile]=useState<File|null>(null);
   const [optimizedImage,setOptimizedImage]=useState('');
   const [removedImage,setRemovedImage]=useState('');
+  useEffect(()=>()=>{if(removedImage)URL.revokeObjectURL(removedImage);},[removedImage]);
   const [blurredImage,setBlurredImage]=useState('');
   const [croppedImage,setCroppedImage]=useState('');
   const [blurBusy,setBlurBusy]=useState(false);
@@ -275,7 +276,7 @@ export default function App(){
   if(quickTool&&!user)return <GuestStudio onAccount={()=>{setQuickTool(false);setGuestMode(false);setAuthMode('register');}}/>;
   if(guestMode&&!user)return <GuestCarStart
     onContinue={files=>{setPendingCarPhotos(files);setPendingScreen('cars');setGuestMode(false);setAuthMode('register');setScreen('cars');setShowVehicleForm(true);}}
-    onSignIn={()=>{setPendingScreen('home');setGuestMode(false);setAuthMode('login');}}
+    onSignIn={()=>{setPendingScreen('studio');setGuestMode(false);setAuthMode('login');}}
     onQuickTool={()=>{setPendingScreen('home');setQuickTool(true);}}
     onOpenTask={target=>{setPendingScreen(target);setQuickTool(false);setGuestMode(false);setAuthMode('register');setError('');setMessage('');}}
   />;
@@ -335,7 +336,7 @@ export default function App(){
         {screen==='growth'&&<GrowthPanel/>}
         {screen==='inbox'&&<InboxPanel/>}
         {screen==='admin'&&(user.role==='owner'||user.role==='admin')&&<OperationsPanel/>}
-        <footer className="page-footer">مشكور <span>مساحة عمل بسيطة، ونتائج حقيقية.</span><span className="version-label">BUILD 0.2</span></footer>
+        <footer className="page-footer">مشكور <span>مساحة عمل بسيطة، ونتائج حقيقية.</span><span className="version-label">BUILD 0.3</span></footer>
       </div>
     </main>
   </div>;
