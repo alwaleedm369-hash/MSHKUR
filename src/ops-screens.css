@@ -1,0 +1,103 @@
+/* ApprovalQueue + HarajPublishPanel */
+.approval-queue, .haraj-panel {
+  padding: 14px 16px 28px;
+  background: #f5f8f6;
+  min-height: 100%;
+  color: #0f1c1a;
+}
+.aq-head, .hp-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.aq-head h2, .hp-head h2 { margin: 0; font-size: 17px; }
+.aq-head p, .hp-head p { margin: 2px 0 0; font-size: 12px; color: #6a7f76; }
+.aq-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #fff3cd; color: #8a6d00; font-size: 11px; font-weight: 700;
+  padding: 5px 10px; border-radius: 999px;
+}
+.aq-trust, .hp-trust {
+  display: flex; align-items: center; gap: 6px;
+  background: #edf5ef; border-radius: 10px; padding: 10px 12px;
+  font-size: 12px; color: #3d6b55; margin-bottom: 12px;
+}
+.aq-empty { text-align: center; color: #6a7f76; padding: 24px; }
+.aq-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.aq-card {
+  background: #fff; border: 1px solid #e4ece8; border-radius: 14px; padding: 12px;
+}
+.aq-card.status-approved { border-color: #9fd5c0; background: #f3fbf7; }
+.aq-card.status-rejected { opacity: 0.55; }
+.aq-card-main { display: flex; gap: 10px; align-items: center; }
+.aq-thumb {
+  width: 56px; height: 56px; border-radius: 12px; background: #e8eeea;
+  display: grid; place-items: center; overflow: hidden; font-size: 11px; color: #6a7f76;
+}
+.aq-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.aq-card-main b { display: block; font-size: 14px; }
+.aq-card-main small { display: block; font-size: 12px; color: #6a7f76; }
+.aq-card-main em { display: block; font-size: 11px; font-style: normal; color: #b45309; margin-top: 2px; }
+.aq-card.status-approved .aq-card-main em { color: #147a68; }
+.aq-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.aq-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 10px; border: 1px solid #d5e2dc; background: #fff;
+  padding: 7px 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.aq-btn.ok { background: #147a68; color: #fff; border-color: #147a68; }
+.aq-btn.danger { color: #b91c1c; border-color: #fecaca; }
+
+.hp-back {
+  border: 0; background: #eef3f1; width: 34px; height: 34px; border-radius: 10px;
+  display: grid; place-items: center;
+}
+.hp-train {
+  display: flex; gap: 10px; align-items: center;
+  background: linear-gradient(135deg, #0f2e2a, #1a4a42); color: #e8f5f1;
+  border-radius: 14px; padding: 12px; margin-bottom: 14px;
+}
+.hp-train b { display: block; font-size: 13px; }
+.hp-train small { font-size: 11px; color: #b8d4cc; }
+.hp-section { background: #fff; border: 1px solid #e4ece8; border-radius: 14px; padding: 12px; margin-bottom: 12px; }
+.hp-section h3 { margin: 0 0 10px; font-size: 13px; }
+.hp-vehicles { display: grid; gap: 8px; }
+.hp-vehicle {
+  text-align: right; border: 1.5px solid #e4ece8; background: #fafcfb;
+  border-radius: 12px; padding: 10px 12px; cursor: pointer;
+}
+.hp-vehicle.on { border-color: #1a8f78; background: #f0faf6; }
+.hp-vehicle b { display: block; font-size: 13px; }
+.hp-vehicle small { font-size: 11px; color: #6a7f76; }
+.hp-steps { margin: 0; padding-right: 18px; font-size: 12px; color: #3d534c; line-height: 1.7; }
+.hp-section label {
+  display: flex; flex-direction: column; gap: 4px;
+  font-size: 12px; font-weight: 600; color: #3d534c; margin-bottom: 8px;
+}
+.hp-section input, .hp-section textarea {
+  border: 1px solid #d5e2dc; border-radius: 10px; padding: 10px 12px;
+  font-size: 14px; font-family: inherit;
+}
+.hp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hp-submit {
+  width: 100%; border: 0; border-radius: 12px; padding: 13px;
+  background: linear-gradient(135deg, #147a68, #1a9a82); color: #fff;
+  font-weight: 700; font-size: 14px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.hp-cancel {
+  width: 100%; margin-top: 8px; border: 0; background: transparent;
+  color: #6a7f76; font-size: 13px; padding: 8px; cursor: pointer;
+}
+.hp-modal {
+  position: fixed; inset: 0; background: #0f1f1c66; z-index: 90;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.hp-modal-card {
+  width: 100%; max-width: 480px; background: #fff;
+  border-radius: 18px 18px 0 0; padding: 18px;
+}
+.hp-modal-card h3 { margin: 0 0 8px; }
+.hp-desc { font-size: 13px; color: #3d534c; white-space: pre-wrap; }
