@@ -16,7 +16,7 @@ import {
 import BeforeAfterSlider from './components/BeforeAfterSlider';
 import { runCarStudioPipeline } from './mshkurImageEngine';
 import { renderMshkurWatermark } from './mshkurWatermark';
-import { buildWhatsAppShareUrl, buildWhatsAppWebUrl } from './whatsappLinks.mjs';
+import { buildWhatsAppShareUrl, buildWhatsAppWebUrl, validateWhatsAppChannelUrl } from './whatsappLinks.mjs';
 
 type Result = { name: string; beforeUrl: string; url: string };
 type Props = { onAccount?: () => void; onDone?: () => void };
@@ -36,6 +36,7 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
+  const [channelUrl, setChannelUrl] = useState(() => localStorage.getItem('mshkur_whatsapp_channel_url') || '');
   const resultsRef = useRef<Result[]>([]);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -190,6 +191,31 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
       {results.length > 0 && (
         <section className="guest-results">
           <h2>نتائجك جاهزة</h2>
+          <div className="guest-channel-share">
+            <label htmlFor="mshkur-whatsapp-channel">رابط قناة واتساب</label>
+            <input
+              id="mshkur-whatsapp-channel"
+              type="url"
+              inputMode="url"
+              placeholder="https://whatsapp.com/channel/..."
+              value={channelUrl}
+              onChange={(e) => {
+                setChannelUrl(e.target.value);
+                localStorage.setItem('mshkur_whatsapp_channel_url', e.target.value);
+              }}
+            />
+            <small>يفتح القناة فقط؛ راجع الصورة والوصف ثم أرفقهما وانشر يدوياً.</small>
+            <button
+              type="button"
+              disabled={!validateWhatsAppChannelUrl(channelUrl)}
+              onClick={() => {
+                const url = validateWhatsAppChannelUrl(channelUrl);
+                if (url) window.open(url, '_blank', 'noopener,noreferrer');
+              }}
+            >
+              فتح قناة واتساب
+            </button>
+          </div>
           {results.map((r, i) => (
             <article key={i}>
               <BeforeAfterSlider before={r.beforeUrl} after={r.url} label={'مقارنة ' + r.name} />
