@@ -13,12 +13,12 @@
     "start": "node server/index.mjs",
     "typecheck": "tsc -b --pretty false",
     "test": "node --test tests/*.test.mjs",
-    "test:unit": "node --test tests/mshkur-image-math.test.mjs tests/skills-contract.test.mjs tests/image-crop-geometry.test.mjs",
+    "test:unit": "node --test tests/mshkur-image-math.test.mjs tests/skills-contract.test.mjs tests/image-crop-geometry.test.mjs tests/whatsapp-share.test.mjs",
     "test:image": "node --test tests/plate-blur-sharp.test.mjs tests/mshkur-image-math.test.mjs",
     "check": "npm test && npm run build",
     "check:env": "node scripts/check-env.mjs",
     "db:check": "node scripts/db-check.mjs",
-    "postinstall": "node scripts/apply-bg0-patch.mjs && node scripts/copy-onnx-wasm.mjs",
+    "postinstall": "node scripts/copy-onnx-wasm.mjs || true",
     "mcp:stdio": "node server/mcp/index.mjs",
     "mcp:identities": "node scripts/list-mcp-identities.mjs",
     "backup": "node scripts/backup.mjs"
@@ -33,13 +33,11 @@
     "vite": "^6.0.7",
     "helmet": "^8.0.0",
     "better-sqlite3": "^13.2.0",
-    "sharp": "^0.33.5",
+    "sharp": "0.33.5",
     "zod": "^4.6.6",
     "express-rate-limit": "^8.2.1",
     "@fontsource/ibm-plex-sans-arabic": "^5.2.6",
-    "vite-plugin-pwa": "^2.0.0",
-    "@bg0/browser": "0.1.1",
-    "@huggingface/transformers": "4.3.0"
+    "vite-plugin-pwa": "^2.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
@@ -47,5 +45,9 @@
     "@types/react-dom": "^19.0.2",
     "typescript": "~5.7.2",
     "@modelcontextprotocol/server": "^2.4.0"
+  },
+  "optionalDependencies": {
+    "@bg0/browser": "0.1.1",
+    "@huggingface/transformers": "4.3.0"
   }
 }
