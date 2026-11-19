@@ -69,10 +69,18 @@ export default function CarAdWorkflow({
   const onSceneExport = useCallback((dataUrl: string) => setSceneResultUrl(dataUrl), []);
 
   useEffect(() => () => {
-    [previewUrl, resultUrl, cutoutUrl].forEach((url) => {
-      if (url.startsWith('blob:')) URL.revokeObjectURL(url);
-    });
-  }, [previewUrl, resultUrl, cutoutUrl]);
+    if (previewUrl.startsWith('blob:')) URL.revokeObjectURL(previewUrl);
+  }, [previewUrl]);
+
+  useEffect(() => () => {
+    if (cutoutUrl.startsWith('blob:')) URL.revokeObjectURL(cutoutUrl);
+  }, [cutoutUrl]);
+
+  useEffect(() => () => {
+    if (resultUrl.startsWith('blob:') && resultUrl !== cutoutUrl && resultUrl !== previewUrl) {
+      URL.revokeObjectURL(resultUrl);
+    }
+  }, [resultUrl, cutoutUrl, previewUrl]);
 
   const pickFile = useCallback((f: File | null) => {
     if (!f || !f.type.startsWith('image/')) return;
