@@ -5,6 +5,7 @@
 import { useCallback, useRef, useState, type PointerEvent as PtrEv } from 'react';
 import GlassTintTool from './GlassTintTool';
 import SceneStudio from './SceneStudio';
+import ImageCropTool from './ImageCropTool';
 import {
   ArrowLeft, Camera, Check, ChevronLeft, LoaderCircle,
   ShieldCheck, WandSparkles, Scan
@@ -16,7 +17,7 @@ import {
   blurPlateRegion,
 } from './mshkurImageEngine';
 
-type Step = 'upload' | 'process' | 'next' | 'scene' | 'plate' | 'glass' | 'draft' | 'review';
+type Step = 'upload' | 'process' | 'next' | 'scene' | 'plate' | 'glass' | 'crop' | 'draft' | 'review';
 
 type Props = {
   onBack?: () => void;
@@ -31,6 +32,7 @@ type Props = {
 const NEXT_ACTIONS = [
   { id: 'plate', label: 'طمس اللوحة', desc: 'ارسم مستطيلاً على الرقم' },
   { id: 'glass', label: 'تضليل الزجاج', desc: 'حدد حدود النوافذ يدوياً' },
+  { id: 'crop', label: 'قص الصورة', desc: 'اضبط مقاس صورة الإعلان' },
   { id: 'light', label: 'تحسين الإضاءة', desc: 'ضبط التعريض والحدة' },
   { id: 'scene', label: 'خلفية الاستوديو', desc: 'فضي أو أبيض أو داكن أو دافئ' },
   { id: 'ad', label: 'تجهيز الإعلان', desc: 'مسودة نص + صور جاهزة' },
@@ -46,6 +48,8 @@ export default function CarAdWorkflow({
   const [previewUrl, setPreviewUrl] = useState('');
   const [resultUrl, setResultUrl] = useState('');
   const [cutoutUrl, setCutoutUrl] = useState('');
+  const [glassResultUrl, setGlassResultUrl] = useState('');
+  const [cropResultUrl, setCropResultUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [progressMsg, setProgressMsg] = useState('');
@@ -59,7 +63,8 @@ export default function CarAdWorkflow({
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const [plateNorm, setPlateNorm] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [plateBoxPx, setPlateBoxPx] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const onGlassExport = useCallback((dataUrl: string) => setResultUrl(dataUrl), []);
+  const onGlassExport = useCallback((dataUrl: string) => setGlassResultUrl(dataUrl), []);
+  const onCropExport = useCallback((dataUrl: string) => { if (dataUrl) setCropResultUrl(dataUrl); }, []);
   const onSceneExport = useCallback((dataUrl: string) => setResultUrl(dataUrl), []);
 
   const pickFile = useCallback((f: File | null) => {
@@ -129,7 +134,13 @@ export default function CarAdWorkflow({
       return;
     }
     if (id === 'glass') {
+      setGlassResultUrl('');
       setStep('glass');
+      return;
+    }
+    if (id === 'crop') {
+      setCropResultUrl('');
+      setStep('crop');
       return;
     }
     if (doneActions.includes(id) && id !== 'plate') {
@@ -295,6 +306,7 @@ export default function CarAdWorkflow({
           {step === 'scene' && 'خلفية'}
           {step === 'plate' && 'لوحة'}
           {step === 'glass' && 'زجاج'}
+          {step === 'crop' && 'قص'}
           {step === 'draft' && '4/5'}
           {step === 'review' && '5/5'}
         </span>
@@ -449,6 +461,30 @@ export default function CarAdWorkflow({
             }}
           >
             اعتماد التظليل والمتابعة
+          </button>
+          <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
+            رجوع دون اعتماد
+          </button>
+        </section>
+      )}
+
+      {step === 'crop' && (
+        <section className="caw-crop">
+          <h2>قص صورة الإعلان</h2>
+          {(resultUrl || previewUrl) && (
+            <ImageCropTool src={resultUrl || previewUrl} onExport={onCropExport} />
+          )}
+          <button
+            type="button"
+            className="caw-btn primary wide"
+            disabled={!cropResultUrl}
+            onClick={() => {
+              setResultUrl(cropResultUrl);
+              setDoneActions((previous) => previous.includes('crop') ? previous : [...previous, 'crop']);
+              setStep('next');
+            }}
+          >
+            اعتماد القص والمتابعة
           </button>
           <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
             رجوع دون اعتماد
