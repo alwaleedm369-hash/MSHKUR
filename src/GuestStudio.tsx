@@ -85,15 +85,21 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const beforeUrl = URL.createObjectURL(file);
-        const result = await runCarStudioPipeline(file, {
-          studioBg: 'white',
-          contactShadow: true,
-          enhanceLight: true,
-          refineMatte: true,
-          onProgress: (msg) => setProgress(`صورة ${i + 1}/${files.length} — ${msg}`),
-        });
-        done.push({ name: file.name, beforeUrl, url: result.url });
-        setResults([...done]);
+        try {
+          const result = await runCarStudioPipeline(file, {
+            studioBg: 'white',
+            contactShadow: true,
+            enhanceLight: true,
+            refineMatte: true,
+            onProgress: (msg) => setProgress(`صورة ${i + 1}/${files.length} — ${msg}`),
+          });
+          done.push({ name: file.name, beforeUrl, url: result.url });
+          resultsRef.current = [...done];
+          setResults([...done]);
+        } catch (imageError) {
+          URL.revokeObjectURL(beforeUrl);
+          throw imageError;
+        }
         const used = Number(localStorage.getItem('mshkur_guest_' + today) || 0) + 1;
         localStorage.setItem('mshkur_guest_' + today, String(used));
         setRemaining(Math.max(0, 3 - used));
