@@ -180,7 +180,7 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
                 <ArrowDownToLine size={15} /> تنزيل PNG
               </a>
               <a
-                href={buildWhatsAppShareUrl('تم تجهيز صورة السيارة عبر مشكور. يمكنك معاينة الصورة وتنزيلها من هنا: ' + window.location.origin)}
+                href={buildWhatsAppShareUrl('تم تجهيز صورة السيارة عبر مشكور. أرسل لك رسالة لتنسيق استلام الصورة.)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
