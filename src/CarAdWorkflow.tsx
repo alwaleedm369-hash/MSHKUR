@@ -2,7 +2,7 @@
  * CarAdWorkflow — سير عمل تجهيز إعلان السيارة (أداة أولاً)
  * تسلسل: رفع → محرك مشكور → خطوات → تحديد لوحة يدوي → مسودة → موافقة
  */
-import { useCallback, useRef, useState, type PointerEvent as PtrEv } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as PtrEv } from 'react';
 import GlassTintTool from './GlassTintTool';
 import SceneStudio from './SceneStudio';
 import ImageCropTool from './ImageCropTool';
@@ -68,6 +68,12 @@ export default function CarAdWorkflow({
   const onCropExport = useCallback((dataUrl: string) => { if (dataUrl) setCropResultUrl(dataUrl); }, []);
   const onSceneExport = useCallback((dataUrl: string) => setSceneResultUrl(dataUrl), []);
 
+  useEffect(() => () => {
+    [previewUrl, resultUrl, cutoutUrl].forEach((url) => {
+      if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
+  }, [previewUrl, resultUrl, cutoutUrl]);
+
   const pickFile = useCallback((f: File | null) => {
     if (!f || !f.type.startsWith('image/')) return;
     if (f.size > 12 * 1024 * 1024) {
@@ -77,6 +83,11 @@ export default function CarAdWorkflow({
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
     setResultUrl('');
+    setCutoutUrl('');
+    setSceneResultUrl('');
+    setGlassResultUrl('');
+    setCropResultUrl('');
+    setDoneActions([]);
     setStep('process');
   }, []);
 
