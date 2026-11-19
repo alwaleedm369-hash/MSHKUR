@@ -1,6 +1,6 @@
 /** Safe, dependency-free WhatsApp share-link helpers. No unofficial Web automation. */
 export function normalizeWhatsAppNumber(value) {
-  const digits = String(value ?? '').replace(/\\D/g, '');
+  const digits = String(value ?? '').replace(/\D/g, '');
   if (digits.length < 8 || digits.length > 15) {
     throw new TypeError('WhatsApp number must contain 8–15 digits in international format');
   }
