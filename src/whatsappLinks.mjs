@@ -24,3 +24,11 @@ export function validateWhatsAppChannelUrl(value) {
   if (url.pathname.split('/').filter(Boolean).length !== 2) return null;
   return url.href;
 }
+
+export function buildWhatsAppWebUrl(text, phone) {
+  const message = String(text ?? '').trim();
+  if (!message) throw new TypeError('Share text is required');
+  const params = new URLSearchParams({ text: message });
+  if (phone) params.set('phone', normalizeWhatsAppNumber(phone));
+  return 'https://web.whatsapp.com/send?' + params.toString();
+}
