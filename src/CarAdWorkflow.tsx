@@ -3,6 +3,7 @@
  * تسلسل: رفع → محرك مشكور → خطوات → تحديد لوحة يدوي → مسودة → موافقة
  */
 import { useCallback, useRef, useState, type PointerEvent as PtrEv } from 'react';
+import GlassTintTool from './GlassTintTool';
 import {
   ArrowLeft, Camera, Check, ChevronLeft, LoaderCircle,
   ShieldCheck, WandSparkles, Scan
@@ -14,7 +15,7 @@ import {
   compositeStudio,
 } from './mshkurImageEngine';
 
-type Step = 'upload' | 'process' | 'next' | 'plate' | 'draft' | 'review';
+type Step = 'upload' | 'process' | 'next' | 'plate' | 'glass' | 'draft' | 'review';
 
 type Props = {
   onBack?: () => void;
@@ -28,6 +29,7 @@ type Props = {
 
 const NEXT_ACTIONS = [
   { id: 'plate', label: 'طمس اللوحة', desc: 'ارسم مستطيلاً على الرقم' },
+  { id: 'glass', label: 'تضليل الزجاج', desc: 'حدد حدود النوافذ يدوياً' },
   { id: 'light', label: 'تحسين الإضاءة', desc: 'ضبط التعريض والحدة' },
   { id: 'bg', label: 'توحيد الخلفية', desc: 'خلفية استوديو بيضاء' },
   { id: 'ad', label: 'تجهيز الإعلان', desc: 'مسودة نص + صور جاهزة' },
@@ -55,6 +57,7 @@ export default function CarAdWorkflow({
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const [plateNorm, setPlateNorm] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [plateBoxPx, setPlateBoxPx] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const onGlassExport = useCallback((dataUrl: string) => setResultUrl(dataUrl), []);
 
   const pickFile = useCallback((f: File | null) => {
     if (!f || !f.type.startsWith('image/')) return;
@@ -109,6 +112,10 @@ export default function CarAdWorkflow({
     if (!resultUrl && !previewUrl) return;
     if (doneActions.includes(id) && id !== 'plate') {
       setDoneActions((prev) => prev.filter((x) => x !== id));
+      return;
+    }
+    if (id === 'glass') {
+      setStep('glass');
       return;
     }
     if (id === 'plate') {
@@ -387,6 +394,29 @@ export default function CarAdWorkflow({
           </button>
           <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
             تخطي / رجوع
+          </button>
+        </section>
+      )}
+
+      {step === 'glass' && (
+        <section className="caw-glass">
+          <h2>تضليل زجاج السيارة</h2>
+          <p className="caw-hint">حدد نقاط الزجاج حول النافذة؛ هذه أداة يدوية وليست كشفاً آلياً.</p>
+          {(resultUrl || previewUrl) && (
+            <GlassTintTool src={resultUrl || previewUrl} onExport={onGlassExport} />
+          )}
+          <button
+            type="button"
+            className="caw-btn primary wide"
+            onClick={() => {
+              setDoneActions((previous) => previous.includes('glass') ? previous : [...previous, 'glass']);
+              setStep('next');
+            }}
+          >
+            اعتماد التظليل والمتابعة
+          </button>
+          <button type="button" className="caw-btn ghost wide" onClick={() => setStep('next')}>
+            رجوع دون اعتماد
           </button>
         </section>
       )}
