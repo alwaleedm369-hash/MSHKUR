@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import BeforeAfterSlider from './components/BeforeAfterSlider';
 import { runCarStudioPipeline } from './mshkurImageEngine';
+import { renderMshkurWatermark } from './mshkurWatermark';
 
 type Result = { name: string; beforeUrl: string; url: string };
 type Props = { onAccount?: () => void; onDone?: () => void };
@@ -176,6 +177,7 @@ export default function GuestStudio({ onAccount, onDone }: Props) {
               <a href={r.url} download={'mshkur-' + (i + 1) + '.png'}>
                 <ArrowDownToLine size={15} /> تنزيل PNG
               </a>
+              <button type="button" onClick={async () => { try { const source = await fetch(r.url).then(res => res.blob()); const branded = await renderMshkurWatermark(source, { enabled: true, text: 'مشكور', secondaryText: 'MSHKUR', opacity: 0.22, corner: 'bottom-right' }, { type: 'image/png' }); const downloadUrl = URL.createObjectURL(branded); const link = document.createElement('a'); link.href = downloadUrl; link.download = 'mshkur-branded-' + (i + 1) + '.png'; link.click(); URL.revokeObjectURL(downloadUrl); } catch (e) { setError(e instanceof Error ? e.message : 'تعذر إنشاء النسخة التسويقية'); } }}><ArrowDownToLine size={15} /> تنزيل نسخة تسويقية بعلامة مشكور</button>
               <small>{r.name}</small>
             </article>
           ))}
