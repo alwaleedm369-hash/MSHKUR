@@ -1,12 +1,18 @@
 /**
  * CarAdWorkflow — سير عمل تجهيز إعلان السيارة (أداة أولاً)
- * تسلسل: رفع → معالجة → اقتراح الخطوة التالية → مسودة → راجع ووافق → نشر
+ * تسلسل: رفع → محرك مشكور المحلي → خطوة تالية → مسودة → راجع ووافق → نشر
  */
 import { useCallback, useRef, useState } from 'react';
 import {
   ArrowLeft, Camera, Check, ChevronLeft, ImagePlus, LoaderCircle,
   ShieldCheck, Sparkles, Upload, WandSparkles
 } from 'lucide-react';
+import {
+  processCarAdImage,
+  enhanceLighting,
+  blurPlateRegion,
+  compositeStudio,
+} from './mshkurImageEngine';
 
 type Step = 'upload' | 'process' | 'next' | 'draft' | 'review';
 
@@ -62,40 +68,82 @@ export default function CarAdWorkflow({
     if (!file) return;
     setBusy(true);
     setProgress(8);
-    setProgressMsg('تحضير الصورة...');
+    setProgressMsg('تحضير محرك مشكور المحلي...');
     try {
       if (onRemoveBackground) {
-        setProgress(25);
-        setProgressMsg('إزالة الخلفية محلياً...');
+        setProgress(30);
+        setProgressMsg('إزالة الخلفية (مخصص)...');
         const out = await onRemoveBackground(file);
         setResultUrl(out);
       } else {
-        for (const [p, m] of [
-          [30, 'تحليل الصورة...'],
-          [55, 'عزل السيارة...'],
-          [80, 'توليد ظل التماس...'],
-          [100, 'اكتملت المعالجة'],
-        ] as const) {
-          setProgress(p as number);
-          setProgressMsg(m as string);
-          await new Promise((r) => setTimeout(r, 350));
-        }
-        setResultUrl(previewUrl);
+        const out = await processCarAdImage(file, (msg) => {
+          setProgressMsg(msg);
+          if (msg.includes('1/')) setProgress(25);
+          else if (msg.includes('2/')) setProgress(55);
+          else if (msg.includes('3/')) setProgress(80);
+          else setProgress(100);
+        });
+        setResultUrl(out);
       }
-      setDoneActions(['bg']);
+      setDoneActions(['bg', 'light']);
+      setProgress(100);
+      setProgressMsg('اكتملت المعالجة المحلية');
       setStep('next');
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'تعذرت المعالجة');
+      const msg = e instanceof Error ? e.message : 'تعذرت المعالجة';
+      alert(
+        msg +
+          '\n\nتأكد من اتصال أول مرة لتنزيل نموذج BiRefNet lite المحلي، ثم تعمل بدون إنترنت للصور.'
+      );
       setStep('upload');
     } finally {
       setBusy(false);
     }
   }
 
+  async function applyExtraAction(id: string) {
+    if (!resultUrl && !previewUrl) return;
+    if (doneActions.includes(id) && id !== 'plate') {
+      setDoneActions((prev) => prev.filter((x) => x !== id));
+      return;
+    }
+    setBusy(true);
+    try {
+      const srcUrl = resultUrl || previewUrl;
+      const res = await fetch(srcUrl);
+      const blob = await res.blob();
+      if (id === 'light') {
+        setProgressMsg('تحسين الإضاءة...');
+        const out = await enhanceLighting(blob, 0.14);
+        setResultUrl(URL.createObjectURL(out));
+        setDoneActions((p) => (p.includes('light') ? p : [...p, 'light']));
+      } else if (id === 'bg') {
+        setProgressMsg('توحيد خلفية الاستوديو...');
+        const out = await compositeStudio(blob, { studioBg: 'white', contactShadow: true });
+        setResultUrl(URL.createObjectURL(out));
+        setDoneActions((p) => (p.includes('bg') ? p : [...p, 'bg']));
+      } else if (id === 'plate') {
+        setProgressMsg('طمس منطقة اللوحة (وسط-أسفل تقريبي)...');
+        const out = await blurPlateRegion(blob, { x: 0.35, y: 0.62, w: 0.3, h: 0.12 });
+        setResultUrl(URL.createObjectURL(out));
+        setDoneActions((p) => (p.includes('plate') ? p : [...p, 'plate']));
+      } else if (id === 'ad') {
+        setStep('draft');
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'تعذر تطبيق الخطوة');
+    } finally {
+      setBusy(false);
+      setProgressMsg('');
+    }
+  }
+
   function toggleAction(id: string) {
-    setDoneActions((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    if (id === 'ad') {
+      setStep('draft');
+      return;
+    }
+    void applyExtraAction(id);
   }
 
   function buildAdText() {
@@ -128,12 +176,14 @@ export default function CarAdWorkflow({
   return (
     <div className="car-ad-workflow" dir="rtl">
       <header className="caw-header">
-        <button type="button" className="caw-back" onClick={onBack} aria-label="رجوع">
-          <ChevronLeft size={20} />
-        </button>
+        {onBack && (
+          <button type="button" className="caw-back" onClick={onBack} aria-label="رجوع">
+            <ChevronLeft size={18} />
+          </button>
+        )}
         <div>
-          <b>تجهيز إعلان السيارة</b>
-          <small>أداة أولاً · راجع ووافق قبل النشر</small>
+          <h1>تجهيز إعلان سيارة</h1>
+          <p>أداة أولاً · معالجة محلية · راجع ووافق</p>
         </div>
         <span className="caw-step-pill">
           {step === 'upload' && '1/5'}
@@ -146,49 +196,41 @@ export default function CarAdWorkflow({
 
       {step === 'upload' && (
         <section className="caw-upload">
-          <div
+          <button
+            type="button"
             className="caw-drop"
             onClick={() => inputRef.current?.click()}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              pickFile(e.dataTransfer.files?.[0] || null);
-            }}
           >
-            <Upload size={28} />
+            <Camera size={28} />
             <b>ارفع صورة السيارة</b>
-            <p>JPG أو PNG أو WebP · أقل من 12 ميجابايت</p>
-            <div className="caw-upload-actions">
-              <button type="button" className="caw-btn primary">
-                <ImagePlus size={16} /> اختيار من الجهاز
-              </button>
-              <button type="button" className="caw-btn ghost" onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}>
-                <Camera size={16} /> كاميرا
-              </button>
-            </div>
-          </div>
-          <input ref={inputRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => pickFile(e.target.files?.[0] || null)} />
+            <small>PNG / JPG / WebP · حتى 12MB</small>
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            hidden
+            onChange={(e) => pickFile(e.target.files?.[0] || null)}
+          />
           <p className="caw-hint">
-            <ShieldCheck size={14} /> المعالجة محلية قدر الإمكان · لا نشر بدون موافقتك
+            <WandSparkles size={14} /> إزالة الخلفية والظل والإضاءة تتم على جهازك (BG0 + Canvas)
           </p>
         </section>
       )}
 
       {step === 'process' && (
         <section className="caw-process">
-          <div className="caw-preview">{previewUrl && <img src={previewUrl} alt="معاينة" />}</div>
+          {previewUrl && <img className="caw-preview" src={previewUrl} alt="الأصل" />}
           {!busy && (
             <button type="button" className="caw-btn primary wide" onClick={runProcess}>
-              <WandSparkles size={18} /> ابدأ إزالة الخلفية والتجهيز
+              <WandSparkles size={16} /> ابدأ المعالجة المحلية
             </button>
           )}
           {busy && (
-            <div className="caw-progress">
+            <div className="caw-progress-block">
               <LoaderCircle className="spin" size={22} />
-              <div>
-                <b>{progressMsg}</b>
-                <div className="caw-bar"><span style={{ width: `${progress}%` }} /></div>
-              </div>
+              <b>{progressMsg || 'جارٍ المعالجة...'}</b>
+              <div className="caw-bar"><i style={{ width: `${progress}%` }} /></div>
             </div>
           )}
         </section>
@@ -196,15 +238,21 @@ export default function CarAdWorkflow({
 
       {step === 'next' && (
         <section className="caw-next">
-          <div className="caw-compare-mini">
+          <h2>النتيجة والخطوات التالية</h2>
+          <div className="caw-compare">
             {previewUrl && <img src={previewUrl} alt="قبل" />}
             {(resultUrl || previewUrl) && <img src={resultUrl || previewUrl} alt="بعد" />}
           </div>
-          <h2><Sparkles size={16} /> الخطوة التالية المقترحة</h2>
-          <p className="caw-sub">اختر ما تحتاجه — أو انتقل مباشرة لتجهيز الإعلان</p>
+          {progressMsg && <p className="caw-hint">{progressMsg}</p>}
           <div className="caw-actions-grid">
             {NEXT_ACTIONS.map((a) => (
-              <button key={a.id} type="button" className={`caw-action-card ${doneActions.includes(a.id) ? 'on' : ''}`} onClick={() => toggleAction(a.id)}>
+              <button
+                key={a.id}
+                type="button"
+                className={`caw-action ${doneActions.includes(a.id) ? 'done' : ''}`}
+                disabled={busy}
+                onClick={() => toggleAction(a.id)}
+              >
                 <span className="caw-check">{doneActions.includes(a.id) && <Check size={14} />}</span>
                 <b>{a.label}</b>
                 <small>{a.desc}</small>

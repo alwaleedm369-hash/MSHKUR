@@ -7,14 +7,21 @@
     "runtime": "server",
     "externalSideEffects": false,
     "steps": [
-      {
-        "key": "validate",
-        "skillId": "vehicle-validate"
-      },
-      {
-        "key": "draft",
-        "skillId": "vehicle-ad-copy"
-      }
+      { "key": "validate", "skillId": "vehicle-validate" },
+      { "key": "draft", "skillId": "vehicle-ad-copy" }
+    ]
+  },
+  {
+    "id": "car-studio-ad",
+    "name": "استوديو ثم مسودة إعلان",
+    "version": "1.0.0",
+    "description": "معالجة صورة السيارة محلياً ثم التحقق ومسودة الإعلان.",
+    "runtime": "hybrid",
+    "externalSideEffects": false,
+    "steps": [
+      { "key": "studio", "skillId": "car-studio-pipeline" },
+      { "key": "validate", "skillId": "vehicle-validate" },
+      { "key": "draft", "skillId": "vehicle-ad-copy" }
     ]
   }
 ]

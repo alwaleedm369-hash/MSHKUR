@@ -7,9 +7,7 @@
     "description": "إنشاء مسودة إعلان من الحقول المدخلة فقط دون اختراع المواصفات.",
     "input": "vehicle-copy",
     "output": "ad-draft",
-    "permissions": [
-      "vehicle:read"
-    ],
+    "permissions": ["vehicle:read"],
     "cost": "local",
     "entrypoint": "builtin:vehicle-ad-copy"
   },
@@ -21,9 +19,7 @@
     "description": "فحص الحقول الناقصة والتعارضات الأساسية قبل تجهيز الإعلان.",
     "input": "vehicle-record",
     "output": "validation-report",
-    "permissions": [
-      "vehicle:read"
-    ],
+    "permissions": ["vehicle:read"],
     "cost": "local",
     "entrypoint": "builtin:vehicle-validate"
   },
@@ -35,9 +31,7 @@
     "description": "إزالة خلفية الصورة محلياً داخل المتصفح باستخدام BiRefNet عبر WebGPU/WASM.",
     "input": "image-file",
     "output": "transparent-png",
-    "permissions": [
-      "image:process"
-    ],
+    "permissions": ["image:process"],
     "cost": "local",
     "runtime": "browser",
     "entrypoint": "browser:bg0"
@@ -50,9 +44,7 @@
     "description": "تصحيح الاتجاه وتحويل الصورة إلى WebP مع ضبط الحجم والجودة.",
     "input": "image-file",
     "output": "optimized-image",
-    "permissions": [
-      "image:process"
-    ],
+    "permissions": ["image:process"],
     "cost": "local",
     "entrypoint": "builtin:image-optimize"
   },
@@ -64,26 +56,47 @@
     "description": "تمويه منطقة مستطيلة يحددها المستخدم، دون ادعاء كشف تلقائي.",
     "input": "image-file-region",
     "output": "blurred-image",
-    "permissions": [
-      "image:process"
-    ],
+    "permissions": ["image:process"],
     "cost": "local",
     "entrypoint": "builtin:license-plate-blur-region"
   },
   {
-    "id": "map-prospect-search",
-    "name": "بحث استهداف المعارض على الخريطة",
+    "id": "studio-composite",
+    "name": "خلفية استوديو وظل ملامس",
+    "category": "image",
     "version": "1.0.0",
-    "description": "ينشئ رابط بحث خرائط Google حسب المدينة ونوع النشاط؛ لا يجمع بيانات أشخاص ولا يرسل رسائل.",
-    "runtime": "server",
-    "externalSideEffects": false
+    "description": "تركيب السيارة الشفافة على خلفية بيضاء/رمادية مع ظل ملامس محلي عبر Canvas.",
+    "input": "transparent-png",
+    "output": "studio-png",
+    "permissions": ["image:process"],
+    "cost": "local",
+    "runtime": "browser",
+    "entrypoint": "browser:mshkurImageEngine.compositeStudio"
   },
   {
-    "id": "website-customer-chat",
-    "name": "مساعد استقبال العملاء بالموقع",
+    "id": "lighting-enhance",
+    "name": "تحسين إضاءة الصورة",
+    "category": "image",
     "version": "1.0.0",
-    "description": "يرد على أسئلة عامة محددة ويحفظ المحادثة لتحويلها إلى موظف المعرض.",
-    "runtime": "server",
-    "externalSideEffects": false
+    "description": "ضبط تباين وسطوع بسيط على Canvas دون نماذج مدفوعة.",
+    "input": "image-file",
+    "output": "enhanced-image",
+    "permissions": ["image:process"],
+    "cost": "local",
+    "runtime": "browser",
+    "entrypoint": "browser:mshkurImageEngine.enhanceLighting"
+  },
+  {
+    "id": "car-studio-pipeline",
+    "name": "خط استوديو السيارة الكامل",
+    "category": "image",
+    "version": "1.0.0",
+    "description": "إزالة خلفية BG0 ثم ظل وخلفية استوديو وتحسين إضاءة وطمس لوحة اختياري — محلياً.",
+    "input": "image-file",
+    "output": "studio-png",
+    "permissions": ["image:process"],
+    "cost": "local",
+    "runtime": "browser",
+    "entrypoint": "browser:mshkurImageEngine.runCarStudioPipeline"
   }
 ]
