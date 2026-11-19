@@ -3,6 +3,7 @@
  * GuestLanding + CarAdWorkflow + ApprovalQueue + HarajPublishPanel + Admin
  */
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import './mobile-polish.css';
 import { OperationsPanel, GrowthPanel, InboxPanel } from './Operations';
 import PublicShowroom from './PublicShowroom';
 import GuestStudio from './GuestStudio';
@@ -56,7 +57,7 @@ export default function App() {
   const [auth, setAuth] = useState({
     name: '', tenantName: 'معرضي', tenantType: 'dealer', email: '', password: '',
   });
-  const [screen, setScreen] = useState<Screen>('home');
+  const [screen, setScreen] = useState<Screen>('studio');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
