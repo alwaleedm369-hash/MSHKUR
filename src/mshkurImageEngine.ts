@@ -1,12 +1,12 @@
 /**
  * mshkurImageEngine — محرك صور مشكور المحلي (بدون API مدفوع)
  *
- * - إزالة خلفية: @bg0/browser (BiRefNet lite)
- * - خلفية استوديو + ظل ملامس: Canvas 2D
- * - تحسين إضاءة: منحنيات Canvas
- * - طمس لوحة: منطقة يحددها المستخدم
- *
- * كل المعالجة داخل المتصفح.
+ * مسار تجاري محلي:
+ * 1) SEGMENT: BG0 / BiRefNet lite
+ * 2) MATTE: تنعيم قناع + إزالة هالة لون الخلفية (defringe)
+ * 3) SCENE: خلفية استوديو + ظل ملامس
+ * 4) LIGHT: تباين/سطوع
+ * 5) PLATE: طمس منطقة يدوية (نسبية)
  */
 
 export type StudioBg = 'white' | 'light-gray' | 'showroom';
@@ -17,6 +17,8 @@ export type PipelineOptions = {
   studioBg?: StudioBg;
   contactShadow?: boolean;
   enhanceLight?: boolean;
+  /** تنعيم الحواف وإزالة الهالة — افتراضي مفعّل */
+  refineMatte?: boolean;
   plateRegion?: { x: number; y: number; w: number; h: number } | null;
   onProgress?: (msg: string) => void;
 };
@@ -79,6 +81,83 @@ function fillStudio(ctx: CanvasRenderingContext2D, w: number, h: number, bg: Stu
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
   }
+}
+
+/**
+ * تنعيم قناع الألفا + defringe بسيط ضد هالة الخلفية على حواف السيارة.
+ */
+export async function refineCutoutMatte(blob: Blob): Promise<Blob> {
+  const img = await loadImage(blob);
+  const w = img.naturalWidth;
+  const h = img.naturalHeight;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(img, 0, 0);
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const d = imageData.data;
+  const a = new Uint8ClampedArray(w * h);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) a[p] = d[i + 3];
+
+  const smooth = new Uint8ClampedArray(a);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const p = y * w + x;
+      const v = a[p];
+      if (v < 8 || v > 247) continue;
+      let sum = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) sum += a[(y + dy) * w + (x + dx)];
+      }
+      smooth[p] = (sum / 9 + 0.5) | 0;
+    }
+  }
+
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const p = y * w + x;
+      const alpha = smooth[p];
+      if (alpha < 12 || alpha > 250) {
+        d[p * 4 + 3] = alpha < 12 ? 0 : 255;
+        if (alpha < 12) {
+          d[p * 4] = d[p * 4 + 1] = d[p * 4 + 2] = 0;
+        }
+        continue;
+      }
+      let fr = 0,
+        fg = 0,
+        fb = 0,
+        fw = 0;
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const q = (y + dy) * w + (x + dx);
+          const aq = smooth[q];
+          if (aq > 200) {
+            const o = q * 4;
+            fr += d[o];
+            fg += d[o + 1];
+            fb += d[o + 2];
+            fw++;
+          }
+        }
+      }
+      const o = p * 4;
+      if (fw > 0) {
+        const t = alpha / 255;
+        d[o] = (d[o] * t + (fr / fw) * (1 - t * 0.35)) | 0;
+        d[o + 1] = (d[o + 1] * t + (fg / fw) * (1 - t * 0.35)) | 0;
+        d[o + 2] = (d[o + 2] * t + (fb / fw) * (1 - t * 0.35)) | 0;
+      }
+      let na = alpha;
+      if (na < 40) na = (na * na) / 40;
+      else if (na > 220) na = 255 - ((255 - na) * (255 - na)) / 35;
+      d[o + 3] = na < 0 ? 0 : na > 255 ? 255 : na;
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return canvasToBlob(canvas);
 }
 
 export function drawContactShadow(
@@ -213,7 +292,7 @@ export async function runCarStudioPipeline(
   const steps: string[] = [];
   const onProgress = options.onProgress ?? (() => {});
 
-  onProgress('1/4 إزالة الخلفية…');
+  onProgress('1/5 إزالة الخلفية…');
   let blob = await removeBackgroundOnly(file, {
     model: options.model ?? 'lite',
     quality: options.quality ?? 'quality',
@@ -221,7 +300,13 @@ export async function runCarStudioPipeline(
   });
   steps.push('background-remove');
 
-  onProgress('2/4 خلفية استوديو وظل ملامس…');
+  if (options.refineMatte !== false) {
+    onProgress('2/5 تنعيم الحواف وإزالة الهالة…');
+    blob = await refineCutoutMatte(blob);
+    steps.push('matte-refine');
+  }
+
+  onProgress('3/5 خلفية استوديو وظل ملامس…');
   blob = await compositeStudio(blob, {
     studioBg: options.studioBg ?? 'white',
     contactShadow: options.contactShadow !== false,
@@ -230,13 +315,13 @@ export async function runCarStudioPipeline(
   if (options.contactShadow !== false) steps.push('contact-shadow');
 
   if (options.enhanceLight !== false) {
-    onProgress('3/4 تحسين الإضاءة…');
+    onProgress('4/5 تحسين الإضاءة…');
     blob = await enhanceLighting(blob, 0.1);
     steps.push('lighting-enhance');
   }
 
   if (options.plateRegion) {
-    onProgress('4/4 طمس اللوحة…');
+    onProgress('5/5 طمس اللوحة…');
     blob = await blurPlateRegion(blob, options.plateRegion);
     steps.push('license-plate-blur-region');
   } else {
@@ -256,6 +341,7 @@ export async function processCarAdImage(
     studioBg: 'white',
     contactShadow: true,
     enhanceLight: true,
+    refineMatte: true,
     onProgress,
   });
   return result.url;
