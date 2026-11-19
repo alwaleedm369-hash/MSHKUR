@@ -33,3 +33,7 @@
   .guest-intro h1 { font-size:26px!important; }
   .ops-panel { padding:12px!important; }
 }
+
+.guest-camera { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; margin:10px 0; padding:10px 16px; border:1px solid #d8e4de; border-radius:12px; background:#fff; color:#1d4942; font:inherit; cursor:pointer; }
+.guest-camera:disabled { opacity:.55; cursor:not-allowed; }
+@media (max-width:760px) { .guest-camera { width:100%; min-height:48px; } }
