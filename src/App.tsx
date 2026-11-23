@@ -139,13 +139,25 @@ export default function App() {
     );
   }
 
+  if (quickTool && !user) {
+    return (
+      <CommercialShell aiFloatVisible={aiFloatVisible} whatsappNumber={whatsappNumber}>
+        <GuestStudio
+          onAccount={() => {
+            setQuickTool(false);
+            setGuestMode(false);
+            setAuthMode('register');
+          }}
+          onDone={() => setQuickTool(false)}
+        />
+      </CommercialShell>
+    );
+  }
+
   if (guestMode && !user) {
     return (
       <GuestLanding
-        onStartStudio={() => {
-          setAdWorkflowOpen(true);
-          setGuestMode(false);
-        }}
+        onStartStudio={() => setQuickTool(true)}
         onRegister={() => {
           setGuestMode(false);
           setAuthMode('register');
