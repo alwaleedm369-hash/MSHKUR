@@ -2,7 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Project Pages URLs include the repository name, unlike the local app URL.
+const base = process.env.GITHUB_ACTIONS === 'true' ? '/MSHKUR/' : '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -17,17 +21,17 @@ export default defineConfig({
         theme_color: '#183e3a',
         background_color: '#f6f8f6',
         display: 'standalone',
-        start_url: '/',
+        start_url: base,
         icons: [
-          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
+          { src: `${base}favicon.svg`, sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
         ]
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
-        navigateFallback: '/index.html',
+        navigateFallback: `${base}index.html`,
         globPatterns: ['**/*.{js,mjs,wasm,css,html,svg,woff2,png}'],
         runtimeCaching: [
-          { urlPattern: ({url}) => url.pathname.startsWith('/api/'), handler: 'NetworkOnly' }
+          { urlPattern: ({ url }) => url.pathname.startsWith(`${base}api/`), handler: 'NetworkOnly' }
         ]
       }
     })
