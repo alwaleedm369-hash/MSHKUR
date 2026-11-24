@@ -27,3 +27,10 @@
 ## قاعدة
 
 لا مهارة جديدة بدون `entrypoint` وتشغيل. لا وثيقة «مكتمل» بدون اختبار على `main`.
+
+
+## المرجع المركزي الجديد
+
+- [MSHKUR_MASTER_KNOWLEDGE_VISUAL_REFERENCE_AR.md](./MSHKUR_MASTER_KNOWLEDGE_VISUAL_REFERENCE_AR.md) — المرجع الموحد للقرارات، المستودعات، الواجهات، المراجع، الصور، البحث، المهارات والمساعدين.
+- [مكتبة المراجع](../references/README_AR.md) — نقطة دخول سجل المصادر والأمثلة المرئية.
+- [قالب المصدر والمرجع المرئي](../references/SOURCE_AND_VISUAL_RECORD_TEMPLATE_AR.md) — بطاقة موحدة لكل أداة أو مشروع.
