@@ -6,6 +6,7 @@ import { useState } from 'react';
 import {
   ArrowLeft, Camera, ImagePlus, ShieldCheck, Sparkles, WandSparkles, Bot
 } from 'lucide-react';
+import { useLocale } from './i18n';
 
 type Props = {
   onStartStudio: () => void;
@@ -27,40 +28,45 @@ const DEMO = {
 };
 
 const TEMPLATES = [
-  { id: 'white', label: 'أبيض استوديو', color: '#f8fafc', border: '#e2e8f0' },
-  { id: 'warm', label: 'دافئ', color: '#f5e6d3', border: '#e7d5b8' },
-  { id: 'dark', label: 'داكن', color: '#1e293b', border: '#0f172a' },
-  { id: 'silver', label: 'رمادي', color: '#e2e8f0', border: '#cbd5e1' },
-  { id: 'showroom', label: 'معرض', color: '#eef2ff', border: '#c7d2fe' },
+  { id: 'white', labelKey: 'white', color: '#f8fafc', border: '#e2e8f0' },
+  { id: 'warm', labelKey: 'warm', color: '#f5e6d3', border: '#e7d5b8' },
+  { id: 'dark', labelKey: 'dark', color: '#1e293b', border: '#0f172a' },
+  { id: 'silver', labelKey: 'silver', color: '#e2e8f0', border: '#cbd5e1' },
+  { id: 'showroom', labelKey: 'showroom', color: '#eef2ff', border: '#c7d2fe' },
 ];
 
 export default function GuestLanding({ onStartStudio, onRegister }: Props) {
   const [selectedTemplate, setSelectedTemplate] = useState('white');
   const [sliderPos, setSliderPos] = useState(48);
   const [activeThumb, setActiveThumb] = useState(0);
+  const { locale, setLocale, t } = useLocale();
 
   return (
-    <div className="guest-landing gl-v2" dir="rtl">
+    <div className="guest-landing gl-v2" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
       <header className="gl-header">
         <div className="gl-brand">
           مشكور
           <small>MSHKUR CARS</small>
         </div>
-        <button type="button" className="gl-login-pill" onClick={onRegister}>
-          دخول
-        </button>
+        <div className="gl-header-actions">
+          <button type="button" className="gl-language-toggle" onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')} aria-label={locale === 'en' ? 'Switch to Arabic' : 'التبديل إلى الإنجليزية'}>
+            {locale === 'en' ? 'عربي' : 'English'}
+          </button>
+          <button type="button" className="gl-login-pill" onClick={onRegister}>
+            {t('guestLogin')}
+          </button>
+        </div>
       </header>
 
       <section className="gl-hero-copy">
         <span className="gl-kicker">
-          <Sparkles size={13} /> استوديو تجهيز السيارات · بلا مفاتيح
+          <Sparkles size={13} /> {t('guestKicker')}
         </span>
         <h1>
-          سيارتك، <em>بصورة تليق بها.</em>
+          {t('guestTitleA')} <em>{t('guestTitleB')}</em>
         </h1>
         <p>
-          ارفع الصورة · أزل الخلفية · أخفِ اللوحة · جهّز الإعلان.
-          المعالجة محلية على جهازك.
+          {t('guestCopy')}
         </p>
       </section>
 
@@ -68,11 +74,11 @@ export default function GuestLanding({ onStartStudio, onRegister }: Props) {
         <div className="gl-compare-frame">
           <div className="gl-compare-after">
             <img src={DEMO.after} alt="بعد إزالة الخلفية" />
-            <span className="gl-badge after">بعد</span>
+            <span className="gl-badge after">{t('after')}</span>
           </div>
           <div className="gl-compare-before" style={{ width: `${sliderPos}%` }}>
             <img src={DEMO.before} alt="الصورة الأصلية" />
-            <span className="gl-badge before">قبل</span>
+            <span className="gl-badge before">{t('before')}</span>
           </div>
           <input
             type="range"
@@ -81,7 +87,7 @@ export default function GuestLanding({ onStartStudio, onRegister }: Props) {
             value={sliderPos}
             onChange={(e) => setSliderPos(Number(e.target.value))}
             className="gl-compare-range"
-            aria-label="اسحب للمقارنة"
+            aria-label={t('compare')}
           />
           <div className="gl-compare-handle" style={{ left: `${sliderPos}%` }}>
             <span />
@@ -106,20 +112,20 @@ export default function GuestLanding({ onStartStudio, onRegister }: Props) {
       </section>
 
       <section className="gl-templates" aria-label="قوالب الخلفية">
-        <div className="gl-section-label">خلفيات الاستوديو</div>
+        <div className="gl-section-label">{t('studioTemplates')}</div>
         <div className="gl-template-row">
-          {TEMPLATES.map((t) => (
+          {TEMPLATES.map((template) => (
             <button
-              key={t.id}
+              key={template.id}
               type="button"
-              className={`gl-template ${selectedTemplate === t.id ? 'selected' : ''}`}
-              onClick={() => setSelectedTemplate(t.id)}
+              className={`gl-template ${selectedTemplate === template.id ? 'selected' : ''}`}
+              onClick={() => setSelectedTemplate(template.id)}
             >
               <span
                 className="gl-template-swatch"
-                style={{ background: t.color, borderColor: t.border }}
+                style={{ background: template.color, borderColor: template.border }}
               />
-              <small>{t.label}</small>
+              <small>{t(template.labelKey)}</small>
             </button>
           ))}
         </div>
@@ -128,12 +134,12 @@ export default function GuestLanding({ onStartStudio, onRegister }: Props) {
       <div className="gl-actions">
         <button type="button" className="gl-btn-primary" onClick={onStartStudio}>
           <WandSparkles size={18} />
-          ابدأ التجهيز
+          {t('startPreparing')}
           <ArrowLeft size={16} />
         </button>
         <button type="button" className="gl-btn-secondary" onClick={onStartStudio}>
           <Camera size={16} />
-          تصوير مباشر
+          {t('directCapture')}
         </button>
       </div>
 
@@ -142,33 +148,33 @@ export default function GuestLanding({ onStartStudio, onRegister }: Props) {
           <Bot size={22} />
         </div>
         <div className="gl-assistant-body">
-          <b>مساعد مشكور</b>
-          <p>ارفع صورة السيارة وسأقترح إزالة الخلفية، طمس اللوحة، وتجهيز مسودة الإعلان.</p>
+          <b>{t('assistantName')}</b>
+          <p>{t('assistantCopy')}</p>
         </div>
         <button type="button" className="gl-assistant-go" onClick={onStartStudio}>
-          ابدأ
+          {t('start')}
         </button>
       </aside>
 
       <section className="gl-how">
-        <h2>كيف يعمل مشكور؟</h2>
+        <h2>{t('howItWorks')}</h2>
         <ol>
-          <li><strong>ارفع</strong> صور السيارة أو التقطها.</li>
-          <li><strong>اختر</strong> قالباً أو اترك الخلفية البيضاء.</li>
-          <li><strong>راجع ووافق</strong> قبل أي نشر.</li>
+          <li><strong>{t('stepUpload')}</strong> {t('stepUploadCopy')}</li>
+          <li><strong>{t('stepChoose')}</strong> {t('stepChooseCopy')}</li>
+          <li><strong>{t('stepReview')}</strong> {t('stepReviewCopy')}</li>
         </ol>
         <div className="gl-trust">
           <ShieldCheck size={15} />
-          العمل محفوظ محلياً · لا نرفع صورك بدون حسابك
+          {t('localTrust')}
         </div>
       </section>
 
       <div className="gl-footer-actions">
         <button type="button" className="gl-btn-primary wide" onClick={onRegister}>
-          إنشاء مساحة معرض
+          {t('createWorkspace')}
         </button>
         <button type="button" className="gl-btn-ghost" onClick={onStartStudio}>
-          جرّب بدون تسجيل
+          {t('tryWithoutAccount')}
         </button>
       </div>
     </div>

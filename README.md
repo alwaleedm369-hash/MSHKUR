@@ -1,5 +1,9 @@
 # مشكور | MSHKUR OS
 
+The interface is English-first with a persisted Arabic RTL mode. Core workflows remain task-first and mobile-first.
+
+Runtime verification requires Node.js 22 or newer. The current work environment exposes Node 20.14.0, so SQLite/API suites cannot be validated here until a Node22 runtime is selected.
+
 مساحة عمل عربية للمعارض تبدأ من المهمة والنتيجة: إضافة السيارة، تجهيز الصور، إعداد الإعلان، ومتابعة العملاء. خلف الواجهة يعمل Maestro مع مهارات مسموحة ومساعدين متخصصين. نستخدم REA (Reverse Engineer Anything) كأداة تطوير مستقلة لتحليل المشاريع المصرح بها، وليس كخدمة runtime.
 
 > **حالة الإطلاق:** نواة فعلية قيد التطوير، وليست جاهزة للإطلاق التجاري بعد. راجع [تدقيق المشروع 23 نوفمبر 2026](docs/PROJECT_AUDIT_2026-11-23_AR.md) و[دليل معاينة GitHub Pages](docs/GITHUB_PAGES_PREVIEW_AR.md).

@@ -340,9 +340,10 @@ test('queued jobs can be cancelled by their tenant', async () => {
 
 test('failed jobs can be retried without creating a duplicate task', async () => {
   const cookie=await register('job-retry@example.test','معرض إعادة المحاولة');
-  const created=await json('/api/tasks',{method:'POST',headers:{cookie},body:JSON.stringify({skillId:'image-optimize',input:{imageFileId:crypto.randomUUID()}})});
-  assert.equal(created.status,202);
-  const id=(await created.json()).id;
+  const me=(await (await json('/api/auth/me',{headers:{cookie}})).json()).user;
+  const id=crypto.randomUUID(), now=new Date().toISOString();
+  db.prepare("INSERT INTO jobs(id,tenant_id,user_id,skill_id,status,input_json,attempts,created_at,updated_at) VALUES(?,?,?,'image-optimize','failed','{}',1,?,?)")
+    .run(id,me.tenantId,me.id,now,now);
   let task;
   for(let i=0;i<50;i++){
     await new Promise(resolve=>setTimeout(resolve,20));
@@ -359,8 +360,19 @@ test('failed jobs can be retried without creating a duplicate task', async () =>
     if(after.status==='failed')break;
   }
   assert.equal(after.status,'failed');
+  assert.equal(after.attempts,2);
+  const retriedAgain=await json('/api/tasks/'+id+'/retry',{method:'POST',headers:{cookie},body:'{}'});
+  assert.equal(retriedAgain.status,202);
+  for(let i=0;i<50;i++){
+    await new Promise(resolve=>setTimeout(resolve,20));
+    after=(await (await json('/api/tasks/'+id,{headers:{cookie}})).json()).task;
+    if(after.status==='failed')break;
+  }
+  assert.equal(after.status,'failed');
   assert.equal(after.attempts,3);
   assert.equal((await json('/api/tasks/'+id+'/retry',{method:'POST',headers:{cookie},body:'{}'})).status,409);
+  const other=await register('job-retry-other@example.test','معرض إعادة محاولة آخر');
+  assert.equal((await json('/api/tasks/'+id+'/retry',{method:'POST',headers:{cookie:other},body:'{}'})).status,404);
 });
 
 test('derived image versions stay grouped under the root original', async () => {
