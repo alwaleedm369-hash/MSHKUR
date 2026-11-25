@@ -433,3 +433,74 @@
   .guest-landing.gl-v2 { max-width: 480px; margin: 0 auto; }
   .ai-float-btn { left: calc(50% - 220px); }
 }
+
+.gl-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gl-language-toggle,
+.gl-login-pill,
+.gl-assistant-go,
+.gl-template,
+.gl-thumb-img {
+  min-height: 44px;
+}
+
+.gl-language-toggle {
+  border: 1px solid #cfe0da;
+  background: #f8fbfa;
+  color: #1a3c38;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.auth-language {
+  margin-inline-start: auto;
+  min-height: 44px;
+}
+
+@media (max-width: 480px) {
+  .guest-landing.gl-v2 {
+    padding-bottom: calc(48px + env(safe-area-inset-bottom));
+  }
+
+  .gl-header {
+    padding-inline: 12px;
+  }
+
+  .gl-actions,
+  .gl-footer-actions,
+  .gl-assistant-card,
+  .gl-how {
+    min-width: 0;
+  }
+
+  .gl-actions {
+    flex-direction: column;
+  }
+
+  .gl-btn-primary,
+  .gl-btn-secondary,
+  .gl-btn-ghost,
+  .gl-login-pill,
+  .gl-language-toggle {
+    min-height: 44px;
+  }
+
+  .gl-btn-primary,
+  .gl-btn-secondary {
+    width: 100%;
+  }
+
+  .gl-assistant-card {
+    align-items: flex-start;
+  }
+
+  .gl-assistant-go {
+    min-width: 44px;
+  }
+}

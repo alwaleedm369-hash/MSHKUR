@@ -16,6 +16,7 @@ import CarAdWorkflow from './CarAdWorkflow';
 import ApprovalQueue from './ApprovalQueue';
 import HarajPublishPanel from './HarajPublishPanel';
 import AdminControlsPanel from './AdminControlsPanel';
+import { useLocale } from './i18n';
 import {
   CarFront, LayoutDashboard, ListTodo, LogOut, Menu, MessageCircle,
   Settings2, Sparkles, WandSparkles, X, Blocks, LoaderCircle
@@ -44,6 +45,7 @@ async function api<T = any>(url: string, options: RequestInit = {}): Promise<T> 
 }
 
 export default function App() {
+  const { locale, setLocale, t } = useLocale();
   const [user, setUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
   const [guestMode, setGuestMode] = useState(true);
@@ -109,7 +111,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="auth-shell" dir="rtl" style={{ placeItems: 'center', minHeight: '100vh' }}>
+      <div className="auth-shell" dir={locale === 'ar' ? 'rtl' : 'ltr'} style={{ placeItems: 'center', minHeight: '100vh' }}>
         <LoaderCircle className="spin" size={28} />
       </div>
     );
@@ -156,11 +158,14 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="auth-shell" dir="rtl">
+      <div className="auth-shell" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <div className="auth-brand">
           <div className="brand-symbol">م</div>
           <span>مشكور</span>
-          <small>مساحة عملك الذكية</small>
+          <small>{locale === 'ar' ? 'مساحة عملك الذكية' : 'Your smart workspace'}</small>
+          <button type="button" className="gl-language-toggle auth-language" onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}>
+            {locale === 'en' ? 'عربي' : 'English'}
+          </button>
         </div>
         <div className="auth-card" style={{ maxWidth: 420, margin: '40px auto' }}>
           <div className="auth-card-head">
@@ -197,10 +202,13 @@ export default function App() {
       onPublishApprove={() => setPublishOpen(false)}
       carTitle={publishMeta.title}
     >
-      <div className="app-shell" dir="rtl">
+      <div className="app-shell" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
         <header className="topbar">
           <button type="button" onClick={() => setMenuOpen(!menuOpen)} aria-label="القائمة"><Menu size={20} /></button>
           <strong>{user.tenantName}</strong>
+          <button type="button" className="gl-language-toggle" onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}>
+            {locale === 'en' ? 'عربي' : 'English'}
+          </button>
           <button type="button" onClick={logout} aria-label="خروج"><LogOut size={18} /></button>
         </header>
 
@@ -208,7 +216,17 @@ export default function App() {
         {error && <div className="toast err">{error}</div>}
 
         <main className="main-pane">
-          {screen === 'home' && <DashboardHome userName={user.name} onOpenStudio={() => setScreen('studio')} />}
+          {screen === 'home' && (
+            <DashboardHome
+              name={user.name}
+              vehicles={vehicles}
+              assets={[]}
+              onAddVehicle={() => setScreen('cars')}
+              onStudio={() => setScreen('studio')}
+              onAssistant={() => setScreen('assistant')}
+              onCars={() => setScreen('cars')}
+            />
+          )}
           {screen === 'studio' && (
             quickTool ? <GuestStudio onDone={() => setQuickTool(false)} /> : <GuestStudio />
           )}
@@ -220,7 +238,7 @@ export default function App() {
                   <li key={v.id}>{v.make} {v.model} {v.year || ''}</li>
                 ))}
               </ul>
-              {vehicles[0] && <OfflineAdKit vehicleId={vehicles[0].id} />}
+              {vehicles[0] && <OfflineAdKit vehicle={vehicles[0]} assets={[]} />}
             </section>
           )}
           {screen === 'skills' && <SkillsPanel />}
@@ -275,11 +293,11 @@ export default function App() {
         </main>
 
         <nav className="bottom-nav">
-          <button type="button" className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}><LayoutDashboard size={18} /><span>الرئيسية</span></button>
-          <button type="button" className={screen === 'studio' ? 'active' : ''} onClick={() => setScreen('studio')}><WandSparkles size={18} /><span>الاستوديو</span></button>
-          <button type="button" className={screen === 'cars' ? 'active' : ''} onClick={() => setScreen('cars')}><CarFront size={18} /><span>السيارات</span></button>
-          <button type="button" className={screen === 'tasks' || screen === 'approvals' ? 'active' : ''} onClick={() => setScreen('approvals')}><ListTodo size={18} /><span>مراجعات</span></button>
-          <button type="button" className={screen === 'admin' ? 'active' : ''} onClick={() => setScreen('admin')}><Settings2 size={18} /><span>إدارة</span></button>
+          <button type="button" className={screen === 'home' ? 'active' : ''} onClick={() => setScreen('home')}><LayoutDashboard size={18} /><span>{t('home')}</span></button>
+          <button type="button" className={screen === 'studio' ? 'active' : ''} onClick={() => setScreen('studio')}><WandSparkles size={18} /><span>{t('studio')}</span></button>
+          <button type="button" className={screen === 'cars' ? 'active' : ''} onClick={() => setScreen('cars')}><CarFront size={18} /><span>{t('cars')}</span></button>
+          <button type="button" className={screen === 'tasks' || screen === 'approvals' ? 'active' : ''} onClick={() => setScreen('approvals')}><ListTodo size={18} /><span>{t('reviews')}</span></button>
+          <button type="button" className={screen === 'admin' ? 'active' : ''} onClick={() => setScreen('admin')}><Settings2 size={18} /><span>{t('admin')}</span></button>
         </nav>
       </div>
     </CommercialShell>

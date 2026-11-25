@@ -41,7 +41,9 @@ async function ensureBg0() {
         import('@huggingface/transformers'),
       ]);
       try {
-        env.backends.onnx.wasm.wasmPaths = `${import.meta.env.BASE_URL}onnx/`;
+        const runtime = env as unknown as { backends?: { onnx?: { wasm?: { wasmPaths?: string } } } };
+        const baseUrl = (import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
+        if (runtime.backends?.onnx?.wasm) runtime.backends.onnx.wasm.wasmPaths = `${baseUrl}onnx/`;
       } catch {
         /* ignore */
       }

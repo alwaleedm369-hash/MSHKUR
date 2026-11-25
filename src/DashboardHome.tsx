@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, ArrowUpLeft, CarFront, ImagePlus, Plus, Sparkles, ShieldCheck, WandSparkles, Camera, FileText, ScanFace } from 'lucide-react';
+import { useLocale } from './i18n';
 
 type Vehicle = { id:string; make:string; model:string; year?:number|null; price?:number|null; city?:string|null; mileage?:number|null; status:string };
 type Asset = {id:string;url:string;asset_role?:string};
@@ -14,13 +15,15 @@ type Props = {
 };
 
 export default function DashboardHome({name,vehicles,assets,onAddVehicle,onStudio,onAssistant,onCars}:Props){
+  const { locale } = useLocale();
+  const en = locale === 'en';
   const latest=vehicles[0];
   const [activeAsset,setActiveAsset]=useState(0);
   const activePhoto=assets[activeAsset]?.url;
-  return <div className="car-home" dir="rtl">
+  return <div className="car-home" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
     <header className="car-home-heading">
-      <div><span className="car-home-kicker"><i/> MSHKUR CARS · مساحة العمل</span><h1>أهلاً {name.split(' ')[0]}، لنجهّز سيارتك.</h1><p>اختر صورة أو ابدأ بمهمة. كل أدواتك في مكان واحد.</p></div>
-      <button className="car-home-add" onClick={onAddVehicle}><Plus size={17}/> سيارة جديدة</button>
+      <div><span className="car-home-kicker"><i/> MSHKUR CARS · {en ? 'Workspace' : 'مساحة العمل'}</span><h1>{en ? `Hi ${name.split(' ')[0]}, prepare your vehicle.` : `أهلاً ${name.split(' ')[0]}، لنجهّز سيارتك.`}</h1><p>{en ? 'Choose a photo or start a task. Your tools are in one place.' : 'اختر صورة أو ابدأ بمهمة. كل أدواتك في مكان واحد.'}</p></div>
+      <button className="car-home-add" onClick={onAddVehicle}><Plus size={17}/> {en ? 'New vehicle' : 'سيارة جديدة'}</button>
     </header>
 
     <section className="car-home-stage">
