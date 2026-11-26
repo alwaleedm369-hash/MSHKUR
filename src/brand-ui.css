@@ -1,0 +1,5 @@
+.caw-logo-preview{display:flex;align-items:center;gap:10px;margin:8px 0}
+.caw-logo-preview img{width:56px;height:56px;object-fit:contain;border:1px solid #e5ece6;border-radius:10px;background:#fff}
+.caw-presets{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.caw-preset{border:1px solid #dce8de;background:#f6faf6;border-radius:999px;padding:6px 10px;font:inherit;font-size:10px;color:#3d5c48;cursor:pointer}
+.caw-review-logo{display:block;width:64px;height:64px;object-fit:contain;margin:0 auto 10px}

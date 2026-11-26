@@ -1,0 +1,8 @@
+.guest-dl-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.guest-dl-row .guest-dl{flex:1;min-width:120px}
+.guest-wa{background:#128C7E!important;color:#fff!important;border:0!important}
+.publish-wa{background:#25D366!important;color:#fff!important}
+@media (max-width:640px){
+  .guest-studio{padding-bottom:88px}
+  .guest-process{position:sticky;bottom:12px;z-index:5;width:100%}
+}

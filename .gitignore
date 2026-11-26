@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dependencies
 node_modules/
 .pnp
@@ -64,3 +65,28 @@ uploads/
 # Database
 *.db
 *.sqlite
+=======
+node_modules/
+dist/
+.env
+.env.*.local
+.data/
+storage/
+/public/onnx/
+data/
+*.log
+.DS_Store
+coverage/
+.hostinger/
+/data/
+/uploads/
+.storage/
+*.sqlite
+*.sqlite3
+.env.*
+!.env.example
+!.env.production.example
+
+# Verified local backups; never commit customer data
+backups/
+>>>>>>> 5cac2c6638c612a91f5d8042e523b39575bf6267

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -30,3 +31,19 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>
 );
+=======
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './styles.css';
+import './mobile-wa.css';
+import './brand-ui.css';
+import './styles-guest-landing.css';
+import './car-ad-workflow.css';
+import './ops-screens.css';
+import { LocaleProvider } from './i18n';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode><LocaleProvider><App /></LocaleProvider></React.StrictMode>,
+);
+>>>>>>> 5cac2c6638c612a91f5d8042e523b39575bf6267
