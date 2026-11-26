@@ -1,0 +1,92 @@
+{
+  "name": "MSHKUR - Smart Automotive Platform",
+  "short_name": "MSHKUR",
+  "description": "Smart automotive platform: Photo Studio, Ad Studio, Dealer Portal, and Personal AI Assistant",
+  "start_url": "/MSHKUR/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fafafa",
+  "theme_color": "#0ea5e9",
+  "scope": "/MSHKUR/",
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/MSHKUR/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/MSHKUR/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/MSHKUR/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/MSHKUR/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/MSHKUR/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/MSHKUR/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/MSHKUR/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/MSHKUR/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["business", "photo", "productivity", "automotive"],
+  "shortcuts": [
+    {
+      "name": "Photo Studio",
+      "short_name": "Photos",
+      "description": "Vehicle image processing",
+      "url": "/MSHKUR/photo-studio",
+      "icons": [{ "src": "/MSHKUR/icons/camera-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Ad Studio",
+      "short_name": "Ads",
+      "description": "Create vehicle listings",
+      "url": "/MSHKUR/ad-studio",
+      "icons": [{ "src": "/MSHKUR/icons/megaphone-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "AI Assistant",
+      "short_name": "Assistant",
+      "description": "Chat with AI assistant",
+      "url": "/MSHKUR/ai-assistant",
+      "icons": [{ "src": "/MSHKUR/icons/bot-96.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}

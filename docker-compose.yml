@@ -1,0 +1,260 @@
+version: '3.8'
+
+services:
+  # Main API Server
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: mshkur-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=postgresql://mshkur:mshkur_password@postgres:5432/mshkur
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_WORKSPACE_CLIENT_ID=${GOOGLE_WORKSPACE_CLIENT_ID}
+      - GOOGLE_WORKSPACE_CLIENT_SECRET=${GOOGLE_WORKSPACE_CLIENT_SECRET}
+      - GOOGLE_WORKSPACE_REDIRECT_URI=${GOOGLE_WORKSPACE_REDIRECT_URI}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - HARAJ_USERNAME=${HARAJ_USERNAME}
+      - HARAJ_PASSWORD=${HARAJ_PASSWORD}
+      - WHATSAPP_BRIDGE_URL=http://whatsapp-bridge:3002
+      - STORAGE_PROVIDER=local
+      - UPLOAD_DIR=/app/uploads
+      - MAX_FILE_SIZE=52428800
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_SUBJECT=mailto:admin@mshkur.ai
+      - CORS_ORIGIN=https://mshkur.ai,https://www.mshkur.ai
+      - FRONTEND_URL=https://mshkur.ai
+      - LOG_LEVEL=info
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mshkur-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mshkur-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=mshkur
+      - POSTGRES_PASSWORD=mshkur_password
+      - POSTGRES_DB=mshkur
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mshkur -d mshkur"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mshkur-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mshkur-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mshkur-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # WhatsApp Bridge Service
+  whatsapp-bridge:
+    build:
+      context: ./whatsapp-bridge
+      dockerfile: Dockerfile
+    container_name: mshkur-whatsapp-bridge
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - WHATSAPP_SESSION_PATH=/app/session
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+    volumes:
+      - whatsapp_session:/app/session
+    depends_on:
+      - redis
+    networks:
+      - mshkur-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  # Image Processing Worker
+  image-worker:
+    build:
+      context: ./image-worker
+      dockerfile: Dockerfile
+    container_name: mshkur-image-worker
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - MAX_CONCURRENT=3
+      - ENABLE_WEBGPU=false
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      - redis
+    networks:
+      - mshkur-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: mshkur-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./public:/var/www/html:ro
+    depends_on:
+      - api
+    networks:
+      - mshkur-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  # Monitoring (Prometheus + Grafana)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mshkur-prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - mshkur-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mshkur-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - mshkur-network
+
+  # Backup Service
+  backup:
+    image: postgres:16-alpine
+    container_name: mshkur-backup
+    restart: "no"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=mshkur
+      - POSTGRES_PASSWORD=mshkur_password
+      - POSTGRES_DB=mshkur
+      - BACKUP_DIR=/backups
+      - RETENTION_DAYS=30
+    volumes:
+      - backup_data:/backups
+    command: >
+      sh -c "
+        while true; do
+          pg_dump -h postgres -U mshkur -d mshkur > /backups/mshkur_$(date +%Y%m%d_%H%M%S).sql
+          find /backups -type f -name '*.sql' -mtime +30 -delete
+          sleep 86400
+        done
+      "
+    networks:
+      - mshkur-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  whatsapp_session:
+  prometheus_data:
+  grafana_data:
+  backup_data:
+
+networks:
+  mshkur-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
