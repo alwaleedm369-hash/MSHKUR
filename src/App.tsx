@@ -41,7 +41,7 @@ const messages = {
     tourSteps: ['Add a car photo from your gallery or camera.', 'The vehicle is separated locally; your original stays untouched.', 'Drag the comparison handle to inspect the edges.', 'Choose a background, then save your finished image.'],
     previous: 'Previous step', next: 'Next step', skipTour: 'Close guide', restartTour: 'Replay guide',
     resultReady: 'Your result is ready', processError: 'Could not process this image. Try another photo or device.',
-    downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.', command: 'AIBG commands', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'Apply command', commandNeedsCutout: 'Run background removal first to enable mask commands.', commandApplied: 'Command applied.', approve: 'Approve result', approved: 'Approved for export', approvalRequired: 'Review and approve this image before downloading.'
+    downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.', command: 'AIBG commands', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'Apply command', commandNeedsCutout: 'Run background removal first to enable mask commands.', commandApplied: 'Command applied.', approve: 'Approve result', approved: 'Approved for export', approvalRequired: 'Review and approve this image before downloading.', storageError: 'Local storage is unavailable. You can continue working in this session.'
   },
   ar: {
     studio: 'الاستوديو', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
@@ -75,7 +75,7 @@ const messages = {
   },
 } as const;
 
-type Key = keyof typeof messages.en;
+type Key = Exclude<keyof typeof messages.en, 'tourSteps'>;
 
 function CarMark() {
   return <span className="brand-mark"><CarFront size={20} strokeWidth={1.8} /></span>;
