@@ -34,3 +34,7 @@ MSHKUR.com is registered with Hostinger. Hosting/VPS choices are provisional: va
 
 ## Continuity rules
 Every AI session must intake, inspect, independently verify prior claims, continue the current gate, test, and update the handoff/changelog. See `docs/AI_PROJECT_CHAT_INSTRUCTIONS.md` for detailed requirements and the specific project-chat companion called **Virtual Agent (الوكيل الافتراضي)**.
+
+
+## Smart Graph / Graphy direction
+The shared relationship layer is named **MSHKUR Smart Graph** (internal codename: Graphy). It connects scoped memory, knowledge sources, skills, assistants, workflows, tasks, permissions and evaluation evidence. It does not replace SkillRuntime, TaskRuntime, durable storage, audit or approval gates. See `docs/architecture/MSHKUR_SMART_GRAPH_AND_TRAINING_AR.md`. Treat legacy skill definitions and mock handlers as catalogue/reference only unless separately verified by the newer SkillRuntime.

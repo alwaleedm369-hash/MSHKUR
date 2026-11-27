@@ -13,7 +13,7 @@
     "start": "node server/index.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/ad-copy.test.mjs tests/api.test.mjs tests/engine.test.mjs tests/image-crop-geometry.test.mjs tests/micro-saas.test.mjs tests/mshkur-image-math.test.mjs tests/plate-blur-sharp.test.mjs tests/skills-contract.test.mjs tests/whatsapp-share.test.mjs tests/locale.test.mjs tests/vehicle-image-engine.test.mjs tests/vehicle-batch-pipeline.test.mjs",
+    "test": "node --test tests/ad-copy.test.mjs tests/api.test.mjs tests/engine.test.mjs tests/image-crop-geometry.test.mjs tests/micro-saas.test.mjs tests/mshkur-image-math.test.mjs tests/plate-blur-sharp.test.mjs tests/skills-contract.test.mjs tests/whatsapp-share.test.mjs tests/locale.test.mjs tests/vehicle-image-engine.test.mjs tests/vehicle-batch-pipeline.test.mjs tests/smart-graph.test.mjs tests/smart-graph-sqlite.test.mjs",
     "test:unit": "node --test tests/mshkur-image-math.test.mjs tests/skills-contract.test.mjs tests/image-crop-geometry.test.mjs tests/whatsapp-share.test.mjs",
     "check": "npm test && npm run build",
     "check:env": "node scripts/check-env.mjs",
