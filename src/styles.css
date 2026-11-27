@@ -196,3 +196,21 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .thumb-status.needs-review { background: #d97706; }
 .thumb-status.failed { background: #b91c1c; }
 .thumb-status.processing, .thumb-status.queued { background: #2563eb; }
+
+
+.aibg-command-panel {
+  display: grid; gap: 8px; margin: 14px 0; padding: 12px;
+  border: 1px solid var(--line, #e5e7eb); border-radius: 14px;
+  background: var(--surface-soft, #f8fafc);
+}
+.aibg-command-row { display: flex; gap: 8px; align-items: stretch; }
+.aibg-command-row input {
+  min-width: 0; flex: 1; width: 100%; padding: 11px 12px;
+  border: 1px solid var(--line, #dbe1e8); border-radius: 10px;
+  background: var(--surface, #fff); color: inherit; font: inherit;
+}
+.aibg-command-row button { white-space: nowrap; }
+@media (max-width: 480px) {
+  .aibg-command-row { flex-direction: column; }
+  .aibg-command-row button { width: 100%; justify-content: center; }
+}
