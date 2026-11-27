@@ -386,6 +386,12 @@ export default function App() {
                   <button className={background === 'white' ? 'chosen' : ''} onClick={() => setBackground('white')}><span className="swatch white-swatch"/><span><strong>{t('white')}</strong><small>{t('whiteHint')}</small></span>{background === 'white' && <Check size={17}/>}</button>
                   <button className={background === 'transparent' ? 'chosen' : ''} onClick={() => setBackground('transparent')}><span className="swatch transparent-swatch"/><span><strong>{t('transparent')}</strong><small>{t('transparentHint')}</small></span>{background === 'transparent' && <Check size={17}/>}</button>
                 </div>
+                <button className="remove-button" disabled={busy} onClick={handleRemoveBackground}>{busy ? <span className="spinner"/> : <Sparkles size={18}/>} {busy ? processStatus : t('remove')}<ArrowUpRight size={17}/></button>
+                <p className="processing-note">{t('processingHint')}</p>
+                {processError && <div className="notice" role="alert">{processError}</div>}
+              </div>}
+              {activePhoto && resultUrl && <div className="edit-panel result-panel">
+                <div className="panel-top"><div><span className="eyebrow">{t('processed')}</span><strong>{t('resultReady')}</strong></div><span className="panel-icon"><Check size={18}/></span></div>
                 <div className="aibg-command-panel">
                   <label className="eyebrow" htmlFor="aibg-command">{t('command')}</label>
                   <div className="aibg-command-row">
@@ -393,12 +399,6 @@ export default function App() {
                     <button className="button-secondary" onClick={executeImageCommand} disabled={busy || !commandText.trim()}>{t('runCommand')}</button>
                   </div>
                 </div>
-                <button className="remove-button" disabled={busy} onClick={handleRemoveBackground}>{busy ? <span className="spinner"/> : <Sparkles size={18}/>} {busy ? processStatus : t('remove')}<ArrowUpRight size={17}/></button>
-                <p className="processing-note">{t('processingHint')}</p>
-                {processError && <div className="notice" role="alert">{processError}</div>}
-              </div>}
-              {activePhoto && resultUrl && <div className="edit-panel result-panel">
-                <div className="panel-top"><div><span className="eyebrow">{t('processed')}</span><strong>{t('resultReady')}</strong></div><span className="panel-icon"><Check size={18}/></span></div>
                 <div className="result-actions"><button className="remove-button" onClick={downloadResult}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);setResultUrl(null);setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: undefined, processedUrl: undefined, processedBackground: undefined } : photo));deletePhotoRecord(activePhoto.id).then(() => savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, updatedAt: Date.now() })).catch(error => console.warn('Could not reset saved result:', error));setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
               </div>}
               {activePhoto && !resultUrl && tourOpen && <section className="guided-tour" aria-live="polite">
