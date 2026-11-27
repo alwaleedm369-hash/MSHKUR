@@ -310,3 +310,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
  .assistant-card-overlay i{width:27px;height:27px;bottom:11px;inset-inline-end:10px}.assistant-section-title h2{font-size:17px}
 }
 @media(max-width:380px){.assistant-hero{min-height:208px}.assistant-hero-copy{max-width:76%}.assistant-visual-card{height:158px}.assistant-card-overlay b{font-size:11px}.assistant-next-strip{padding:11px;gap:9px}}
+
+
+/* Smart workspace actions: clear, thumb-friendly controls */
+.assistant-quick-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}
+.assistant-quick-actions button{min-height:38px;padding:0 13px;border:1px solid var(--line,#e7e8f0);border-radius:999px;background:var(--surface,#fff);color:var(--text,#28283d);font:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:background .18s,border-color .18s,transform .18s}
+.assistant-quick-actions button:hover{border-color:#8178ed;background:#f5f3ff}
+.assistant-quick-actions button:active{transform:scale(.97)}
+.assistant-quick-actions button:focus-visible,.assistant-composer-foot button:focus-visible{outline:3px solid #8178ed55;outline-offset:2px}
+@media(max-width:760px){.assistant-quick-actions{gap:7px}.assistant-quick-actions button{min-height:42px;padding:0 12px;font-size:10px}}
