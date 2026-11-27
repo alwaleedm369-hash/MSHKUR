@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 type Locale = 'en' | 'ar';
-type Screen = 'studio' | 'library' | 'team' | 'settings';
+type Screen = 'studio' | 'assistant' | 'library' | 'team' | 'settings';
 type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; cutoutBlob?: Blob; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string; approved?: boolean };
 
 const messages = {
@@ -121,6 +121,8 @@ async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transp
 export default function App() {
   const [locale, setLocale] = useState<Locale>(() => localStorage.getItem('mshkur.locale') === 'ar' ? 'ar' : 'en');
   const [screen, setScreen] = useState<Screen>('studio');
+  const [assistantPrompt, setAssistantPrompt] = useState('');
+  const [assistantReply, setAssistantReply] = useState('');
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [background, setBackground] = useState<'white' | 'transparent'>('white');
@@ -323,6 +325,15 @@ export default function App() {
     setNotice('');
   }
 
+  function submitAssistantPrompt() {
+    const prompt = assistantPrompt.trim();
+    if (!prompt) return;
+    setAssistantReply(isArabic
+      ? 'وصل طلبك. أستطيع فتح استوديو الصور وتنفيذ خطوات إزالة الخلفية المتاحة الآن. بقية الخدمات لن أظهرها كأنها متصلة قبل ربطها واختبارها.'
+      : 'Request received. I can open the photo studio and run the background-removal steps currently available. I will not present other services as connected until they are integrated and tested.');
+    if (/خلفية|ازالة|إزالة|background|remove/i.test(prompt)) window.setTimeout(() => goTo('studio'), 500);
+  }
+
   return (
     <div className={`app-shell ${isArabic ? 'rtl' : ''}`} dir={isArabic ? 'rtl' : 'ltr'}>
       <header className="topbar">
@@ -342,7 +353,7 @@ export default function App() {
       {menuOpen && <div className="menu-backdrop" onClick={() => setMenuOpen(false)}>
         <nav className="menu-sheet" onClick={event => event.stopPropagation()}>
           <div className="menu-sheet-head"><strong>MSHKUR</strong><button onClick={() => setMenuOpen(false)} aria-label={t('close')}><X size={19}/></button></div>
-          {(['studio', 'library', 'settings'] as Screen[]).map(item =>
+          {(['assistant', 'studio', 'library', 'settings'] as Screen[]).map(item =>
             <button key={item} className={`menu-link ${screen === item ? 'active' : ''}`} onClick={() => goTo(item)}>
               <span>{t(item)}</span><ArrowUpRight size={17}/>
             </button>
@@ -442,6 +453,25 @@ export default function App() {
             </aside>}
           </section>
         </>}
+
+        {screen === 'assistant' && <section className="assistant-home" aria-label={isArabic ? 'مشكور الذكي' : 'MSHKUR smart workspace'}>
+          <div className="assistant-hero"><div className="assistant-hero-copy">
+            <span className="assistant-kicker"><Sparkles size={14}/> {isArabic ? 'مساحة العمل الذكية' : 'YOUR SMART WORKSPACE'}</span>
+            <h1>{isArabic ? 'أهلاً، ماذا ننجز اليوم؟' : 'What shall we make today?'}</h1>
+            <p>{isArabic ? 'صف ما تحتاجه بكلماتك، أو اختر بداية مرئية. مشكور يرتب لك الطريق.' : 'Tell us what you need, or choose a visual starting point. MSHKUR keeps the next step clear.'}</p>
+          </div><div className="assistant-orbit-art" aria-hidden="true"><span className="orbit orbit-one"/><span className="orbit orbit-two"/><span className="orbit-core"><Sparkles size={34}/></span><i className="orbit-star star-one">✦</i><i className="orbit-star star-two">✧</i></div></div>
+          <div className="assistant-composer"><label htmlFor="assistant-prompt">{isArabic ? 'ما النتيجة التي تريد الوصول إليها؟' : 'Describe the result you want'}</label>
+            <textarea id="assistant-prompt" rows={3} value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} placeholder={isArabic ? 'مثلاً: أزل خلفية صورة السيارة واجعلها بيضاء...' : 'For example: Remove the background from my car photo and make it white…'}/>
+            <div className="assistant-composer-foot"><small>{isArabic ? 'اكتب بطريقتك الطبيعية' : 'Use your own words'}</small><button onClick={submitAssistantPrompt} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'ابدأ' : 'Start'}</span><ArrowUpRight size={17}/></button></div>
+            {assistantReply && <p className="assistant-honest-reply" role="status">{assistantReply}</p>}
+          </div>
+          <div className="assistant-section-title"><div><span>{isArabic ? 'ابدأ من هنا' : 'START WITH A RESULT'}</span><h2>{isArabic ? 'أفكار مرئية وسريعة' : 'Visual ways to get started'}</h2></div><span className="assistant-section-spark">✧</span></div>
+          <div className="assistant-visual-grid">
+            <button className="assistant-visual-card photo-card" onClick={() => goTo('studio')}><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=85" alt={isArabic ? 'سيارة في تصوير احترافي' : 'Car in a professional photo setting'} loading="lazy"/><span className="assistant-card-overlay"><b>{isArabic ? 'جهّز صورة منتجك' : 'Prepare a product photo'}</b><small>{isArabic ? 'إزالة الخلفية وتحضير الصورة' : 'Remove the background and prepare the image'}</small><i><ArrowUpRight size={17}/></i></span></button>
+            <button className="assistant-visual-card concept-card" onClick={() => goTo('studio')}><img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=85" alt={isArabic ? 'تفاصيل سيارة واضحة' : 'Detailed vehicle photography'} loading="lazy"/><span className="assistant-card-overlay"><b>{isArabic ? 'حسّن مظهر صورك' : 'Give your images a cleaner look'}</b><small>{isArabic ? 'ابدأ من استوديو الصور' : 'Continue in the photo studio'}</small><i><ArrowUpRight size={17}/></i></span></button>
+          </div>
+          <div className="assistant-next-strip"><span className="assistant-next-icon"><Images size={19}/></span><div><b>{isArabic ? 'كل أعمالك في مكان واحد' : 'Your work, in one place'}</b><small>{isArabic ? 'ارجع إلى الصور التي أضفتها ونتائجك المحفوظة' : 'Return to the photos you imported and saved results'}</small></div><button onClick={() => goTo('library')} aria-label={isArabic ? 'افتح أعمالي' : 'Open my work'}><ArrowUpRight size={18}/></button></div>
+        </section>}
 
         {screen === 'library' && <section className="secondary-screen"><span className="eyebrow">YOUR WORKSPACE</span><h1>{t('libraryTitle')}</h1><p>{t('libraryHint')}</p>
           {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
