@@ -27,7 +27,10 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm rebuild better-sqlite3 sharp --no-audit --no-fund
+          node scripts/copy-onnx-wasm.mjs
       - name: Run automated tests
         run: npm test
       - name: Type-check and build Vite application
