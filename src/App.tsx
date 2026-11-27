@@ -282,7 +282,8 @@ export default function App() {
           setNotice(report.status + ': ' + (report.issues.map(issue=>issue.message).join(' ') || 'No geometry warnings.')); return;
         }
         if (command.action === 'REMOVE' || command.action === 'KEEP') {
-          applyAlphaRegion(alpha,bitmap.width,bitmap.height,command);
+          if (!command.region) throw new Error('A region is required for REMOVE/ and KEEP/.');
+          applyAlphaRegion(alpha,bitmap.width,bitmap.height,{action:command.action,region:command.region});
           for (let i=0;i<alpha.length;i++) imageData.data[i*4+3]=alpha[i];
           context.putImageData(imageData,0,0);
         } else if (!['CENTER','FIT'].includes(command.action)) throw new Error('Unsupported AIBG command.');
