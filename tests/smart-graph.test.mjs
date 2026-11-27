@@ -69,9 +69,6 @@ test('forbids private-to-workspace links across owners', () => {
   graph.addNode({id:'workspace',type:'task',scope:{visibility:'workspace',ownerId:'u2',workspaceId:'w2'}});
   assert.throws(() => graph.addEdge({id:'cross',type:'REFERENCES',from:'private',to:'workspace'}), /Cross-user scoped/);
 });
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { InMemorySmartGraphRepository } from '../src/shared/graph/smartGraph.mjs';
 import { indexCapabilityCatalog } from '../src/shared/graph/capabilityIndex.mjs';
 
 test('projects skill, assistant and workflow catalogues into one graph', () => {
