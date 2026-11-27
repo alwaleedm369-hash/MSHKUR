@@ -60,7 +60,7 @@ Support, where available:
 - Multi-image selection and reference-image attachment.
 - Drag and drop on desktop/tablet.
 
-Show immediate previews and meaningful states for upload, validation, processing, failure, and retry. Preserve the original source and create non-destructive working versions.
+Show immediate previews and meaningful states for upload, validation, processing, failure, and retry. Imported source images are stored separately in IndexedDB; project metadata remains in local storage, so refreshing or reopening a saved project restores its source without embedding large image data in local storage. Preserve the original source and create non-destructive working versions.
 
 ### Generate
 Offer a short natural-language brief with optional reference images. The user should not need to know model names, parameter jargon, or prompt syntax to start.
