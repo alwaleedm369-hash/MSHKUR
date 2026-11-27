@@ -74,6 +74,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const photosRef = useRef<Photo[]>([]);
   const t = (key: Key) => messages[locale][key];
   const activePhoto = photos.find(photo => photo.id === activeId) ?? photos[0] ?? null;
   const isArabic = locale === 'ar';
@@ -84,7 +85,8 @@ export default function App() {
     document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
   }, [locale, isArabic]);
 
-  useEffect(() => () => photos.forEach(photo => URL.revokeObjectURL(photo.url)), []);
+  useEffect(() => { photosRef.current = photos; }, [photos]);
+  useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
   function importPhotos(event: ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(event.target.files ?? []);
@@ -101,13 +103,11 @@ export default function App() {
   }
 
   function removePhoto(id: string) {
-    setPhotos(current => {
-      const target = current.find(photo => photo.id === id);
-      if (target) URL.revokeObjectURL(target.url);
-      const next = current.filter(photo => photo.id !== id);
-      if (activeId === id) setActiveId(next[0]?.id ?? null);
-      return next;
-    });
+    const target = photos.find(photo => photo.id === id);
+    if (target) URL.revokeObjectURL(target.url);
+    const next = photos.filter(photo => photo.id !== id);
+    setPhotos(next);
+    if (activeId === id) setActiveId(next[0]?.id ?? null);
   }
 
   function handleRemoveBackground() {
