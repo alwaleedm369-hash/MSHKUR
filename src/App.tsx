@@ -342,7 +342,7 @@ export default function App() {
       {menuOpen && <div className="menu-backdrop" onClick={() => setMenuOpen(false)}>
         <nav className="menu-sheet" onClick={event => event.stopPropagation()}>
           <div className="menu-sheet-head"><strong>MSHKUR</strong><button onClick={() => setMenuOpen(false)} aria-label={t('close')}><X size={19}/></button></div>
-          {(['studio', 'library', 'team', 'settings'] as Screen[]).map(item =>
+          {(['studio', 'library', 'settings'] as Screen[]).map(item =>
             <button key={item} className={`menu-link ${screen === item ? 'active' : ''}`} onClick={() => goTo(item)}>
               <span>{t(item)}</span><ArrowUpRight size={17}/>
             </button>
@@ -379,6 +379,14 @@ export default function App() {
                     <button className="button-secondary" onClick={() => cameraRef.current?.click()}><Camera size={18}/>{t('camera')}</button>
                   </div>
                   <small>{t('formats')}</small>
+                  <div className="visual-inspiration" aria-label={isArabic ? 'أمثلة مرئية للنتائج' : 'Visual result examples'}>
+                    <div className="visual-inspiration-title">{isArabic ? 'شاهد ما يمكنك إنجازه' : 'See what you can create'}</div>
+                    <div className="visual-inspiration-grid">
+                      <figure><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=420&q=80" alt={isArabic ? 'سيارة جاهزة بخلفية نظيفة' : 'Car with a clean studio look'} loading="lazy"/><figcaption>{isArabic ? 'صورة جاهزة للإعلان' : 'Listing-ready photo'}</figcaption></figure>
+                      <figure><img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=420&q=80" alt={isArabic ? 'تفاصيل سيارة' : 'Vehicle detail'} loading="lazy"/><figcaption>{isArabic ? 'تفاصيل أوضح' : 'Sharper details'}</figcaption></figure>
+                      <figure><img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=420&q=80" alt={isArabic ? 'سيارة في مشهد خارجي' : 'Car in an outdoor scene'} loading="lazy"/><figcaption>{isArabic ? 'خلفية موحدة' : 'Consistent background'}</figcaption></figure>
+                    </div>
+                  </div>
                 </div>}
               </div>
 
