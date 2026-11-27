@@ -264,10 +264,8 @@ export default function App() {
     if (!activePhoto) return;
     try {
       const command = parseImageCommand(commandText);
-      if (command.action === 'WHITE' || command.action === 'TRANSPARENT') {
-        setBackground(command.action === 'WHITE' ? 'white' : 'transparent');
-        setNotice(t('commandApplied')); return;
-      }
+      const targetBackground = command.action === 'WHITE' ? 'white' : command.action === 'TRANSPARENT' ? 'transparent' : background;
+      if (command.action === 'WHITE' || command.action === 'TRANSPARENT') setBackground(targetBackground);
       const sourceBlob = activePhoto.cutoutBlob;
       if (!sourceBlob) { setNotice(t('commandNeedsCutout')); return; }
       const bitmap = await createImageBitmap(sourceBlob);
@@ -289,12 +287,12 @@ export default function App() {
           context.putImageData(imageData,0,0);
         } else if (!['CENTER','FIT'].includes(command.action)) throw new Error('Unsupported AIBG command.');
         const edited = await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not encode edited mask.')),'image/png'));
-        const normalized = await normalizeVehicleOutput(edited,background);
+        const normalized = await normalizeVehicleOutput(edited,targetBackground);
         const url = URL.createObjectURL(normalized.blob);
         if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);
-        setPhotos(current=>current.map(photo=>photo.id===activePhoto.id?{...photo,cutoutBlob:edited,processedBlob:normalized.blob,processedUrl:url,processedBackground:background,processingState:normalized.review.status==='passed'?'ready':'needs-review'}:photo));
+        setPhotos(current=>current.map(photo=>photo.id===activePhoto.id?{...photo,cutoutBlob:edited,processedBlob:normalized.blob,processedUrl:url,processedBackground:targetBackground,processingState:normalized.review.status==='passed'?'ready':'needs-review'}:photo));
         setResultUrl(url);
-        await savePhotoRecord({id:activePhoto.id,name:activePhoto.file.name,type:activePhoto.file.type,lastModified:activePhoto.file.lastModified,original:activePhoto.file,processed:normalized.blob,background,updatedAt:Date.now()});
+        await savePhotoRecord({id:activePhoto.id,name:activePhoto.file.name,type:activePhoto.file.type,lastModified:activePhoto.file.lastModified,original:activePhoto.file,processed:normalized.blob,background:targetBackground,updatedAt:Date.now()});
         setNotice(t('commandApplied'));
       } finally { bitmap.close(); }
     } catch (error) { setNotice(error instanceof Error ? error.message : t('processError')); }
