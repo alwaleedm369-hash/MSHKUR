@@ -35,7 +35,7 @@ Coordinates are normalized from 0 to 1 and refer to the current output/mask plan
 | `TRANSPARENT/` | Preserve alpha |
 | `REVIEW/` | Run deterministic mask QA |
 
-Commands are intentionally constrained; unknown commands and invalid rectangles fail closed. Region commands edit the segmentation alpha mask, not source pixels. The Photo Studio exposes the command console after a cutout exists. `CENTER/`, `FIT/`, `WHITE/` and `TRANSPARENT/` recompose the current cutout; `REVIEW/` returns a geometry report. Region edits are kept in the current browser session; a refreshed session may require running segmentation again because the raw cutout mask is not yet persisted separately.
+Commands are intentionally constrained; unknown commands and invalid rectangles fail closed. Region commands edit the segmentation alpha mask, not source pixels. The Photo Studio exposes the command console after a cutout exists. `CENTER/`, `FIT/`, `WHITE/` and `TRANSPARENT/` recompose the current cutout; `REVIEW/` returns a geometry report. The raw transparent cutout Blob is persisted separately in IndexedDB alongside the original and rendered output, so region-edit commands can be restored after a page reload on the same browser profile. This remains device-local storage and is subject to browser storage eviction or user-cleared site data.
 
 ## Skills and assistants
 - Vehicle Retoucher: segmentation adapter, mask refinement, region commands, grounded placement and background composition.
