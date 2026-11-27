@@ -116,7 +116,7 @@ export default function App() {
     );
   }
 
-  if (adWorkflowOpen) {
+  if (adWorkflowOpen && !user) {
     return (
       <CommercialShell
         aiFloatVisible={aiFloatVisible}
@@ -129,7 +129,7 @@ export default function App() {
         <CarAdWorkflow
           onBack={() => {
             setAdWorkflowOpen(false);
-            if (!user) setGuestMode(true);
+            setGuestMode(true);
           }}
           onRequestPublish={(payload) => {
             setPublishMeta({ title: payload.title, draft: payload.draft });
