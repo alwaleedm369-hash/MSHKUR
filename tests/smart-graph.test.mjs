@@ -62,3 +62,10 @@ test('removal deletes incident edges and snapshot respects scope', () => {
   assert.equal(graph.removeNode('a',{userId:'u1'}),true);
   assert.deepEqual(graph.size,{nodes:1,edges:0});
 });
+
+test('forbids private-to-workspace links across owners', () => {
+  const graph = new InMemorySmartGraphRepository();
+  graph.addNode({id:'private',type:'memory',scope:{visibility:'private',ownerId:'u1'}});
+  graph.addNode({id:'workspace',type:'task',scope:{visibility:'workspace',ownerId:'u2',workspaceId:'w2'}});
+  assert.throws(() => graph.addEdge({id:'cross',type:'REFERENCES',from:'private',to:'workspace'}), /Cross-user scoped/);
+});
