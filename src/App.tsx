@@ -154,7 +154,7 @@ export default function App() {
         setNotice(t('storageError'));
       }));
       setActiveId(added[0].id);
-      setResultUrl(current => { if (current) URL.revokeObjectURL(current); return null; });
+      setResultUrl(null);
       setTourStep(0);
       setTourOpen(true);
       setScreen('studio');
@@ -198,6 +198,7 @@ export default function App() {
         outputBlob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG export failed')), 'image/png'));
       }
       const nextUrl = URL.createObjectURL(outputBlob);
+      if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);
       setResultUrl(nextUrl);
       setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: outputBlob, processedUrl: nextUrl, processedBackground: background } : photo));
       try {
@@ -320,7 +321,7 @@ export default function App() {
               </div>}
               {activePhoto && resultUrl && <div className="edit-panel result-panel">
                 <div className="panel-top"><div><span className="eyebrow">{t('processed')}</span><strong>{t('resultReady')}</strong></div><span className="panel-icon"><Check size={18}/></span></div>
-                <div className="result-actions"><button className="remove-button" onClick={downloadResult}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {setResultUrl(null);setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: undefined, processedUrl: undefined, processedBackground: undefined } : photo));deletePhotoRecord(activePhoto.id).then(() => savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, updatedAt: Date.now() })).catch(error => console.warn('Could not reset saved result:', error));setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
+                <div className="result-actions"><button className="remove-button" onClick={downloadResult}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);setResultUrl(null);setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: undefined, processedUrl: undefined, processedBackground: undefined } : photo));deletePhotoRecord(activePhoto.id).then(() => savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, updatedAt: Date.now() })).catch(error => console.warn('Could not reset saved result:', error));setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
               </div>}
               {activePhoto && !resultUrl && tourOpen && <section className="guided-tour" aria-live="polite">
                 <div className="tour-top"><span className="eyebrow">{t('tutorial')}</span><button onClick={() => setTourOpen(false)} aria-label={t('skipTour')}><X size={16}/></button></div>
