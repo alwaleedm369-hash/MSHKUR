@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoStorage';
-import { getGroundedSubjectPlacement, inspectAlphaPlane, reviewVehicleMask } from './vehicleImageEngine.mjs';
+import { applyAlphaRegion, getGroundedSubjectPlacement, inspectAlphaPlane, parseImageCommand, reviewVehicleMask } from './vehicleImageEngine.mjs';
 import { runVehicleBatch } from './vehicleBatchPipeline.mjs';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
@@ -10,7 +10,7 @@ import {
 
 type Locale = 'en' | 'ar';
 type Screen = 'studio' | 'library' | 'team' | 'settings';
-type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string };
+type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; cutoutBlob?: Blob; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string };
 
 const messages = {
   en: {
@@ -41,7 +41,7 @@ const messages = {
     tourSteps: ['Add a car photo from your gallery or camera.', 'The vehicle is separated locally; your original stays untouched.', 'Drag the comparison handle to inspect the edges.', 'Choose a background, then save your finished image.'],
     previous: 'Previous step', next: 'Next step', skipTour: 'Close guide', restartTour: 'Replay guide',
     resultReady: 'Your result is ready', processError: 'Could not process this image. Try another photo or device.',
-    downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.'
+    downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.', command: 'AIBG commands', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'Apply command', commandNeedsCutout: 'Run background removal first to enable mask commands.', commandApplied: 'Command applied.'
   },
   ar: {
     studio: 'الاستوديو', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
@@ -71,7 +71,7 @@ const messages = {
     tourSteps: ['أضف صورة السيارة من المعرض أو الكاميرا.', 'يتم فصل السيارة محلياً مع الحفاظ على الصورة الأصلية.', 'اسحب فاصل المقارنة لفحص الحواف.', 'اختر الخلفية ثم احفظ الصورة النهائية.'],
     previous: 'الخطوة السابقة', next: 'الخطوة التالية', skipTour: 'إغلاق الشرح', restartTour: 'إعادة الشرح',
     resultReady: 'النتيجة جاهزة', processError: 'تعذرت معالجة هذه الصورة. جرّب صورة أو جهازاً آخر.',
-    downloadResult: 'تنزيل النتيجة', reset: 'البدء من جديد', processingNote: 'اترك هذه الصفحة مفتوحة أثناء عمل النموذج.', batchWarning: 'بعض الصور تحتاج إلى مراجعة بصرية قبل التصدير.', storageError: 'التخزين المحلي غير متاح. يمكنك متابعة العمل خلال هذه الجلسة.'
+    downloadResult: 'تنزيل النتيجة', reset: 'البدء من جديد', processingNote: 'اترك هذه الصفحة مفتوحة أثناء عمل النموذج.', batchWarning: 'بعض الصور تحتاج إلى مراجعة بصرية قبل التصدير.', command: 'أوامر AIBG', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'تنفيذ الأمر', commandNeedsCutout: 'ابدأ بإزالة الخلفية أولاً لتفعيل أوامر القناع.', commandApplied: 'تم تنفيذ الأمر.', storageError: 'التخزين المحلي غير متاح. يمكنك متابعة العمل خلال هذه الجلسة.'
   },
 } as const;
 
@@ -132,6 +132,7 @@ export default function App() {
   const sliderRef = useRef<HTMLDivElement>(null);
   const sliderDragging = useRef(false);
   const [notice, setNotice] = useState('');
+  const [commandText, setCommandText] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -232,7 +233,7 @@ export default function App() {
         setPhotos(current => current.map(item => {
           if (item.id !== photo.id) return item;
           if (item.processedUrl) URL.revokeObjectURL(item.processedUrl);
-          return { ...item, processedBlob: normalized.blob, processedUrl: nextUrl, processedBackground: background, processingState: normalized.review.status === 'passed' ? 'ready' : 'needs-review' };
+          return { ...item, processedBlob: normalized.blob, processedUrl: nextUrl, processedBackground: background, cutoutBlob: cutout.blob, processingState: normalized.review.status === 'passed' ? 'ready' : 'needs-review' };
         }));
         try { await savePhotoRecord({ id: photo.id, name: photo.file.name, type: photo.file.type, lastModified: photo.file.lastModified, original: photo.file, processed: normalized.blob, background, updatedAt: Date.now() }); }
         catch (storageError) { console.warn('Processed output could not be persisted:', storageError); }
@@ -257,6 +258,46 @@ export default function App() {
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
+  }
+
+  async function executeImageCommand() {
+    if (!activePhoto) return;
+    try {
+      const command = parseImageCommand(commandText);
+      if (command.action === 'WHITE' || command.action === 'TRANSPARENT') {
+        setBackground(command.action === 'WHITE' ? 'white' : 'transparent');
+        setNotice(t('commandApplied')); return;
+      }
+      const sourceBlob = activePhoto.cutoutBlob;
+      if (!sourceBlob) { setNotice(t('commandNeedsCutout')); return; }
+      const bitmap = await createImageBitmap(sourceBlob);
+      try {
+        const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+        const context = canvas.getContext('2d', {willReadFrequently:true});
+        if (!context) throw new Error('Image editing is unavailable.');
+        context.drawImage(bitmap,0,0);
+        const imageData = context.getImageData(0,0,bitmap.width,bitmap.height);
+        const alpha = new Uint8Array(bitmap.width*bitmap.height);
+        for (let i=0;i<alpha.length;i++) alpha[i]=imageData.data[i*4+3];
+        if (command.action === 'REVIEW') {
+          const report = reviewVehicleMask(inspectAlphaPlane(alpha,bitmap.width,bitmap.height),bitmap.width,bitmap.height);
+          setNotice(report.status + ': ' + (report.issues.map(issue=>issue.message).join(' ') || 'No geometry warnings.')); return;
+        }
+        if (command.action === 'REMOVE' || command.action === 'KEEP') {
+          applyAlphaRegion(alpha,bitmap.width,bitmap.height,command);
+          for (let i=0;i<alpha.length;i++) imageData.data[i*4+3]=alpha[i];
+          context.putImageData(imageData,0,0);
+        } else if (!['CENTER','FIT'].includes(command.action)) throw new Error('Unsupported AIBG command.');
+        const edited = await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not encode edited mask.')),'image/png'));
+        const normalized = await normalizeVehicleOutput(edited,background);
+        const url = URL.createObjectURL(normalized.blob);
+        if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);
+        setPhotos(current=>current.map(photo=>photo.id===activePhoto.id?{...photo,cutoutBlob:edited,processedBlob:normalized.blob,processedUrl:url,processedBackground:background,processingState:normalized.review.status==='passed'?'ready':'needs-review'}:photo));
+        setResultUrl(url);
+        await savePhotoRecord({id:activePhoto.id,name:activePhoto.file.name,type:activePhoto.file.type,lastModified:activePhoto.file.lastModified,original:activePhoto.file,processed:normalized.blob,background,updatedAt:Date.now()});
+        setNotice(t('commandApplied'));
+      } finally { bitmap.close(); }
+    } catch (error) { setNotice(error instanceof Error ? error.message : t('processError')); }
   }
 
   function updateSlider(clientX: number) {
@@ -345,6 +386,13 @@ export default function App() {
                 <div className="background-options">
                   <button className={background === 'white' ? 'chosen' : ''} onClick={() => setBackground('white')}><span className="swatch white-swatch"/><span><strong>{t('white')}</strong><small>{t('whiteHint')}</small></span>{background === 'white' && <Check size={17}/>}</button>
                   <button className={background === 'transparent' ? 'chosen' : ''} onClick={() => setBackground('transparent')}><span className="swatch transparent-swatch"/><span><strong>{t('transparent')}</strong><small>{t('transparentHint')}</small></span>{background === 'transparent' && <Check size={17}/>}</button>
+                </div>
+                <div className="aibg-command-panel">
+                  <label className="eyebrow" htmlFor="aibg-command">{t('command')}</label>
+                  <div className="aibg-command-row">
+                    <input id="aibg-command" value={commandText} onChange={event => setCommandText(event.target.value)} placeholder={t('commandHint')} />
+                    <button className="button-secondary" onClick={executeImageCommand} disabled={busy || !commandText.trim()}>{t('runCommand')}</button>
+                  </div>
                 </div>
                 <button className="remove-button" disabled={busy} onClick={handleRemoveBackground}>{busy ? <span className="spinner"/> : <Sparkles size={18}/>} {busy ? processStatus : t('remove')}<ArrowUpRight size={17}/></button>
                 <p className="processing-note">{t('processingHint')}</p>
