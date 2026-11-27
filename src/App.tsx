@@ -358,7 +358,7 @@ export default function App() {
                   <input className="compare-range" aria-label={t('dragHint')} onPointerDown={event => event.stopPropagation()} type="range" min="0" max="100" value={sliderPosition} onChange={event => setSliderPosition(Number(event.target.value))}/>
                 </div> : <>
                   <img src={activePhoto.url} alt={activePhoto.file.name} className="vehicle-preview" />
-                  <div className="image-overlay"><span>{activePhoto.file.name}</span><button onClick={() => removePhoto(activePhoto.id)} aria-label={t('removePhoto')}><X size={16}/></button></div>
+                  <div className="image-overlay"><span>{activePhoto.file.name}</span><button disabled={busy} onClick={() => removePhoto(activePhoto.id)} aria-label={t('removePhoto')}><X size={16}/></button></div>
                 </> : <div className="empty-canvas">
                   <div className="car-outline"><CarFront size={72} strokeWidth={1.1}/></div>
                   <strong>{t('uploadTitle')}</strong><p>{t('uploadHint')}</p>
@@ -373,7 +373,7 @@ export default function App() {
               {photos.length > 0 && <div className="photo-strip">
                 <div className="strip-label">{t('selected')} <span>{photos.length}</span></div>
                 <div className="thumb-list">
-                  {photos.map(photo => <button key={photo.id} className={`photo-thumb ${activePhoto?.id === photo.id ? 'selected' : ''}`} onClick={() => { setActiveId(photo.id); setResultUrl(photo.processedUrl ?? null); setBackground(photo.processedBackground ?? 'white'); setProcessStatus(''); }} aria-label={photo.file.name}>
+                  {photos.map(photo => <button key={photo.id} className={`photo-thumb ${activePhoto?.id === photo.id ? 'selected' : ''}`} disabled={busy} onClick={() => { setActiveId(photo.id); setResultUrl(photo.processedUrl ?? null); setBackground(photo.processedBackground ?? 'white'); setProcessStatus(''); }} aria-label={photo.file.name}>
                     <img src={photo.url} alt="" /><span className="thumb-check"><Check size={11}/></span>{photo.processingState && <span className={"thumb-status " + photo.processingState} title={photo.processingError || photo.processingState}>{photo.processingState === "ready" ? "✓" : photo.processingState === "needs-review" ? "!" : photo.processingState === "failed" ? "×" : photo.processingState === "processing" ? "…" : "·"}</span>}
                   </button>)}
                   <button className="add-thumb" onClick={() => galleryRef.current?.click()} aria-label={t('addMore')}><ImagePlus size={19}/></button>
