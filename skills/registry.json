@@ -119,7 +119,7 @@
     "id": "vehicle-mask-review",
     "name": "مراجع قناع السيارة",
     "category": "quality",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "فحص هندسي لقناع السيارة واكتشاف القناع الفارغ ومخاطر القص والتسرب.",
     "input": "alpha-mask-report",
     "output": "quality-report",
@@ -134,15 +134,15 @@
     "id": "vehicle-batch-process",
     "name": "معالجة دفعات السيارات",
     "category": "image",
-    "version": "0.2.0",
-    "description": "توحيد لوحة الإخراج وخط الأرضية والهوامش والخلفية لكل صور الدفعة.",
+    "version": "0.3.0",
+    "description": "تنفيذ متتابع فعلي للصور مع حالة مستقلة لكل صورة ومتابعة التقدم وإمكانية الاستمرار عند فشل عنصر.",
     "input": "image-file-batch",
-    "output": "batch-plan",
+    "output": "per-image-batch-results",
     "permissions": [
       "image:process"
     ],
     "cost": "local",
     "runtime": "browser",
-    "entrypoint": "browser:vehicleImageEngine.createBatchPlan"
+    "entrypoint": "browser:vehicleBatchPipeline.runVehicleBatch"
   }
 ]
