@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoStorage';
-import { getCenteredSubjectPlacement, inspectAlphaPlane } from './vehicleImageEngine.mjs';
+import { getGroundedSubjectPlacement, inspectAlphaPlane, reviewVehicleMask } from './vehicleImageEngine.mjs';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
   CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
@@ -94,16 +94,24 @@ async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transp
     for (let i = 0; i < alpha.length; i++) alpha[i] = pixels[i * 4 + 3];
     const report = inspectAlphaPlane(alpha, bitmap.width, bitmap.height);
     if (!report.bounds) throw new Error('The vehicle mask is empty. Try another image.');
-    const placement = getCenteredSubjectPlacement(bitmap.width, bitmap.height, report.bounds);
+    const placement = getGroundedSubjectPlacement(bitmap.width, bitmap.height, report.bounds);
     const output = document.createElement('canvas');
     output.width = placement.canvas.width; output.height = placement.canvas.height;
     const context = output.getContext('2d');
     if (!context) throw new Error('Canvas export is unavailable.');
     if (background === 'white') { context.fillStyle = '#fff'; context.fillRect(0, 0, output.width, output.height); }
     const s = placement.source, d = placement.destination;
+    // A soft contact shadow anchors the tires to the studio floor instead of leaving the car visually airborne.
+    context.save();
+    context.filter = 'blur(16px)';
+    context.fillStyle = 'rgba(18, 24, 32, 0.16)';
+    context.beginPath();
+    context.ellipse(d.x + d.width / 2, placement.baseline + 9, d.width * 0.36, Math.max(7, d.height * 0.025), 0, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
     context.drawImage(bitmap, s.x, s.y, s.width, s.height, d.x, d.y, d.width, d.height);
     const blob = await new Promise<Blob>((resolve, reject) => output.toBlob(value => value ? resolve(value) : reject(new Error('PNG export failed.')), 'image/png'));
-    return { blob, review: { touchesEdge: report.touchesEdge, visiblePixels: report.visiblePixels, bounds: report.bounds } };
+    return { blob, review: reviewVehicleMask(report, bitmap.width, bitmap.height) };
   } finally { bitmap.close(); }
 }
 
@@ -221,7 +229,7 @@ export default function App() {
       setProcessStatus(t('compositing'));
       const normalized = await normalizeVehicleOutput(cutout.blob, background);
       const outputBlob = normalized.blob;
-      if (normalized.review.touchesEdge) setNotice(isArabic ? 'تنبيه الجودة: قناع السيارة يلامس حافة الصورة؛ راجع القص قبل الاعتماد.' : 'Quality review: the vehicle mask touches an image edge. Inspect the crop before approval.');
+      if (normalized.review.status !== 'passed') setNotice(isArabic ? `مراجعة الجودة: ${normalized.review.issues.map(issue => issue.message).join(' ')}` : `Quality review: ${normalized.review.issues.map(issue => issue.message).join(' ')}`);
       const nextUrl = URL.createObjectURL(outputBlob);
       if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);
       setResultUrl(nextUrl);
