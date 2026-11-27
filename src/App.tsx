@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoStorage';
 import { getGroundedSubjectPlacement, inspectAlphaPlane, reviewVehicleMask } from './vehicleImageEngine.mjs';
+import { runVehicleBatch } from './vehicleBatchPipeline.mjs';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
   CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
@@ -9,7 +10,7 @@ import {
 
 type Locale = 'en' | 'ar';
 type Screen = 'studio' | 'library' | 'team' | 'settings';
-type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent' };
+type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string };
 
 const messages = {
   en: {
@@ -40,7 +41,7 @@ const messages = {
     tourSteps: ['Add a car photo from your gallery or camera.', 'The vehicle is separated locally; your original stays untouched.', 'Drag the comparison handle to inspect the edges.', 'Choose a background, then save your finished image.'],
     previous: 'Previous step', next: 'Next step', skipTour: 'Close guide', restartTour: 'Replay guide',
     resultReady: 'Your result is ready', processError: 'Could not process this image. Try another photo or device.',
-    downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.'
+    downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.'
   },
   ar: {
     studio: 'الاستوديو', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
@@ -70,7 +71,7 @@ const messages = {
     tourSteps: ['أضف صورة السيارة من المعرض أو الكاميرا.', 'يتم فصل السيارة محلياً مع الحفاظ على الصورة الأصلية.', 'اسحب فاصل المقارنة لفحص الحواف.', 'اختر الخلفية ثم احفظ الصورة النهائية.'],
     previous: 'الخطوة السابقة', next: 'الخطوة التالية', skipTour: 'إغلاق الشرح', restartTour: 'إعادة الشرح',
     resultReady: 'النتيجة جاهزة', processError: 'تعذرت معالجة هذه الصورة. جرّب صورة أو جهازاً آخر.',
-    downloadResult: 'تنزيل النتيجة', reset: 'البدء من جديد', processingNote: 'اترك هذه الصفحة مفتوحة أثناء عمل النموذج.', storageError: 'التخزين المحلي غير متاح. يمكنك متابعة العمل خلال هذه الجلسة.'
+    downloadResult: 'تنزيل النتيجة', reset: 'البدء من جديد', processingNote: 'اترك هذه الصفحة مفتوحة أثناء عمل النموذج.', batchWarning: 'بعض الصور تحتاج إلى مراجعة بصرية قبل التصدير.', storageError: 'التخزين المحلي غير متاح. يمكنك متابعة العمل خلال هذه الجلسة.'
   },
 } as const;
 
@@ -213,44 +214,41 @@ export default function App() {
   }
 
   async function handleRemoveBackground() {
-    if (!activePhoto || busy) return;
-    setBusy(true);
-    setProcessError('');
-    setProcessStatus(t('modelLoading'));
+    if (!photos.length || busy) return;
+    const queue = photos.filter(photo => !photo.processedBlob || photo.processedBackground !== background);
+    if (!queue.length) { setNotice(isArabic ? 'كل الصور المحددة لديها نتائج بهذه الخلفية.' : 'All selected photos already have results with this background.'); return; }
+    setBusy(true); setProcessError(''); setNotice(''); setProcessStatus(t('modelLoading'));
+    setPhotos(current => current.map(photo => queue.some(item => item.id === photo.id) ? { ...photo, processingState: 'queued', processingError: undefined } : photo));
     try {
-      const [{ removeBackground }, { env }] = await Promise.all([
-        import('@bg0/browser'),
-        import('@huggingface/transformers'),
-      ]);
+      const [{ removeBackground }, { env }] = await Promise.all([import('@bg0/browser'), import('@huggingface/transformers')]);
       const runtime = env as unknown as { backends?: { onnx?: { wasm?: { wasmPaths?: string } } } };
       if (runtime.backends?.onnx?.wasm) runtime.backends.onnx.wasm.wasmPaths = '/onnx/';
-      setProcessStatus(t('cutting'));
-      const cutout = await removeBackground(activePhoto.file);
-      setProcessStatus(t('compositing'));
-      const normalized = await normalizeVehicleOutput(cutout.blob, background);
-      const outputBlob = normalized.blob;
-      if (normalized.review.status !== 'passed') setNotice(isArabic ? `مراجعة الجودة: ${normalized.review.issues.map(issue => issue.message).join(' ')}` : `Quality review: ${normalized.review.issues.map(issue => issue.message).join(' ')}`);
-      const nextUrl = URL.createObjectURL(outputBlob);
-      if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);
-      setResultUrl(nextUrl);
-      setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: outputBlob, processedUrl: nextUrl, processedBackground: background } : photo));
-      try {
-        await savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, processed: outputBlob, background, updatedAt: Date.now() });
-      } catch (storageError) {
-        console.warn('Processed output could not be persisted:', storageError);
-        setNotice(t('storageError'));
-      }
-      setSliderPosition(50);
-      setProcessStatus(t('resultReady'));
-      setTourOpen(false);
-    } catch (error) {
-      console.error('Vehicle background removal failed', error);
-      setProcessError(error instanceof Error ? error.message : t('processError'));
-    } finally {
-      setBusy(false);
-    }
+      const batch = await runVehicleBatch(queue, async (photo, index) => {
+        setProcessStatus(isArabic ? 'معالجة الصورة ' + (index + 1) + ' من ' + queue.length : 'Processing image ' + (index + 1) + ' of ' + queue.length);
+        setPhotos(current => current.map(item => item.id === photo.id ? { ...item, processingState: 'processing' } : item));
+        const cutout = await removeBackground(photo.file);
+        const normalized = await normalizeVehicleOutput(cutout.blob, background);
+        const nextUrl = URL.createObjectURL(normalized.blob);
+        setPhotos(current => current.map(item => {
+          if (item.id !== photo.id) return item;
+          if (item.processedUrl) URL.revokeObjectURL(item.processedUrl);
+          return { ...item, processedBlob: normalized.blob, processedUrl: nextUrl, processedBackground: background, processingState: normalized.review.status === 'passed' ? 'ready' : 'needs-review' };
+        }));
+        try { await savePhotoRecord({ id: photo.id, name: photo.file.name, type: photo.file.type, lastModified: photo.file.lastModified, original: photo.file, processed: normalized.blob, background, updatedAt: Date.now() }); }
+        catch (storageError) { console.warn('Processed output could not be persisted:', storageError); }
+        if (photo.id === activeId) setResultUrl(nextUrl);
+        return { blob: normalized.blob, review: normalized.review };
+      }, { onProgress: event => setProcessStatus((isArabic ? 'معالجة الصورة ' : 'Processing image ') + (event.index + 1) + (isArabic ? ' من ' : ' of ') + event.total) });
+      const failed = batch.results.filter(item => item.status === 'failed').length;
+      const review = batch.results.filter(item => item.status === 'needs-review').length;
+      setPhotos(current => current.map(photo => { const result = batch.results.find(item => item.id === photo.id); return result ? { ...photo, processingState: result.status, processingError: result.error ?? undefined } : photo; }));
+      if (failed) setProcessError(isArabic ? 'تعذرت معالجة ' + failed + ' صورة.' : failed + ' image(s) failed.');
+      if (review) setNotice(t('batchWarning'));
+      setProcessStatus(isArabic ? 'اكتملت ' + batch.completed + ' من ' + batch.total + ' صور' : 'Completed ' + batch.completed + ' of ' + batch.total + ' images');
+      if (activeId && queue.some(photo => photo.id === activeId) && batch.results.some(item => item.id === activeId && item.result)) setTourOpen(false);
+    } catch (error) { console.error('Vehicle background removal failed', error); setProcessError(error instanceof Error ? error.message : t('processError')); }
+    finally { setBusy(false); }
   }
-
   function downloadResult() {
     if (!resultUrl || !activePhoto) return;
     const anchor = document.createElement('a');
@@ -336,7 +334,7 @@ export default function App() {
                 <div className="strip-label">{t('selected')} <span>{photos.length}</span></div>
                 <div className="thumb-list">
                   {photos.map(photo => <button key={photo.id} className={`photo-thumb ${activePhoto?.id === photo.id ? 'selected' : ''}`} onClick={() => { setActiveId(photo.id); setResultUrl(photo.processedUrl ?? null); setBackground(photo.processedBackground ?? 'white'); setProcessStatus(''); }} aria-label={photo.file.name}>
-                    <img src={photo.url} alt="" /><span className="thumb-check"><Check size={11}/></span>
+                    <img src={photo.url} alt="" /><span className="thumb-check"><Check size={11}/></span>{photo.processingState && <span className={"thumb-status " + photo.processingState} title={photo.processingError || photo.processingState}>{photo.processingState === "ready" ? "✓" : photo.processingState === "needs-review" ? "!" : photo.processingState === "failed" ? "×" : photo.processingState === "processing" ? "…" : "·"}</span>}
                   </button>)}
                   <button className="add-thumb" onClick={() => galleryRef.current?.click()} aria-label={t('addMore')}><ImagePlus size={19}/></button>
                 </div>
