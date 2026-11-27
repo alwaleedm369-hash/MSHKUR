@@ -1,0 +1,27 @@
+name: Smart Graph Runtime Tests
+
+on:
+  push:
+    branches:
+      - feat/smart-graph-foundation
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smart-graph-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run isolated Smart Graph tests
+        run: node --test tests/smart-graph.test.mjs
