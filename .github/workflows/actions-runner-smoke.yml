@@ -1,0 +1,25 @@
+name: Actions Runner Smoke Test
+
+on:
+  push:
+    branches:
+      - rebuild/product-foundation
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runner-smoke:
+    name: Verify GitHub Actions job startup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Confirm runner started
+        run: |
+          echo "GitHub Actions runner started successfully."
+          node --version
+          npm --version
