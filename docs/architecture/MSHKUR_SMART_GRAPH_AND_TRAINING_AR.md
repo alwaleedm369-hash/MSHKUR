@@ -172,3 +172,11 @@ Seven isolated Node tests cover private-user isolation, workspace boundaries, ty
 **Important boundary:** the current repository is in-memory and intended for deterministic tests/prototyping. It is not durable across process restarts, not a production authorization server, and not yet connected to TaskRuntime, MemoryService or the assistant registry. Production adoption requires a persistent adapter, authenticated server-side actor context, migration/versioning, audit events and integration tests. Passing isolated tests does not establish full application build or device QA.
 
 The branch also adds `capabilityIndex.mjs`, a read-only projection that unifies canonical SkillRuntime manifests, assistant skill allowlists and workflow steps into one graph view. Unresolved skill references are reported rather than silently fabricated. The executable skill registry remains the source of truth. The focused suite now contains eight cases; CI execution is still awaiting an observed run result.
+
+## 13. Durable SQLite adapter
+
+The repository now includes `server/graph-store.mjs`, a SQLite-backed adapter using the existing `better-sqlite3` database from `server/db.mjs`. It creates version-1 node/edge tables and indexes, enforces typed node/edge allowlists, owner/workspace scope checks, actor-filtered reads and exports, and foreign-key edge cleanup on node deletion. It is exposed as a server-side repository singleton for later authenticated service integration.
+
+The adapter is deliberately not mounted as an unauthenticated HTTP endpoint. Any future API must derive actor identity from the authenticated server session, enforce tenant/workspace membership, and audit writes. The current adapter is a persistence layer, not a complete authorization or memory-consent service.
+
+Three additional SQLite tests cover persistence across repository instances, scope isolation, edge cleanup and scoped snapshots. The dedicated graph workflow now installs dependencies and runs both in-memory and SQLite test suites.
