@@ -156,3 +156,17 @@ WhatsApp is a future optional channel, not a dependency of iAI or Smart Graph.
 - The newer SkillRuntime currently gates execution to the verified skill only.
 - Repository handoff documents report full project build/test/device QA as not verified.
 - This document is a design contract; a production graph store, full memory service and training pipeline are not claimed as implemented.
+
+## 12. Runtime foundation added in this branch
+
+A provider-neutral prototype now exists at `src/shared/graph/smartGraph.mjs` with TypeScript declarations:
+- typed node and edge allowlists;
+- private, workspace, public and system visibility scopes;
+- owner/workspace boundary checks for scoped relationships;
+- actor-filtered node lookup, listing, traversal and snapshots;
+- node deletion with incident-edge cleanup;
+- a capability resolver that requires an external authoritative `verifySkill` callback and returns only verified + enabled skills.
+
+Seven isolated Node tests cover private-user isolation, workspace boundaries, typed contracts, traversal visibility, non-granting graph links, verified capability filtering, and deletion/snapshot behavior. They are included in `npm test` and a dedicated GitHub Actions workflow runs the isolated suite.
+
+**Important boundary:** the current repository is in-memory and intended for deterministic tests/prototyping. It is not durable across process restarts, not a production authorization server, and not yet connected to TaskRuntime, MemoryService or the assistant registry. Production adoption requires a persistent adapter, authenticated server-side actor context, migration/versioning, audit events and integration tests. Passing isolated tests does not establish full application build or device QA.
