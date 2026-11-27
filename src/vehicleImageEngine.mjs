@@ -13,7 +13,9 @@ export function normalizeRect(rect) {
 
 function validateBounds(sourceWidth,sourceHeight,bounds,target,padding) {
   if (![sourceWidth,sourceHeight,target.width,target.height].every(v=>Number.isFinite(v)&&v>0)) throw new Error("Image dimensions must be positive.");
-  const b={x:clamp(bounds.x,0,sourceWidth),y:clamp(bounds.y,0,sourceHeight),width:clamp(bounds.width,0,sourceWidth),height:clamp(bounds.height,0,sourceHeight)};
+  const x1=clamp(bounds.x,0,sourceWidth), y1=clamp(bounds.y,0,sourceHeight);
+  const x2=clamp(bounds.x+bounds.width,0,sourceWidth), y2=clamp(bounds.y+bounds.height,0,sourceHeight);
+  const b={x:x1,y:y1,width:Math.max(0,x2-x1),height:Math.max(0,y2-y1)};
   if (!b.width||!b.height) throw new Error("No visible subject pixels were found.");
   const inset=clamp(padding,0,0.3), maxW=target.width*(1-inset*2), maxH=target.height*(1-inset*2);
   const scale=Math.min(maxW/b.width,maxH/b.height);
