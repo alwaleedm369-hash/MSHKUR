@@ -1,68 +1,51 @@
-# MSHKUR Vehicle Photo Studio — Implementation Notes
+# MSHKUR Vehicle Photo Studio — Product Implementation
 
 **Branch:** `rebuild/product-foundation`  
-**Product language:** English first, Arabic supported  
-**Primary form factor:** Mobile web / PWA  
+**Primary platform:** Mobile web / installable PWA  
+**Default locale:** English (LTR), with Arabic RTL  
 **Visual mode:** Light first
 
-## Product entry
+## First-use experience
 
-The application opens directly into the vehicle photo studio. It does not begin with a chatbot, marketing page, or productivity dashboard.
+The app opens directly into the vehicle photo workspace. It does not begin with a chatbot or a generic dashboard. The first screen offers gallery import and camera capture, with a short guided tour that advances automatically and can also be navigated manually.
 
-The primary screen uses a three-word headline: **Perfect Car Photos**. Arabic equivalent: **صور سيارات احترافية**.
+## Delivered in this increment
 
-The first meaningful action is to import an image or capture one with the device camera.
+- Responsive studio layout with dedicated mobile, tablet and wide-screen behavior.
+- English-first copy and Arabic RTL support.
+- Gallery import (multiple images) and camera capture.
+- Local image previews and image switching.
+- Local vehicle background removal through the repository's optional `@bg0/browser` runtime.
+- White-background compositing or transparent PNG output.
+- Original image is preserved; processed output is a separate object URL and downloaded as a derivative.
+- Actual before/after comparison using the original and the processed output, with pointer/touch drag and keyboard-accessible range control.
+- Guided tour auto-advances, with manual previous/next/replay/close controls.
+- Processing states distinguish model loading, segmentation, compositing, success and failure. No fake percentage is shown.
+- PWA metadata is aligned to the vehicle photo studio.
 
-## Implemented in this increment
+## Runtime behavior and limitations
 
-- Responsive mobile-first photo studio shell.
-- English default locale and Arabic RTL locale switch.
-- Gallery import with multi-select.
-- Camera capture input using the environment-facing camera hint on supported devices.
-- Image MIME validation and a 20 MB per-image limit.
-- Local object-URL previews and thumbnail selection.
-- Multiple image selection in one session.
-- White / transparent output preference controls.
-- Specialist, library, and settings views reachable from a compact menu.
-- Honest unavailable state for background removal because no verified processing endpoint is connected in this branch.
-- Original image remains the only available image; the interface does not fabricate a processed result.
-- PWA document metadata updated for the Vehicle Photo Studio.
+- The local AI model may need to download model assets on first use; the tab must remain open during processing.
+- GPU/WASM capability and memory vary by browser/device. A low-memory mobile browser may fail on large images.
+- The current import limit is 20 MB per file. This is a guardrail, not a guarantee that every 20 MB image fits device memory.
+- The photo library is currently session-scoped. Persistent IndexedDB storage and recovery after refresh remain to be implemented.
+- Google sign-in, cloud sync, external image generation, Higgsfield, Blender automation and executable specialist agents are not connected.
+- The background-removal pipeline uses a local open-source runtime. Runtime code, model weights, and model distribution terms must be reviewed independently before commercial release.
 
-## Explicitly not implemented or not verified
+## Production gates still required
 
-- Vehicle background-removal inference and mask refinement.
-- White-background compositing output.
-- Google OAuth sign-in.
-- Persistent local project storage across browser restarts.
-- Cloud storage, account sync, or cross-device library.
-- Higgsfield, Blender, or other external provider execution.
-- Paid generation, model selection, and cost estimates.
-- Save/share of a processed derivative (there is no processed derivative yet).
-- Production device QA, accessibility audit, and browser test matrix.
+1. Pin and verify model/runtime versions and licenses, including weight distribution and attribution requirements.
+2. Add device-aware image downscaling / tiling and memory handling for large images.
+3. Add persistent local asset storage, project history and derivative lineage.
+4. Add a cancel/retry flow and robust error classification for model download, WebGPU/WASM and canvas failures.
+5. Add mobile browser QA on current iOS Safari and Android Chrome, including low-memory devices.
+6. Run typecheck, tests, production build, PWA install/offline checks and accessibility review.
+7. Verify the deployment environment, headers, model asset delivery and caching behavior.
+8. Complete privacy and security review before public launch.
 
-The provider and specialist views are informational previews only. They are labelled as in preparation and must not be treated as executable agents or connected skills.
+## Acceptance rules
 
-## Interaction and data handling
-
-- Gallery selection accepts JPEG, PNG and WEBP.
-- Camera selection accepts browser-supported image formats.
-- Imported files are represented as browser object URLs for this session.
-- No upload request is made by this UI increment.
-- Changing the output background is a desired output setting only; it does not alter the source image.
-- The Remove Background action reports that the service is unavailable. It does not simulate progress or success.
-- The original file is never overwritten.
-
-## Next engineering gate
-
-1. Implement a typed vehicle-processing service adapter against a verified server contract.
-2. Connect a real segmentation/matting worker and white-background compositor.
-3. Add immutable original / derived asset records and processing status.
-4. Add before/after comparison only after a real output exists.
-5. Add explicit download/share actions for the derived output.
-6. Add Google sign-in and scoped permissions only when the OAuth flow is configured.
-7. Add persistent local-first library storage and test recovery after refresh.
-8. Run typecheck, build, automated tests, and real mobile browser QA.
-
-## Acceptance rule
-
-Never mark background removal as complete until the backend returns a real output asset and a verified success status. Never show an after-image, export action, or connected-provider badge without the corresponding implementation and evidence.
+- Never show an after-image until a real processing result exists.
+- Never overwrite the imported original.
+- Never claim a cloud upload, account sync, provider connection or agent execution unless implemented and tested.
+- Never report production readiness based only on a successful GitHub merge or a visually complete screen.
