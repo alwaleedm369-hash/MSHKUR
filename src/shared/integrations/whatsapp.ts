@@ -126,7 +126,7 @@ export class WhatsAppWebClient {
   constructor(config: WhatsAppConfig = {}) {
     this.config = {
       bridgeUrl: 'http://localhost:3001',
-      autoConnect: true,
+      autoConnect: false,
       reconnectInterval: 5000,
       maxRetries: 10,
       headless: true,
@@ -136,8 +136,8 @@ export class WhatsAppWebClient {
     };
     this.bridgeUrl = this.config.bridgeUrl!;
 
-    if (this.config.autoConnect) {
-      this.connect();
+    if (this.config.autoConnect === true) {
+      void this.connect().catch(error => this.emit('error', error));
     }
   }
 
@@ -202,6 +202,7 @@ export class WhatsAppWebClient {
   }
 
   private scheduleReconnect(): void {
+    if (this.config.autoConnect !== true) return;
     if (this.reconnectAttempts >= (this.config.maxRetries ?? 10)) {
       this.emit('max_retries_reached', {});
       return;
@@ -655,7 +656,9 @@ export function useWhatsApp(config?: WhatsAppConfig) {
     });
 
     // Connect
-    waClient.connect().catch(err => setError(err.message));
+    if (config?.autoConnect === true) {
+      waClient.connect().catch(err => setError(err.message));
+    }
 
     return () => {
       unsubscribeConnected();
