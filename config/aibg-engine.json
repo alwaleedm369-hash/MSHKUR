@@ -1,0 +1,29 @@
+{
+  "engine": "MSHKUR/AIBG",
+  "contractVersion": "0.1.0",
+  "status": "experimental-local-engine",
+  "principles": ["preserve-original", "no-crop-by-default", "normalized-coordinates", "centered-output", "review-before-export"],
+  "commands": {
+    "REMOVE/REGION": {"input":"x,y,width,height normalized 0..1","effect":"set alpha to 0 in region"},
+    "KEEP/REGION": {"input":"x,y,width,height normalized 0..1","effect":"restore alpha to 255 in region"},
+    "CENTER": {"effect":"center visible subject on output canvas"},
+    "FIT": {"effect":"fit subject within safe margins without distortion"},
+    "WHITE": {"effect":"composite on white background"},
+    "TRANSPARENT": {"effect":"preserve alpha channel"},
+    "REVIEW": {"effect":"inspect alpha bounds, empty masks and edge contact"}
+  },
+  "skills": [
+    {"id":"vehicle.segment","runtime":"browser","status":"provider-backed-experimental"},
+    {"id":"vehicle.mask.refine","runtime":"browser","status":"implemented-deterministic"},
+    {"id":"vehicle.subject.center","runtime":"browser","status":"implemented-deterministic"},
+    {"id":"vehicle.output.normalize","runtime":"browser","status":"implemented-deterministic"},
+    {"id":"vehicle.quality.review","runtime":"browser","status":"implemented-deterministic"},
+    {"id":"vehicle.batch.process","runtime":"browser","status":"planned"}
+  ],
+  "assistants": [
+    {"id":"vehicle-retoucher","skills":["vehicle.mask.refine","vehicle.subject.center","vehicle.output.normalize"]},
+    {"id":"quality-inspector","skills":["vehicle.quality.review"]}
+  ],
+  "workflow": ["import","validate","segment","refine-mask","fit-and-center","compose-background","quality-review","approve","export"],
+  "training": {"modelWeights":"not-owned-yet","trainingDataset":"not-created","evaluationBenchmark":"required-before-claiming-proprietary-model"}
+}
