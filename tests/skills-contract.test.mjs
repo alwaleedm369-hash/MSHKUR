@@ -45,3 +45,15 @@ test('no skill declares a paid external image API', () => {
     assert.equal(banned.test(blob), false, s.id);
   }
 });
+
+
+test('Founder skill is registered and defines evidence-led repair workflow', () => {
+  const founder = registry.find((s) => s.id === 'founder');
+  assert.ok(founder);
+  assert.equal(founder.category, 'engineering-operations');
+  assert.equal(founder.entrypoint, 'docs:skills/founder/SKILL.md');
+  const skillDoc = fs.readFileSync(path.join(root, 'skills/founder/SKILL.md'), 'utf8');
+  assert.match(skillDoc, /تحليل السبب الجذري/);
+  assert.match(skillDoc, /التحقق بعد الإصلاح/);
+  assert.match(skillDoc, /لا تختلق نتائج أو اختبارات/);
+});

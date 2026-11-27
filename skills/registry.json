@@ -144,5 +144,23 @@
     "cost": "local",
     "runtime": "browser",
     "entrypoint": "browser:vehicleBatchPipeline.runVehicleBatch"
+  },
+  {
+    "id": "founder",
+    "name": "Founder — الفحص والبحث والإصلاح",
+    "category": "engineering-operations",
+    "version": "1.0.0",
+    "description": "فحص المشروع وجمع الأدلة والبحث عن الأسباب الجذرية وترتيب المخاطر وتنفيذ إصلاحات صغيرة والتحقق منها وتوثيق النتائج.",
+    "input": "project-scope-and-evidence",
+    "output": "diagnosis-repair-and-verification-report",
+    "permissions": [
+      "repository:read",
+      "tests:run",
+      "documentation:read",
+      "research:read"
+    ],
+    "cost": "local",
+    "runtime": "workflow",
+    "entrypoint": "docs:skills/founder/SKILL.md"
   }
 ]
