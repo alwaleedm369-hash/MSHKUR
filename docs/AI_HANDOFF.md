@@ -38,3 +38,9 @@ _Last handoff prepared: 2026-11-27 (Gate 8 intake verification). This is a hando
 - No Meta API configured or paid; no WhatsApp connection attempted by this change.
 - Not yet implemented: production graph repository, persistent knowledge indexer, full memory service, training pipeline, WhatsApp UI/companion bridge.
 - Verification still pending: project CI workflows have startup failures before jobs; full npm install/typecheck/test/build and device QA are not verified. Source-level changes must be tested in a working Node environment before release.
+
+
+## Smart Graph persistence increment
+- Added `server/graph-store.mjs` using the existing `better-sqlite3` database; creates typed node/edge tables and indexes, actor-scoped reads/snapshots, owner/workspace edge boundaries and FK cleanup.
+- Added `tests/smart-graph-sqlite.test.mjs` (3 cases) and included it in `npm test`; dedicated graph workflow now runs `npm ci` and both graph suites.
+- This adapter is not yet mounted as an HTTP endpoint; actor identity must come from authenticated server session before service integration. No test run has yet been observed for this commit.
