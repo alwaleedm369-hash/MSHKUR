@@ -1,31 +1,32 @@
 # وثائق مشكور — الفهرس الرسمي
 
-> **المصدر التشغيلي للحقيقة هو الكود تحت `src/` و`server/` و`skills/`، وليس عدد ملفات MD.**
+> آخر تحديث: 27 نوفمبر 2026. الكود والاختبارات وسجلات النشر هي مصادر الحقيقة؛ الوثائق تصف ما تم التحقق منه وما بقي مخططاً.
 
-## وثائق معتمدة (اقرأ هذه)
+## ابدأ من هنا
 
 | الملف | الغرض |
-|--------|--------|
-| [MSHKUR_FINAL_EXECUTION_PLAN_AR.md](./MSHKUR_FINAL_EXECUTION_PLAN_AR.md) | خطة التنفيذ الوحيدة المعتمدة |
-| [CAR_IMAGE_ENGINE_SPEC_AR.md](./CAR_IMAGE_ENGINE_SPEC_AR.md) | مواصفات محرك الصور |
-| [ARCHITECTURE_AR.md](./ARCHITECTURE_AR.md) | البنية الحالية |
-| [ENGINE_CORE_AR.md](./ENGINE_CORE_AR.md) | Maestro / skills / MCP |
-| [OPEN_SOURCE_LICENSE_REGISTER_AR.md](./OPEN_SOURCE_LICENSE_REGISTER_AR.md) | تراخيص النماذج والمكتبات |
-| [DEPLOYMENT_AR.md](./DEPLOYMENT_AR.md) | التشغيل والنشر |
-| [MSHKUR_AIBG_PHOTO_STUDIO_GUIDE_AR.md](./engine/MSHKUR_AIBG_PHOTO_STUDIO_GUIDE_AR.md) | دليل المستخدم لاستوديو الصور وأوامر AIBG وحدود المعالجة |
-| [RESEARCH_DECONSTRUCTION_PLAYBOOK_AR.md](./RESEARCH_DECONSTRUCTION_PLAYBOOK_AR.md) | منهج البحث والتفكيك |
-| [RESEARCH_CAR_IMAGE_PIPELINES_AR.md](./RESEARCH_CAR_IMAGE_PIPELINES_AR.md) | نتائج بحث أولية (ليست تنفيذ) |
+|---|---|
+| [مراجعة النسخة الأولى وخطة رفع الجودة](./PRODUCT_REVIEW_AND_DOCUMENTATION_UPDATE_AR.md) | مرجع ملاحظات المالك، فجوات العرض، وأولويات التحسين |
+| [الحالة التجارية والهندسية](./COMMERCIAL_STATUS_AR.md) | ما يعمل وما لا نعلن اتصاله |
+| [خارطة الطريق](./ROADMAP_AR.md) | بوابات التنفيذ ومعايير القبول |
+| [قواعد UX والتصميم](./UX_DESIGN_RULES.md) | قواعد التصميم والجوال واللغة والحركة |
+| [دليل معاينة GitHub Pages](./GITHUB_PAGES_PREVIEW_AR.md) | النشر وحدود الاستضافة الثابتة |
+| [دليل AIBG Photo Studio](./engine/MSHKUR_AIBG_PHOTO_STUDIO_GUIDE_AR.md) | دليل استخدام الاستوديو وأوامره |
+| [عقد محرك AIBG](./engine/MSHKUR_AIBG_ENGINE_CONTRACT_AR.md) | ملكية المحرك وحدوده الفنية |
+| [مواصفات محرك صور السيارات](./CAR_IMAGE_ENGINE_SPEC_AR.md) | مواصفات المعالجة وخطها |
+| [سجل تراخيص المصادر](./OPEN_SOURCE_LICENSE_REGISTER_AR.md) | التراخيص التي يجب مراجعتها قبل الاستخدام التجاري |
+| [المعمارية](./ARCHITECTURE_AR.md) | حدود المكونات والخدمات |
+| [سجل التغييرات](./AI_CHANGELOG.md) | التعديلات الموثقة |
+| [تسليم العمل للوكيل التالي](./AI_HANDOFF.md) | الحالة والخطوة التالية |
 
-## الكود التشغيلي للمحرك
+## قاعدة توثيق الحالة
 
-- `src/mshkurImageEngine.ts` — SEGMENT → MATTE → SCENE → LIGHT → PLATE
-- `src/GuestStudio.tsx` / `src/CarAdWorkflow.tsx` / `src/EngineWorkbench.tsx`
-- [دليل AIBG للمستخدم](./engine/MSHKUR_AIBG_PHOTO_STUDIO_GUIDE_AR.md) و[عقد المحرك](./engine/MSHKUR_AIBG_ENGINE_CONTRACT_AR.md)
+استخدم دائماً إحدى الحالات: **منفذ ومختبر**، **منفذ جزئياً**، **موجود في الواجهة فقط**، **مخطط**، **غير متحقق**. لا تعتبر وجود ملف أو زر أو بطاقة في الواجهة دليلاً على تنفيذ الوظيفة.
 
-## أرشيف
+## الوثائق التاريخية
 
-انظر [archive/README.md](./archive/README.md).
+الملفات الجذرية `PROJECT_DOCUMENTATION.md` و`PROJECT_SUMMARY.md` و`FINAL_PROJECT_SUMMARY.md` كانت تصف تصوراً أوسع ومكونات لم يثبت اتصالها في النسخة الحالية. تم تحويلها إلى مداخل تاريخية توجه إلى هذا الفهرس؛ لا تستخدمها لإثبات ميزات حالية.
 
-## قاعدة
+## حدود المعاينة
 
-لا مهارة جديدة بدون `entrypoint` وتشغيل. لا وثيقة «مكتمل» بدون اختبار على `main`.
+GitHub Pages يعرض الواجهة الثابتة فقط؛ لا يشغّل Express أو SQLite أو تخزين الملفات الخلفي. راجع دليل المعاينة قبل وصف أي وظيفة خادمية بأنها متاحة على الموقع.

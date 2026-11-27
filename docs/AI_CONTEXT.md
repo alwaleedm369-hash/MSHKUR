@@ -3,11 +3,13 @@
 ## Source of truth and continuity
 This repository—not prior chat history—is the source of truth for MSHKUR. Incoming AI models must follow `docs/AI_HANDOFF.md`, `docs/AI_CHANGELOG.md`, and `docs/AI_PROJECT_CHAT_INSTRUCTIONS.md` in addition to the core constitution, architecture, skills contract, roadmap, baseline report and UX rules.
 
-## Product vision
-MSHKUR is a suite of focused task-oriented applications with a shared smart execution layer. Product surfaces: Photo Studio, Ad Studio, Dealer Workspace/Portal, Personal Assistant (iAI), and Admin Browser/Workbench. The Smart Layer is shared infrastructure, not an additional consumer app.
+## Product vision and current release scope
+The long-term vision includes focused automotive workflows and a shared smart execution layer. The currently published and reviewed deliverable is the Vehicle Photo Studio prototype; do not describe the wider suite as fully connected or production-ready unless the exact route, service and integration are verified in the current source.
+
+The immediate product gate is first-prototype quality: remove the visible logo/name from the top header as explicitly requested by the owner, redesign mobile layout first, improve desktop space balance, shorten interface copy, and add real licensed before/after imagery plus a short explanatory GIF/video. See `docs/PRODUCT_REVIEW_AND_DOCUMENTATION_UPDATE_AR.md`.
 
 ## Core experience
-Tool → Input → Execute → Result. The UI should help users complete tasks and obtain real outputs, not expose a sprawling dashboard. MSHKUR.com is initially intended to lead into Photo Studio/Remove Background.
+Tool → Input → Execute → Result. The current public preview is Photo Studio / Remove Background. The image and its real result should dominate the experience; the mobile workflow must be designed deliberately, not scaled down from desktop.
 
 ## Engineering principles
 - Inspect existing code and preserve functional work; do not blindly rebuild.
@@ -31,6 +33,13 @@ Task Engine, Skill Registry, Skill Runtime, Assistant Manager, Workflow Engine, 
 
 ## Hosting and cost direction
 MSHKUR.com is registered with Hostinger. Hosting/VPS choices are provisional: validate current specifications, renewal costs, CPU/RAM/storage/bandwidth/region, scalability, and actual processing benchmarks before commitment. Separate frontend, backend, processing runtime, storage, database and queue as justified. Do not assume a low-cost VPS can serve large scale.
+
+## Current verified release facts (2026-11-27)
+- GitHub Pages deployment succeeded at `https://alwaleedm369-hash.github.io/MSHKUR/` on commit `9b9023537b9c60073fd0a79b366a2e4cc30f6bf3`.
+- The recorded CI run passed 87 tests and TypeScript/Vite production build.
+- Visual QA on physical iOS/Android devices is not recorded as complete.
+- Background removal uses third-party `@bg0/browser`; do not claim an internally trained model.
+- No Higgsfield, Blender, WhatsApp API, or internal LLM integration is claimed for this preview.
 
 ## Continuity rules
 Every AI session must intake, inspect, independently verify prior claims, continue the current gate, test, and update the handoff/changelog. See `docs/AI_PROJECT_CHAT_INSTRUCTIONS.md` for detailed requirements and the specific project-chat companion called **Virtual Agent (الوكيل الافتراضي)**.
