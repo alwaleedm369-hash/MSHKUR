@@ -27,7 +27,11 @@ jobs:
       - name: Verify lockfile
         run: test -f package-lock.json
       - name: Install exact dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Rebuild native modules and prepare ONNX assets
+        run: |
+          npm rebuild better-sqlite3 sharp --no-audit --no-fund
+          node scripts/copy-onnx-wasm.mjs
       - name: Run full test suite
         run: npm test
       - name: Typecheck and production build
