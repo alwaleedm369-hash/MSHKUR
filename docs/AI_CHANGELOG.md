@@ -77,3 +77,11 @@
 - Updated `AI_HANDOFF.md` with verified/unverified status, critical defects, and exact next task.
 - Next: Fix missing imports, then run `npm install`, `npm run type-check`, `npm run build`, `npx vitest run` in Node environment.
 
+
+
+## 2026-11-27 — Smart Graph architecture and WhatsApp dormant mode
+- Inspected project context, handoff, changelog, roadmap, skill catalogue/runtime, assistant definitions, task runtime, integration manager and WhatsApp Web client.
+- Decision: adopt MSHKUR Smart Graph (Graphy as internal codename) as a shared relationship/retrieval layer; do not create a parallel plugin registry or replace SkillRuntime/TaskRuntime.
+- Documented typed graph entities/edges, scoped memory/provenance, skill and assistant consolidation, staged RAG/evaluation-first training, optional LoRA gate, vehicle-vision benchmarking and release acceptance gates.
+- Changed WhatsApp local bridge autoConnect default to false; constructor, hook and reconnect behavior are opt-in. Explicit connect remains available for a future user-controlled activation. No Meta API or WhatsApp session was configured or contacted.
+- Verification: source edits committed on `feat/smart-graph-foundation`; full npm tests/build and device QA remain unverified pending working CI/Node environment.
