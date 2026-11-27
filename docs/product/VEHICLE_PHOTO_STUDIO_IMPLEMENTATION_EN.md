@@ -15,6 +15,7 @@ The app opens directly into the vehicle photo workspace. It does not begin with 
 - English-first copy and Arabic RTL support.
 - Gallery import (multiple images) and camera capture.
 - Local image previews and image switching.
+- IndexedDB-backed persistence for imported originals and processed derivatives, restored after refresh when the browser supports local storage.
 - Local vehicle background removal through the repository's optional `@bg0/browser` runtime.
 - White-background compositing or transparent PNG output.
 - Original image is preserved; processed output is a separate object URL and downloaded as a derivative.
@@ -28,7 +29,7 @@ The app opens directly into the vehicle photo workspace. It does not begin with 
 - The local AI model may need to download model assets on first use; the tab must remain open during processing.
 - GPU/WASM capability and memory vary by browser/device. A low-memory mobile browser may fail on large images.
 - The current import limit is 20 MB per file. This is a guardrail, not a guarantee that every 20 MB image fits device memory.
-- The photo library is currently session-scoped. Persistent IndexedDB storage and recovery after refresh remain to be implemented.
+- Projects are stored locally in IndexedDB and restored after refresh where supported. Browser storage quotas, private browsing restrictions and user-cleared site data can still remove local projects; cloud backup is not connected.
 - Google sign-in, cloud sync, external image generation, Higgsfield, Blender automation and executable specialist agents are not connected.
 - The background-removal pipeline uses a local open-source runtime. Runtime code, model weights, and model distribution terms must be reviewed independently before commercial release.
 
@@ -49,3 +50,7 @@ The app opens directly into the vehicle photo workspace. It does not begin with 
 - Never overwrite the imported original.
 - Never claim a cloud upload, account sync, provider connection or agent execution unless implemented and tested.
 - Never report production readiness based only on a successful GitHub merge or a visually complete screen.
+
+## Automated verification
+
+A Node.js 22 GitHub Actions workflow now runs `npm ci`, `npm test` and `npm run build` for this branch and pull requests targeting main. A green workflow result is still required before merge or release.
