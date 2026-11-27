@@ -10,7 +10,7 @@ import {
 
 type Locale = 'en' | 'ar';
 type Screen = 'studio' | 'library' | 'team' | 'settings';
-type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; cutoutBlob?: Blob; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string };
+type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; cutoutBlob?: Blob; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string; approved?: boolean };
 
 const messages = {
   en: {
@@ -41,7 +41,7 @@ const messages = {
     tourSteps: ['Add a car photo from your gallery or camera.', 'The vehicle is separated locally; your original stays untouched.', 'Drag the comparison handle to inspect the edges.', 'Choose a background, then save your finished image.'],
     previous: 'Previous step', next: 'Next step', skipTour: 'Close guide', restartTour: 'Replay guide',
     resultReady: 'Your result is ready', processError: 'Could not process this image. Try another photo or device.',
-    downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.', command: 'AIBG commands', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'Apply command', commandNeedsCutout: 'Run background removal first to enable mask commands.', commandApplied: 'Command applied.'
+    downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.', command: 'AIBG commands', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'Apply command', commandNeedsCutout: 'Run background removal first to enable mask commands.', commandApplied: 'Command applied.', approve: 'Approve result', approved: 'Approved for export', approvalRequired: 'Review and approve this image before downloading.'
   },
   ar: {
     studio: 'الاستوديو', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
@@ -71,7 +71,7 @@ const messages = {
     tourSteps: ['أضف صورة السيارة من المعرض أو الكاميرا.', 'يتم فصل السيارة محلياً مع الحفاظ على الصورة الأصلية.', 'اسحب فاصل المقارنة لفحص الحواف.', 'اختر الخلفية ثم احفظ الصورة النهائية.'],
     previous: 'الخطوة السابقة', next: 'الخطوة التالية', skipTour: 'إغلاق الشرح', restartTour: 'إعادة الشرح',
     resultReady: 'النتيجة جاهزة', processError: 'تعذرت معالجة هذه الصورة. جرّب صورة أو جهازاً آخر.',
-    downloadResult: 'تنزيل النتيجة', reset: 'البدء من جديد', processingNote: 'اترك هذه الصفحة مفتوحة أثناء عمل النموذج.', batchWarning: 'بعض الصور تحتاج إلى مراجعة بصرية قبل التصدير.', command: 'أوامر AIBG', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'تنفيذ الأمر', commandNeedsCutout: 'ابدأ بإزالة الخلفية أولاً لتفعيل أوامر القناع.', commandApplied: 'تم تنفيذ الأمر.', storageError: 'التخزين المحلي غير متاح. يمكنك متابعة العمل خلال هذه الجلسة.'
+    downloadResult: 'تنزيل النتيجة', reset: 'البدء من جديد', processingNote: 'اترك هذه الصفحة مفتوحة أثناء عمل النموذج.', batchWarning: 'بعض الصور تحتاج إلى مراجعة بصرية قبل التصدير.', command: 'أوامر AIBG', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'تنفيذ الأمر', commandNeedsCutout: 'ابدأ بإزالة الخلفية أولاً لتفعيل أوامر القناع.', commandApplied: 'تم تنفيذ الأمر.', approve: 'اعتماد النتيجة', approved: 'معتمدة للتصدير', approvalRequired: 'راجع الصورة واعتمدها قبل التنزيل.', storageError: 'التخزين المحلي غير متاح. يمكنك متابعة العمل خلال هذه الجلسة.'
   },
 } as const;
 
@@ -233,7 +233,7 @@ export default function App() {
         setPhotos(current => current.map(item => {
           if (item.id !== photo.id) return item;
           if (item.processedUrl) URL.revokeObjectURL(item.processedUrl);
-          return { ...item, processedBlob: normalized.blob, processedUrl: nextUrl, processedBackground: background, cutoutBlob: cutout.blob, processingState: normalized.review.status === 'passed' ? 'ready' : 'needs-review' };
+          return { ...item, processedBlob: normalized.blob, processedUrl: nextUrl, processedBackground: background, cutoutBlob: cutout.blob, processingState: normalized.review.status === 'passed' ? 'ready' : 'needs-review', approved: false };
         }));
         try { await savePhotoRecord({ id: photo.id, name: photo.file.name, type: photo.file.type, lastModified: photo.file.lastModified, original: photo.file, processed: normalized.blob, background, updatedAt: Date.now() }); }
         catch (storageError) { console.warn('Processed output could not be persisted:', storageError); }
@@ -251,7 +251,7 @@ export default function App() {
     finally { setBusy(false); }
   }
   function downloadResult() {
-    if (!resultUrl || !activePhoto) return;
+    if (!resultUrl || !activePhoto || !activePhoto.approved) { setNotice(t('approvalRequired')); return; }
     const anchor = document.createElement('a');
     anchor.href = resultUrl;
     anchor.download = activePhoto.file.name.replace(/\\.[^/.]+$/, '') + (background === 'white' ? '-white-background.png' : '-transparent.png');
@@ -291,7 +291,7 @@ export default function App() {
         const normalized = await normalizeVehicleOutput(edited,targetBackground,command.action === 'CENTER' ? 'center' : 'ground');
         const url = URL.createObjectURL(normalized.blob);
         if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);
-        setPhotos(current=>current.map(photo=>photo.id===activePhoto.id?{...photo,cutoutBlob:edited,processedBlob:normalized.blob,processedUrl:url,processedBackground:targetBackground,processingState:normalized.review.status==='passed'?'ready':'needs-review'}:photo));
+        setPhotos(current=>current.map(photo=>photo.id===activePhoto.id?{...photo,cutoutBlob:edited,processedBlob:normalized.blob,processedUrl:url,processedBackground:targetBackground,processingState:normalized.review.status==='passed'?'ready':'needs-review',approved:false}:photo));
         setResultUrl(url);
         await savePhotoRecord({id:activePhoto.id,name:activePhoto.file.name,type:activePhoto.file.type,lastModified:activePhoto.file.lastModified,original:activePhoto.file,processed:normalized.blob,background:targetBackground,updatedAt:Date.now()});
         setNotice(t('commandApplied'));
@@ -399,7 +399,7 @@ export default function App() {
                     <button className="button-secondary" onClick={executeImageCommand} disabled={busy || !commandText.trim()}>{t('runCommand')}</button>
                   </div>
                 </div>
-                <div className="result-actions"><button className="remove-button" onClick={downloadResult}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);setResultUrl(null);setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: undefined, processedUrl: undefined, processedBackground: undefined } : photo));deletePhotoRecord(activePhoto.id).then(() => savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, updatedAt: Date.now() })).catch(error => console.warn('Could not reset saved result:', error));setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
+                <div className="result-actions"><button className="button-secondary" onClick={() => setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, approved: true } : photo))} disabled={!!activePhoto.approved}><Check size={17}/>{activePhoto.approved ? t('approved') : t('approve')}</button><button className="remove-button" onClick={downloadResult} disabled={!activePhoto.approved}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);setResultUrl(null);setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: undefined, processedUrl: undefined, processedBackground: undefined, cutoutBlob: undefined, approved: false } : photo));deletePhotoRecord(activePhoto.id).then(() => savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, updatedAt: Date.now() })).catch(error => console.warn('Could not reset saved result:', error));setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
               </div>}
               {activePhoto && !resultUrl && tourOpen && <section className="guided-tour" aria-live="polite">
                 <div className="tour-top"><span className="eyebrow">{t('tutorial')}</span><button onClick={() => setTourOpen(false)} aria-label={t('skipTour')}><X size={16}/></button></div>
