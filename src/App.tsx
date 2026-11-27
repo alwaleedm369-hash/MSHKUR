@@ -136,6 +136,7 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [commandText, setCommandText] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [smartOpen, setSmartOpen] = useState(false);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<Photo[]>([]);
@@ -308,6 +309,14 @@ export default function App() {
     setSliderPosition(Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)));
   }
 
+  function runSmartAction(action: 'upload' | 'white' | 'transparent' | 'process' | 'guide') {
+    setSmartOpen(false);
+    if (action === 'upload') { galleryRef.current?.click(); return; }
+    if (action === 'white' || action === 'transparent') { setBackground(action); setNotice(isArabic ? 'تم اختيار الخلفية. أضف صورة أو تابع المعالجة.' : 'Background selected. Add a photo or continue processing.'); return; }
+    if (action === 'process') { if (photos.length) { void handleRemoveBackground(); } else { setNotice(isArabic ? 'أضف صورة أولاً لبدء المعالجة.' : 'Add a photo first to start processing.'); galleryRef.current?.click(); } return; }
+    setTourOpen(true); setTourStep(0); setNotice(isArabic ? 'بدأ الشرح المرئي خطوة بخطوة.' : 'The visual guide has started.');
+  }
+
   function goTo(next: Screen) {
     setScreen(next);
     setMenuOpen(false);
@@ -444,6 +453,27 @@ export default function App() {
         </section>}
       </main>
 
+      <button className={`smart-orb ${smartOpen ? 'is-open' : ''}`} onClick={() => setSmartOpen(value => !value)} aria-label={isArabic ? 'افتح مساعد مشكور الذكي' : 'Open MSHKUR smart assistant'} aria-expanded={smartOpen}>
+        {smartOpen ? <X size={22}/> : <><Sparkles size={23}/><span className="smart-orb-pulse"/></>}
+      </button>
+      {smartOpen && <div className="smart-backdrop" onClick={() => setSmartOpen(false)}>
+        <section className="smart-sheet" role="dialog" aria-modal="true" aria-label={isArabic ? 'مساعد مشكور' : 'MSHKUR assistant'} onClick={event => event.stopPropagation()}>
+          <div className="smart-sheet-handle"/>
+          <div className="smart-sheet-head">
+            <span className="smart-sheet-mark"><Sparkles size={19}/></span>
+            <div><strong>{isArabic ? 'مشكور معك' : 'MSHKUR is here'}</strong><small>{isArabic ? 'مساعدة ذكية حسب الشاشة التي تعمل عليها' : 'Context-aware help for this screen'}</small></div>
+            <button onClick={() => setSmartOpen(false)} aria-label={t('close')}><X size={19}/></button>
+          </div>
+          <p className="smart-sheet-prompt">{isArabic ? (activePhoto ? 'صورتك جاهزة. ماذا تريد أن تفعل؟' : 'ابدأ بخطوة واحدة، وسأرشدك بصرياً.') : (activePhoto ? 'Your photo is ready. What would you like to do?' : 'Start with one simple step. I’ll guide you visually.')}</p>
+          <div className="smart-action-grid">
+            <button onClick={() => runSmartAction('upload')}><span className="smart-action-image upload-art"><ImagePlus size={23}/></span><strong>{isArabic ? 'أضف صورة' : 'Add a photo'}</strong><small>{isArabic ? 'من المعرض أو الكاميرا' : 'Gallery or camera'}</small></button>
+            <button onClick={() => runSmartAction('process')}><span className="smart-action-image process-art"><Sparkles size={23}/></span><strong>{isArabic ? 'أزل الخلفية' : 'Remove background'}</strong><small>{isArabic ? 'ابدأ المعالجة مباشرة' : 'Start processing'}</small></button>
+            <button onClick={() => runSmartAction('white')}><span className="smart-action-image white-art"><span/></span><strong>{isArabic ? 'خلفية بيضاء' : 'White background'}</strong><small>{isArabic ? 'مناسبة للإعلانات' : 'Ready for listings'}</small></button>
+            <button onClick={() => runSmartAction('guide')}><span className="smart-action-image guide-art"><Play size={23}/></span><strong>{isArabic ? 'أرني كيف أبدأ' : 'Show me how'}</strong><small>{isArabic ? 'جولة مرئية قصيرة' : 'A short visual tour'}</small></button>
+          </div>
+          <div className="smart-sheet-foot"><span className="smart-live-dot"/>{isArabic ? 'الأوامر هنا تنفّذ إجراءات فعلية داخل الاستوديو' : 'Actions run directly in the studio'}</div>
+        </section>
+      </div>}
       <input ref={galleryRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={importPhotos}/>
       <input ref={cameraRef} className="visually-hidden" type="file" accept="image/*" capture="environment" onChange={importPhotos}/>
     </div>
