@@ -37,7 +37,8 @@
     "sharp": "0.33.5",
     "vite": "^6.0.7",
     "vite-plugin-pwa": "^2.0.0",
-    "zod": "^4.6.6"
+    "zod": "^4.6.6",
+    "@bg0/browser": "0.1.1"
   },
   "devDependencies": {
     "@modelcontextprotocol/server": "^2.4.0",
@@ -47,7 +48,6 @@
     "typescript": "~5.7.2"
   },
   "optionalDependencies": {
-    "@bg0/browser": "0.1.1",
     "@huggingface/transformers": "4.3.0"
   }
 }
