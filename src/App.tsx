@@ -167,10 +167,13 @@ export default function App() {
     const target = photos.find(photo => photo.id === id);
     if (target) { URL.revokeObjectURL(target.url); if (target.processedUrl) URL.revokeObjectURL(target.processedUrl); }
     deletePhotoRecord(id).catch(error => console.warn('Could not delete local photo record:', error));
-    if (activeId === id && resultUrl) setResultUrl(null);
     const next = photos.filter(photo => photo.id !== id);
     setPhotos(next);
-    if (activeId === id) setActiveId(next[0]?.id ?? null);
+    if (activeId === id) {
+      setActiveId(next[0]?.id ?? null);
+      setResultUrl(next[0]?.processedUrl ?? null);
+      setBackground(next[0]?.processedBackground ?? 'white');
+    }
   }
 
   async function handleRemoveBackground() {
@@ -179,7 +182,12 @@ export default function App() {
     setProcessError('');
     setProcessStatus(t('modelLoading'));
     try {
-      const { removeBackground } = await import('@bg0/browser');
+      const [{ removeBackground }, { env }] = await Promise.all([
+        import('@bg0/browser'),
+        import('@huggingface/transformers'),
+      ]);
+      const runtime = env as unknown as { backends?: { onnx?: { wasm?: { wasmPaths?: string } } } };
+      if (runtime.backends?.onnx?.wasm) runtime.backends.onnx.wasm.wasmPaths = '/onnx/';
       setProcessStatus(t('cutting'));
       const cutout = await removeBackground(activePhoto.file);
       let outputBlob = cutout.blob;
