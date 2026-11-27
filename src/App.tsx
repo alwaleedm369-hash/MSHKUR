@@ -22,6 +22,7 @@ const messages = {
     white: 'Pure white', transparent: 'Transparent', output: 'Background',
     ready: 'Ready to edit', selected: 'Selected photos', removePhoto: 'Remove photo',
     engineUnavailable: 'The background-removal service is not connected in this build. Your original photo is safe.',
+    storageError: 'Local storage is unavailable. You can continue working in this session.',
     noPhotos: 'No photos yet', noPhotosHint: 'Your imported photos and saved results will appear here.',
     libraryTitle: 'Your Recent Projects', libraryHint: 'Photos imported in this session appear here. Nothing is uploaded by this screen.',
     teamTitle: 'Meet Your Specialists', teamHint: 'Specialist workflows are being prepared. They will appear when their skills are tested and connected.',
@@ -75,7 +76,7 @@ const messages = {
   },
 } as const;
 
-type Key = keyof typeof messages.en;
+type Key = Exclude<keyof typeof messages.en, 'tourSteps'>;
 
 function CarMark() {
   return <span className="brand-mark"><CarFront size={20} strokeWidth={1.8} /></span>;
