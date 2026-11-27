@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoStorage';
 import { applyAlphaRegion, getCenteredSubjectPlacement, getGroundedSubjectPlacement, inspectAlphaPlane, parseImageCommand, reviewVehicleMask } from './vehicleImageEngine.mjs';
 import { runVehicleBatch } from './vehicleBatchPipeline.mjs';
+import SkillsExtensionsWorkbench from './SkillsExtensionsWorkbench';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
   CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
@@ -314,6 +315,8 @@ export default function App() {
     setNotice('');
   }
 
+  if (new URLSearchParams(window.location.search).get('view') === 'workbench') return <SkillsExtensionsWorkbench />;
+
   return (
     <div className={`app-shell ${isArabic ? 'rtl' : ''}`} dir={isArabic ? 'rtl' : 'ltr'}>
       <header className="topbar">
@@ -338,6 +341,7 @@ export default function App() {
               <span>{t(item)}</span><ArrowUpRight size={17}/>
             </button>
           )}
+          <button className="menu-link" onClick={() => { window.location.search = '?view=workbench'; }}><span>{isArabic ? 'مركز المهارات والإضافات' : 'Skills & Extensions'}</span><ArrowUpRight size={17}/></button>
           <p className="menu-footnote">{t('privacyHint')}</p>
         </nav>
       </div>}
