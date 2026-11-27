@@ -85,7 +85,6 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [background, setBackground] = useState<'white' | 'transparent'>('white');
   const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const [resultBlob, setResultBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
   const [processStatus, setProcessStatus] = useState('');
   const [processError, setProcessError] = useState('');
@@ -126,7 +125,6 @@ export default function App() {
       setPhotos(current => [...current, ...added]);
       setActiveId(added[0].id);
       setResultUrl(current => { if (current) URL.revokeObjectURL(current); return null; });
-      setResultBlob(null);
       setTourStep(0);
       setTourOpen(true);
       setScreen('studio');
@@ -138,7 +136,7 @@ export default function App() {
   function removePhoto(id: string) {
     const target = photos.find(photo => photo.id === id);
     if (target) URL.revokeObjectURL(target.url);
-    if (activeId === id && resultUrl) { URL.revokeObjectURL(resultUrl); setResultUrl(null); setResultBlob(null); }
+    if (activeId === id && resultUrl) { URL.revokeObjectURL(resultUrl); setResultUrl(null); }
     const next = photos.filter(photo => photo.id !== id);
     setPhotos(next);
     if (activeId === id) setActiveId(next[0]?.id ?? null);
@@ -170,7 +168,7 @@ export default function App() {
       }
       const nextUrl = URL.createObjectURL(outputBlob);
       setResultUrl(previous => { if (previous) URL.revokeObjectURL(previous); return nextUrl; });
-      setResultBlob(outputBlob);
+      
       setSliderPosition(50);
       setProcessStatus(t('resultReady'));
       setTourOpen(false);
@@ -248,7 +246,7 @@ export default function App() {
                   <div className="compare-after-clip" style={{clipPath: `inset(0 ${100-sliderPosition}% 0 0)`}}><img src={resultUrl} alt={t('processed')} className="compare-image" draggable={false}/></div>
                   <div className="compare-divider" style={{left: `${sliderPosition}%`}}><span>↔</span></div>
                   <span className="compare-label compare-before">{t('before')}</span><span className="compare-label compare-after">{t('after')}</span>
-                  <input className="compare-range" aria-label={t('dragHint')} type="range" min="0" max="100" value={sliderPosition} onChange={event => setSliderPosition(Number(event.target.value))}/>
+                  <input className="compare-range" aria-label={t('dragHint')} onPointerDown={event => event.stopPropagation()} type="range" min="0" max="100" value={sliderPosition} onChange={event => setSliderPosition(Number(event.target.value))}/>
                 </div> : <>
                   <img src={activePhoto.url} alt={activePhoto.file.name} className="vehicle-preview" />
                   <div className="image-overlay"><span>{activePhoto.file.name}</span><button onClick={() => removePhoto(activePhoto.id)} aria-label={t('removePhoto')}><X size={16}/></button></div>
@@ -266,7 +264,7 @@ export default function App() {
               {photos.length > 0 && <div className="photo-strip">
                 <div className="strip-label">{t('selected')} <span>{photos.length}</span></div>
                 <div className="thumb-list">
-                  {photos.map(photo => <button key={photo.id} className={`photo-thumb ${activePhoto?.id === photo.id ? 'selected' : ''}`} onClick={() => setActiveId(photo.id)} aria-label={photo.file.name}>
+                  {photos.map(photo => <button key={photo.id} className={`photo-thumb ${activePhoto?.id === photo.id ? 'selected' : ''}`} onClick={() => { setActiveId(photo.id); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(null); setProcessStatus(''); }} aria-label={photo.file.name}>
                     <img src={photo.url} alt="" /><span className="thumb-check"><Check size={11}/></span>
                   </button>)}
                   <button className="add-thumb" onClick={() => galleryRef.current?.click()} aria-label={t('addMore')}><ImagePlus size={19}/></button>
@@ -285,7 +283,7 @@ export default function App() {
               </div>}
               {activePhoto && resultUrl && <div className="edit-panel result-panel">
                 <div className="panel-top"><div><span className="eyebrow">{t('processed')}</span><strong>{t('resultReady')}</strong></div><span className="panel-icon"><Check size={18}/></span></div>
-                <div className="result-actions"><button className="remove-button" onClick={downloadResult}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {URL.revokeObjectURL(resultUrl);setResultUrl(null);setResultBlob(null);setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
+                <div className="result-actions"><button className="remove-button" onClick={downloadResult}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {URL.revokeObjectURL(resultUrl);setResultUrl(null);setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
               </div>}
               {activePhoto && !resultUrl && tourOpen && <section className="guided-tour" aria-live="polite">
                 <div className="tour-top"><span className="eyebrow">{t('tutorial')}</span><button onClick={() => setTourOpen(false)} aria-label={t('skipTour')}><X size={16}/></button></div>
@@ -310,7 +308,7 @@ export default function App() {
         </>}
 
         {screen === 'library' && <section className="secondary-screen"><span className="eyebrow">YOUR WORKSPACE</span><h1>{t('libraryTitle')}</h1><p>{t('libraryHint')}</p>
-          {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
+          {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {if (resultUrl) URL.revokeObjectURL(resultUrl);setResultUrl(null);setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
         </section>}
 
         {screen === 'team' && <section className="secondary-screen"><span className="eyebrow">SPECIALIST WORKFLOWS</span><h1>{t('teamTitle')}</h1><p>{t('teamHint')}</p>
