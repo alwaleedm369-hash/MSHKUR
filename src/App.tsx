@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoStorage';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
   CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
@@ -7,7 +8,7 @@ import {
 
 type Locale = 'en' | 'ar';
 type Screen = 'studio' | 'library' | 'team' | 'settings';
-type Photo = { id: string; file: File; url: string };
+type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent' };
 
 const messages = {
   en: {
@@ -68,7 +69,7 @@ const messages = {
     tourSteps: ['أضف صورة السيارة من المعرض أو الكاميرا.', 'يتم فصل السيارة محلياً مع الحفاظ على الصورة الأصلية.', 'اسحب فاصل المقارنة لفحص الحواف.', 'اختر الخلفية ثم احفظ الصورة النهائية.'],
     previous: 'الخطوة السابقة', next: 'الخطوة التالية', skipTour: 'إغلاق الشرح', restartTour: 'إعادة الشرح',
     resultReady: 'النتيجة جاهزة', processError: 'تعذرت معالجة هذه الصورة. جرّب صورة أو جهازاً آخر.',
-    downloadResult: 'تنزيل النتيجة', reset: 'البدء من جديد', processingNote: 'اترك هذه الصفحة مفتوحة أثناء عمل النموذج.'
+    downloadResult: 'تنزيل النتيجة', reset: 'البدء من جديد', processingNote: 'اترك هذه الصفحة مفتوحة أثناء عمل النموذج.', storageError: 'التخزين المحلي غير متاح. يمكنك متابعة العمل خلال هذه الجلسة.'
   },
 } as const;
 
@@ -109,7 +110,32 @@ export default function App() {
   }, [locale, isArabic]);
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
-  useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
+  useEffect(() => () => photosRef.current.forEach(photo => {
+    URL.revokeObjectURL(photo.url);
+    if (photo.processedUrl) URL.revokeObjectURL(photo.processedUrl);
+  }), []);
+  useEffect(() => {
+    let cancelled = false;
+    loadPhotoRecords().then(records => {
+      if (cancelled || !records.length) return;
+      const restored = records.map(record => ({
+        id: record.id,
+        file: new File([record.original], record.name, { type: record.type, lastModified: record.lastModified }),
+        url: URL.createObjectURL(record.original),
+        processedBlob: record.processed,
+        processedUrl: record.processed ? URL.createObjectURL(record.processed) : undefined,
+        processedBackground: record.background,
+      }));
+      setPhotos(restored);
+      setActiveId(restored[0].id);
+      if (restored[0].processedUrl) setResultUrl(restored[0].processedUrl);
+      if (restored[0].processedBackground) setBackground(restored[0].processedBackground);
+    }).catch(error => {
+      console.warn('Local photo library could not be restored:', error);
+      if (!cancelled) setNotice(t('storageError'));
+    });
+    return () => { cancelled = true; };
+  }, []);
   useEffect(() => {
     if (!activePhoto || resultUrl || !tourOpen) return;
     const timer = window.setInterval(() => setTourStep(step => (step + 1) % 4), 6500);
@@ -118,11 +144,15 @@ export default function App() {
 
   function importPhotos(event: ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(event.target.files ?? []);
-    const valid = incoming.filter(file => file.type.startsWith('image/') && file.size <= 20 * 1024 * 1024);
+    const valid = incoming.filter(file => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) && file.size <= 20 * 1024 * 1024);
     if (valid.length !== incoming.length) setNotice(t('imageError'));
     if (valid.length) {
       const added = valid.map(file => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }));
       setPhotos(current => [...current, ...added]);
+      added.forEach(photo => savePhotoRecord({ id: photo.id, name: photo.file.name, type: photo.file.type, lastModified: photo.file.lastModified, original: photo.file, updatedAt: Date.now() }).catch(error => {
+        console.warn('Could not persist imported photo:', error);
+        setNotice(t('storageError'));
+      }));
       setActiveId(added[0].id);
       setResultUrl(current => { if (current) URL.revokeObjectURL(current); return null; });
       setTourStep(0);
@@ -135,8 +165,9 @@ export default function App() {
 
   function removePhoto(id: string) {
     const target = photos.find(photo => photo.id === id);
-    if (target) URL.revokeObjectURL(target.url);
-    if (activeId === id && resultUrl) { URL.revokeObjectURL(resultUrl); setResultUrl(null); }
+    if (target) { URL.revokeObjectURL(target.url); if (target.processedUrl) URL.revokeObjectURL(target.processedUrl); }
+    deletePhotoRecord(id).catch(error => console.warn('Could not delete local photo record:', error));
+    if (activeId === id && resultUrl) setResultUrl(null);
     const next = photos.filter(photo => photo.id !== id);
     setPhotos(next);
     if (activeId === id) setActiveId(next[0]?.id ?? null);
@@ -167,8 +198,9 @@ export default function App() {
         outputBlob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG export failed')), 'image/png'));
       }
       const nextUrl = URL.createObjectURL(outputBlob);
-      setResultUrl(previous => { if (previous) URL.revokeObjectURL(previous); return nextUrl; });
-      
+      setResultUrl(nextUrl);
+      setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: outputBlob, processedUrl: nextUrl, processedBackground: background } : photo));
+      await savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, processed: outputBlob, background, updatedAt: Date.now() });
       setSliderPosition(50);
       setProcessStatus(t('resultReady'));
       setTourOpen(false);
@@ -264,7 +296,7 @@ export default function App() {
               {photos.length > 0 && <div className="photo-strip">
                 <div className="strip-label">{t('selected')} <span>{photos.length}</span></div>
                 <div className="thumb-list">
-                  {photos.map(photo => <button key={photo.id} className={`photo-thumb ${activePhoto?.id === photo.id ? 'selected' : ''}`} onClick={() => { setActiveId(photo.id); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(null); setProcessStatus(''); }} aria-label={photo.file.name}>
+                  {photos.map(photo => <button key={photo.id} className={`photo-thumb ${activePhoto?.id === photo.id ? 'selected' : ''}`} onClick={() => { setActiveId(photo.id); setResultUrl(photo.processedUrl ?? null); setBackground(photo.processedBackground ?? 'white'); setProcessStatus(''); }} aria-label={photo.file.name}>
                     <img src={photo.url} alt="" /><span className="thumb-check"><Check size={11}/></span>
                   </button>)}
                   <button className="add-thumb" onClick={() => galleryRef.current?.click()} aria-label={t('addMore')}><ImagePlus size={19}/></button>
@@ -283,7 +315,7 @@ export default function App() {
               </div>}
               {activePhoto && resultUrl && <div className="edit-panel result-panel">
                 <div className="panel-top"><div><span className="eyebrow">{t('processed')}</span><strong>{t('resultReady')}</strong></div><span className="panel-icon"><Check size={18}/></span></div>
-                <div className="result-actions"><button className="remove-button" onClick={downloadResult}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {URL.revokeObjectURL(resultUrl);setResultUrl(null);setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
+                <div className="result-actions"><button className="remove-button" onClick={downloadResult}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {setResultUrl(null);setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: undefined, processedUrl: undefined, processedBackground: undefined } : photo));deletePhotoRecord(activePhoto.id).then(() => savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, updatedAt: Date.now() })).catch(error => console.warn('Could not reset saved result:', error));setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
               </div>}
               {activePhoto && !resultUrl && tourOpen && <section className="guided-tour" aria-live="polite">
                 <div className="tour-top"><span className="eyebrow">{t('tutorial')}</span><button onClick={() => setTourOpen(false)} aria-label={t('skipTour')}><X size={16}/></button></div>
@@ -308,7 +340,7 @@ export default function App() {
         </>}
 
         {screen === 'library' && <section className="secondary-screen"><span className="eyebrow">YOUR WORKSPACE</span><h1>{t('libraryTitle')}</h1><p>{t('libraryHint')}</p>
-          {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {if (resultUrl) URL.revokeObjectURL(resultUrl);setResultUrl(null);setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
+          {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
         </section>}
 
         {screen === 'team' && <section className="secondary-screen"><span className="eyebrow">SPECIALIST WORKFLOWS</span><h1>{t('teamTitle')}</h1><p>{t('teamHint')}</p>
