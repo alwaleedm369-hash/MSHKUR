@@ -1,0 +1,48 @@
+[
+  {
+    "id": "vehicle-retoucher",
+    "name": "مساعد تحسين صور السيارات",
+    "version": "0.3.0",
+    "runtime": "browser",
+    "status": "connected-to-photo-studio",
+    "skills": [
+      "background-remove",
+      "vehicle-mask-review"
+    ],
+    "description": "يفصل خلفية السيارة ويعيد تركيبها على مساحة موحدة مع أوامر تعديل القناع."
+  },
+  {
+    "id": "quality-inspector",
+    "name": "مساعد مراجعة الجودة",
+    "version": "0.3.0",
+    "runtime": "browser",
+    "status": "connected-to-photo-studio",
+    "skills": [
+      "vehicle-mask-review"
+    ],
+    "description": "يفحص هندسة القناع ويصنف النتائج التي تحتاج مراجعة بشرية."
+  },
+  {
+    "id": "batch-operator",
+    "name": "مساعد معالجة الدفعات",
+    "version": "0.3.0",
+    "runtime": "browser",
+    "status": "connected-to-photo-studio",
+    "skills": [
+      "vehicle-batch-process"
+    ],
+    "description": "يعالج الصور بالتتابع ويعرض حالة كل صورة ولا يخفي حالات الفشل."
+  },
+  {
+    "id": "workflow-orchestrator",
+    "name": "منسق سير العمل",
+    "version": "0.2.0",
+    "runtime": "browser",
+    "status": "workflow-contract",
+    "skills": [
+      "vehicle-batch-process",
+      "vehicle-mask-review"
+    ],
+    "description": "يرتب خطوات الدفعة ويربط المراجعة بالاعتماد البشري قبل التصدير."
+  }
+]

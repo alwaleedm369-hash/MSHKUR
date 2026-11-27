@@ -7,7 +7,9 @@
     "description": "إنشاء مسودة إعلان من الحقول المدخلة فقط دون اختراع المواصفات.",
     "input": "vehicle-copy",
     "output": "ad-draft",
-    "permissions": ["vehicle:read"],
+    "permissions": [
+      "vehicle:read"
+    ],
     "cost": "local",
     "entrypoint": "builtin:vehicle-ad-copy"
   },
@@ -19,7 +21,9 @@
     "description": "فحص الحقول الناقصة والتعارضات الأساسية قبل تجهيز الإعلان.",
     "input": "vehicle-record",
     "output": "validation-report",
-    "permissions": ["vehicle:read"],
+    "permissions": [
+      "vehicle:read"
+    ],
     "cost": "local",
     "entrypoint": "builtin:vehicle-validate"
   },
@@ -31,7 +35,9 @@
     "description": "إزالة خلفية الصورة محلياً داخل المتصفح باستخدام BiRefNet عبر WebGPU/WASM.",
     "input": "image-file",
     "output": "transparent-png",
-    "permissions": ["image:process"],
+    "permissions": [
+      "image:process"
+    ],
     "cost": "local",
     "runtime": "browser",
     "entrypoint": "browser:bg0"
@@ -44,7 +50,9 @@
     "description": "تصحيح الاتجاه وتحويل الصورة إلى WebP مع ضبط الحجم والجودة.",
     "input": "image-file",
     "output": "optimized-image",
-    "permissions": ["image:process"],
+    "permissions": [
+      "image:process"
+    ],
     "cost": "local",
     "entrypoint": "builtin:image-optimize"
   },
@@ -56,7 +64,9 @@
     "description": "تمويه منطقة مستطيلة يحددها المستخدم، دون ادعاء كشف تلقائي.",
     "input": "image-file-region",
     "output": "blurred-image",
-    "permissions": ["image:process"],
+    "permissions": [
+      "image:process"
+    ],
     "cost": "local",
     "entrypoint": "builtin:license-plate-blur-region"
   },
@@ -68,7 +78,9 @@
     "description": "تركيب السيارة الشفافة على خلفية بيضاء/رمادية مع ظل ملامس محلي عبر Canvas.",
     "input": "transparent-png",
     "output": "studio-png",
-    "permissions": ["image:process"],
+    "permissions": [
+      "image:process"
+    ],
     "cost": "local",
     "runtime": "browser",
     "entrypoint": "browser:mshkurImageEngine.compositeStudio"
@@ -81,7 +93,9 @@
     "description": "ضبط تباين وسطوع بسيط على Canvas دون نماذج مدفوعة.",
     "input": "image-file",
     "output": "enhanced-image",
-    "permissions": ["image:process"],
+    "permissions": [
+      "image:process"
+    ],
     "cost": "local",
     "runtime": "browser",
     "entrypoint": "browser:mshkurImageEngine.enhanceLighting"
@@ -94,9 +108,41 @@
     "description": "إزالة خلفية BG0 ثم ظل وخلفية استوديو وتحسين إضاءة وطمس لوحة اختياري — محلياً.",
     "input": "image-file",
     "output": "studio-png",
-    "permissions": ["image:process"],
+    "permissions": [
+      "image:process"
+    ],
     "cost": "local",
     "runtime": "browser",
     "entrypoint": "browser:mshkurImageEngine.runCarStudioPipeline"
+  },
+  {
+    "id": "vehicle-mask-review",
+    "name": "مراجع قناع السيارة",
+    "category": "quality",
+    "version": "0.3.0",
+    "description": "فحص هندسي لقناع السيارة واكتشاف القناع الفارغ ومخاطر القص والتسرب.",
+    "input": "alpha-mask-report",
+    "output": "quality-report",
+    "permissions": [
+      "image:review"
+    ],
+    "cost": "local",
+    "runtime": "browser",
+    "entrypoint": "browser:vehicleImageEngine.reviewVehicleMask"
+  },
+  {
+    "id": "vehicle-batch-process",
+    "name": "معالجة دفعات السيارات",
+    "category": "image",
+    "version": "0.3.0",
+    "description": "تنفيذ متتابع فعلي للصور مع حالة مستقلة لكل صورة ومتابعة التقدم وإمكانية الاستمرار عند فشل عنصر.",
+    "input": "image-file-batch",
+    "output": "per-image-batch-results",
+    "permissions": [
+      "image:process"
+    ],
+    "cost": "local",
+    "runtime": "browser",
+    "entrypoint": "browser:vehicleBatchPipeline.runVehicleBatch"
   }
 ]

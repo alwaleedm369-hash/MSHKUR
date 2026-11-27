@@ -7,8 +7,14 @@
     "runtime": "server",
     "externalSideEffects": false,
     "steps": [
-      { "key": "validate", "skillId": "vehicle-validate" },
-      { "key": "draft", "skillId": "vehicle-ad-copy" }
+      {
+        "key": "validate",
+        "skillId": "vehicle-validate"
+      },
+      {
+        "key": "draft",
+        "skillId": "vehicle-ad-copy"
+      }
     ]
   },
   {
@@ -19,9 +25,41 @@
     "runtime": "hybrid",
     "externalSideEffects": false,
     "steps": [
-      { "key": "studio", "skillId": "car-studio-pipeline" },
-      { "key": "validate", "skillId": "vehicle-validate" },
-      { "key": "draft", "skillId": "vehicle-ad-copy" }
+      {
+        "key": "studio",
+        "skillId": "car-studio-pipeline"
+      },
+      {
+        "key": "validate",
+        "skillId": "vehicle-validate"
+      },
+      {
+        "key": "draft",
+        "skillId": "vehicle-ad-copy"
+      }
     ]
+  },
+  {
+    "id": "vehicle-photo-batch",
+    "name": "دفعة صور سيارات موحدة",
+    "version": "0.2.0",
+    "description": "تخطيط دفعة موحدة ثم المعالجة ومراجعة كل صورة قبل اعتمادها.",
+    "runtime": "browser",
+    "externalSideEffects": false,
+    "steps": [
+      {
+        "key": "plan",
+        "skillId": "vehicle-batch-process"
+      },
+      {
+        "key": "segment",
+        "skillId": "background-remove"
+      },
+      {
+        "key": "review",
+        "skillId": "vehicle-mask-review"
+      }
+    ],
+    "approvalRequired": true
   }
 ]

@@ -1,0 +1,15 @@
+export const DEFAULT_CANVAS: Readonly<{width:number;height:number}>;
+export const COMMANDS: readonly string[];
+export type AlphaBounds = {x:number;y:number;width:number;height:number};
+export type AlphaPlaneReport = {visiblePixels:number;bounds:AlphaBounds|null;touchesEdge:boolean;occupancy:number};
+export type VehicleMaskIssue = {code:string;severity:'block'|'review';message:string};
+export type VehicleMaskReview = {status:'blocked'|'needs-review'|'passed';issues:VehicleMaskIssue[];visiblePixels:number;bounds:AlphaBounds|null};
+export function clamp(value:number,min:number,max:number):number;
+export function normalizeRect(rect:{x:number;y:number;width:number;height:number}):{x:number;y:number;width:number;height:number};
+export function getCenteredSubjectPlacement(sourceWidth:number,sourceHeight:number,bounds:AlphaBounds,target?:{width:number;height:number},padding?:number):any;
+export function getGroundedSubjectPlacement(sourceWidth:number,sourceHeight:number,bounds:AlphaBounds,target?:{width:number;height:number},padding?:number,ground?:number):any;
+export function parseImageCommand(input:string):{action:'REMOVE'|'KEEP'|'CENTER'|'FIT'|'WHITE'|'TRANSPARENT'|'REVIEW';region?:{x:number;y:number;width:number;height:number}};
+export function applyAlphaRegion(alpha:Uint8Array,width:number,height:number,command:{action:'REMOVE'|'KEEP';region:{x:number;y:number;width:number;height:number}}):Uint8Array;
+export function inspectAlphaPlane(alpha:Uint8Array,width:number,height:number,threshold?:number):AlphaPlaneReport;
+export function reviewVehicleMask(report:AlphaPlaneReport,width:number,height:number):VehicleMaskReview;
+export function createBatchPlan(items:any[],options?:any):any[];
