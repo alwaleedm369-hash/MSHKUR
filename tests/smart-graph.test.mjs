@@ -69,3 +69,20 @@ test('forbids private-to-workspace links across owners', () => {
   graph.addNode({id:'workspace',type:'task',scope:{visibility:'workspace',ownerId:'u2',workspaceId:'w2'}});
   assert.throws(() => graph.addEdge({id:'cross',type:'REFERENCES',from:'private',to:'workspace'}), /Cross-user scoped/);
 });
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { InMemorySmartGraphRepository } from '../src/shared/graph/smartGraph.mjs';
+import { indexCapabilityCatalog } from '../src/shared/graph/capabilityIndex.mjs';
+
+test('projects skill, assistant and workflow catalogues into one graph', () => {
+  const graph = new InMemorySmartGraphRepository();
+  const report = indexCapabilityCatalog(graph, {
+    skills: [{id:'removebackground',name:'Remove Background',version:'1.2',status:'verified',license:'MIT',permissions:['image-processing']}],
+    assistants: [{id:'photo',nameAr:'مساعد الصور',canHandoff:true,skills:['removebackground','not-installed']}],
+    workflows: [{id:'vehicle-photo',name:'Vehicle Photo',steps:[{id:'cutout',skillId:'removebackground'},{id:'missing',skillId:'not-installed'}]}],
+  });
+  assert.deepEqual({skills:report.skills,assistants:report.assistants,workflows:report.workflows,relationships:report.relationships},{skills:1,assistants:1,workflows:1,relationships:2});
+  assert.equal(graph.related('assistant:photo',{actor:{userId:'__system__'},direction:'out'})[0].node.id,'skill:removebackground');
+  assert.equal(graph.related('workflow:vehicle-photo',{actor:{userId:'__system__'},direction:'out'})[0].node.id,'skill:removebackground');
+  assert.equal(report.unresolved.length,2);
+});
