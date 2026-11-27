@@ -60,10 +60,10 @@ export function indexCapabilityCatalog(graph, { skills = [], assistants = [], wo
       provenance: { sourceId: 'WorkflowRegistry.catalogue' },
     });
     report.workflows++;
-    for (const step of workflow.steps ?? []) {
+    for (const [stepIndex, step] of (workflow.steps ?? []).entries()) {
       if (step.skillId && skillIds.has(step.skillId)) {
         graph.addEdge({
-          id: `workflow-skill:${workflow.id}:${step.id ?? step.skillId}`,
+          id: `workflow-skill:${workflow.id}:${step.id ?? stepIndex}`,
           type: 'COMPOSES', from: `workflow:${workflow.id}`, to: `skill:${step.skillId}`,
           metadata: { stepId: step.id ?? null },
         });
@@ -75,7 +75,7 @@ export function indexCapabilityCatalog(graph, { skills = [], assistants = [], wo
         const targetId = `assistant:${step.assistantId}`;
         if (graph.getNode(targetId, { userId: '__system__' })) {
           graph.addEdge({
-            id: `workflow-assistant:${workflow.id}:${step.id ?? step.assistantId}`,
+            id: `workflow-assistant:${workflow.id}:${step.id ?? stepIndex}`,
             type: 'COMPOSES', from: `workflow:${workflow.id}`, to: targetId,
           });
           report.relationships++;
