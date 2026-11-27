@@ -161,6 +161,7 @@ export default function App() {
         file: new File([record.original], record.name, { type: record.type, lastModified: record.lastModified }),
         url: URL.createObjectURL(record.original),
         processedBlob: record.processed,
+        cutoutBlob: record.cutout,
         processedUrl: record.processed ? URL.createObjectURL(record.processed) : undefined,
         processedBackground: record.background,
       }));
@@ -235,7 +236,7 @@ export default function App() {
           if (item.processedUrl) URL.revokeObjectURL(item.processedUrl);
           return { ...item, processedBlob: normalized.blob, processedUrl: nextUrl, processedBackground: background, cutoutBlob: cutout.blob, processingState: normalized.review.status === 'passed' ? 'ready' : 'needs-review', approved: false };
         }));
-        try { await savePhotoRecord({ id: photo.id, name: photo.file.name, type: photo.file.type, lastModified: photo.file.lastModified, original: photo.file, processed: normalized.blob, background, updatedAt: Date.now() }); }
+        try { await savePhotoRecord({ id: photo.id, name: photo.file.name, type: photo.file.type, lastModified: photo.file.lastModified, original: photo.file, processed: normalized.blob, cutout: cutout.blob, background, updatedAt: Date.now() }); }
         catch (storageError) { console.warn('Processed output could not be persisted:', storageError); }
         if (photo.id === activeId) setResultUrl(nextUrl);
         return { blob: normalized.blob, review: normalized.review };
@@ -293,7 +294,7 @@ export default function App() {
         if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);
         setPhotos(current=>current.map(photo=>photo.id===activePhoto.id?{...photo,cutoutBlob:edited,processedBlob:normalized.blob,processedUrl:url,processedBackground:targetBackground,processingState:normalized.review.status==='passed'?'ready':'needs-review',approved:false}:photo));
         setResultUrl(url);
-        await savePhotoRecord({id:activePhoto.id,name:activePhoto.file.name,type:activePhoto.file.type,lastModified:activePhoto.file.lastModified,original:activePhoto.file,processed:normalized.blob,background:targetBackground,updatedAt:Date.now()});
+        await savePhotoRecord({id:activePhoto.id,name:activePhoto.file.name,type:activePhoto.file.type,lastModified:activePhoto.file.lastModified,original:activePhoto.file,processed:normalized.blob,cutout:edited,background:targetBackground,updatedAt:Date.now()});
         setNotice(t('commandApplied'));
       } finally { bitmap.close(); }
     } catch (error) { setNotice(error instanceof Error ? error.message : t('processError')); }
