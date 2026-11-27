@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['mshkur-icon.svg'],
       manifest: {
-        name: 'MSHKUR — Creative Workspace',
+        name: 'MSHKUR — Vehicle Photo Studio',
         short_name: 'MSHKUR',
-        description: 'A mobile-first visual workspace for ideas, images and creative work.',
+        description: 'Mobile-first vehicle photo studio for clean listing imagery.',
         lang: 'en',
         dir: 'ltr',
         theme_color: '#f6f6f2',
