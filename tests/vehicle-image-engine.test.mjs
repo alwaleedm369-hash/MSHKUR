@@ -56,3 +56,11 @@ test('batch plan applies a single output contract to every image',()=>{
   assert.ok(plan.every(x=>x.canvas.width===1600&&x.background==='transparent'&&x.ground===0.86));
   assert.throws(()=>createBatchPlan([]));
 });
+
+test('subject bounds extending beyond source are clipped to valid source pixels',()=>{
+  const p=getCenteredSubjectPlacement(100,100,{x:80,y:80,width:50,height:50});
+  assert.deepEqual(p.source,{x:80,y:80,width:20,height:20});
+  assert.ok(p.destination.x>=0&&p.destination.y>=0);
+  assert.ok(p.destination.x+p.destination.width<=1600);
+  assert.ok(p.destination.y+p.destination.height<=1200);
+});
