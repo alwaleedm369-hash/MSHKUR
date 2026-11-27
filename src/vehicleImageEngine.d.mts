@@ -1,0 +1,11 @@
+export const DEFAULT_CANVAS: Readonly<{width:number;height:number}>;
+export const COMMANDS: readonly string[];
+export function clamp(value:number,min:number,max:number):number;
+export function normalizeRect(rect:{x:number;y:number;width:number;height:number}):{x:number;y:number;width:number;height:number};
+export function getCenteredSubjectPlacement(sourceWidth:number,sourceHeight:number,bounds:{x:number;y:number;width:number;height:number},target?:{width:number;height:number},padding?:number):any;
+export function getGroundedSubjectPlacement(sourceWidth:number,sourceHeight:number,bounds:{x:number;y:number;width:number;height:number},target?:{width:number;height:number},padding?:number,ground?:number):any;
+export function parseImageCommand(input:string):{action:string;region?:{x:number;y:number;width:number;height:number}};
+export function applyAlphaRegion(alpha:Uint8Array,width:number,height:number,command:{action:string;region:{x:number;y:number;width:number;height:number}}):Uint8Array;
+export function inspectAlphaPlane(alpha:Uint8Array,width:number,height:number,threshold?:number):any;
+export function reviewVehicleMask(report:any,width:number,height:number):any;
+export function createBatchPlan(items:any[],options?:any):any[];
