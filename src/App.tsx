@@ -120,7 +120,7 @@ async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transp
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>(() => localStorage.getItem('mshkur.locale') === 'ar' ? 'ar' : 'en');
-  const [screen, setScreen] = useState<Screen>('studio');
+  const [screen, setScreen] = useState<Screen>('assistant');
   const [assistantPrompt, setAssistantPrompt] = useState('');
   const [assistantReply, setAssistantReply] = useState('');
   const [autoProcessAfterUpload, setAutoProcessAfterUpload] = useState(false);
@@ -196,6 +196,7 @@ export default function App() {
 
   function importPhotos(event: ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(event.target.files ?? []);
+    if (!incoming.length) { setAutoProcessAfterUpload(false); return; }
     const valid = incoming.filter(file => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) && file.size <= 20 * 1024 * 1024);
     if (valid.length !== incoming.length) setNotice(t('imageError'));
     if (valid.length) {
@@ -505,7 +506,7 @@ export default function App() {
             <p>{isArabic ? 'صف ما تحتاجه بكلماتك، أو اختر بداية مرئية. مشكور يرتب لك الطريق.' : 'Tell us what you need, or choose a visual starting point. MSHKUR keeps the next step clear.'}</p>
           </div><div className="assistant-orbit-art" aria-hidden="true"><span className="orbit orbit-one"/><span className="orbit orbit-two"/><span className="orbit-core"><Sparkles size={34}/></span><i className="orbit-star star-one">✦</i><i className="orbit-star star-two">✧</i></div></div>
           <div className="assistant-composer"><label htmlFor="assistant-prompt">{isArabic ? 'ما النتيجة التي تريد الوصول إليها؟' : 'Describe the result you want'}</label>
-            <textarea id="assistant-prompt" rows={3} value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} placeholder={isArabic ? 'مثلاً: أزل خلفية صورة السيارة واجعلها بيضاء...' : 'For example: Remove the background from my car photo and make it white…'}/>
+            <textarea id="assistant-prompt" rows={3} value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submitAssistantPrompt(); }} placeholder={isArabic ? 'مثلاً: أزل خلفية صورة السيارة واجعلها بيضاء...' : 'For example: Remove the background from my car photo and make it white…'}/>
             <div className="assistant-composer-foot"><small>{isArabic ? 'اكتب بطريقتك الطبيعية' : 'Use your own words'}</small><button onClick={() => submitAssistantPrompt()} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'نفّذ الطلب' : 'Run request'}</span><ArrowUpRight size={17}/></button></div>
             <div className="assistant-quick-actions" aria-label={isArabic ? 'إجراءات سريعة' : 'Quick actions'}>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'أضف صورة جديدة' : 'Upload a photo')}>{isArabic ? '＋ أضف صورة' : '＋ Add photo'}</button>
