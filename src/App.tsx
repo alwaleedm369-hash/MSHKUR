@@ -107,7 +107,8 @@ async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transp
     context.filter = 'blur(16px)';
     context.fillStyle = 'rgba(18, 24, 32, 0.16)';
     context.beginPath();
-    context.ellipse(d.x + d.width / 2, placement.baseline + 9, d.width * 0.36, Math.max(7, d.height * 0.025), 0, 0, Math.PI * 2);
+    const tireBaseline = 'baseline' in placement ? placement.baseline : d.y + d.height;
+    context.ellipse(d.x + d.width / 2, tireBaseline + 9, d.width * 0.36, Math.max(7, d.height * 0.025), 0, 0, Math.PI * 2);
     context.fill();
     context.restore();
     context.drawImage(bitmap, s.x, s.y, s.width, s.height, d.x, d.y, d.width, d.height);
@@ -224,7 +225,7 @@ export default function App() {
     try {
       const [{ removeBackground }, { env }] = await Promise.all([import('@bg0/browser'), import('@huggingface/transformers')]);
       const runtime = env as unknown as { backends?: { onnx?: { wasm?: { wasmPaths?: string } } } };
-      if (runtime.backends?.onnx?.wasm) runtime.backends.onnx.wasm.wasmPaths = '/onnx/';
+      if (runtime.backends?.onnx?.wasm) runtime.backends.onnx.wasm.wasmPaths = `${import.meta.env.BASE_URL}onnx/`;
       const batch = await runVehicleBatch(queue, async (photo, index) => {
         setProcessStatus(isArabic ? 'معالجة الصورة ' + (index + 1) + ' من ' + queue.length : 'Processing image ' + (index + 1) + ' of ' + queue.length);
         setPhotos(current => current.map(item => item.id === photo.id ? { ...item, processingState: 'processing' } : item));
