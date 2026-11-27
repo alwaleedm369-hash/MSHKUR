@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
-  ArrowUpRight, Camera, CarFront, Check, ChevronDown,
-  CircleHelp, Globe2, ImagePlus, Images, Menu,
+  ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
+  CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
   SlidersHorizontal, Sparkles, X
 } from 'lucide-react';
 
@@ -32,6 +32,13 @@ const messages = {
     whiteHint: 'A clean listing-ready background', transparentHint: 'For further design work',
     before: 'Before', after: 'After', preview: 'Photo preview', change: 'Change photo',
     imageError: 'Please choose a valid image file under 20 MB.',
+    processing: 'Preparing your photo', processingHint: 'The AI model runs locally in your browser. The first run may take longer.',
+    modelLoading: 'Loading the local model…', cutting: 'Separating the vehicle…', compositing: 'Preparing your background…',
+    processed: 'Background removed', compare: 'Before & after', dragHint: 'Drag the handle to compare', tutorial: 'A quick studio tour',
+    tourSteps: ['Add a car photo from your gallery or camera.', 'The vehicle is separated locally; your original stays untouched.', 'Drag the comparison handle to inspect the edges.', 'Choose a background, then save your finished image.'],
+    previous: 'Previous step', next: 'Next step', skipTour: 'Close guide', restartTour: 'Replay guide',
+    resultReady: 'Your result is ready', processError: 'Could not process this image. Try another photo or device.',
+    downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.'
   },
   ar: {
     studio: 'الاستوديو', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
@@ -55,6 +62,13 @@ const messages = {
     whiteHint: 'خلفية نظيفة مناسبة للإعلانات', transparentHint: 'لمتابعة التصميم لاحقاً',
     before: 'قبل', after: 'بعد', preview: 'معاينة الصورة', change: 'تغيير الصورة',
     imageError: 'اختر صورة صالحة لا يتجاوز حجمها 20 ميجابايت.',
+    processing: 'جارٍ تجهيز صورتك', processingHint: 'يعمل نموذج الذكاء الاصطناعي محلياً في المتصفح. قد تستغرق المرة الأولى وقتاً أطول.',
+    modelLoading: 'تحميل النموذج المحلي…', cutting: 'فصل السيارة عن الخلفية…', compositing: 'تجهيز الخلفية…',
+    processed: 'تمت إزالة الخلفية', compare: 'قبل وبعد', dragHint: 'اسحب الفاصل لمقارنة النتيجة', tutorial: 'جولة سريعة في الاستوديو',
+    tourSteps: ['أضف صورة السيارة من المعرض أو الكاميرا.', 'يتم فصل السيارة محلياً مع الحفاظ على الصورة الأصلية.', 'اسحب فاصل المقارنة لفحص الحواف.', 'اختر الخلفية ثم احفظ الصورة النهائية.'],
+    previous: 'الخطوة السابقة', next: 'الخطوة التالية', skipTour: 'إغلاق الشرح', restartTour: 'إعادة الشرح',
+    resultReady: 'النتيجة جاهزة', processError: 'تعذرت معالجة هذه الصورة. جرّب صورة أو جهازاً آخر.',
+    downloadResult: 'تنزيل النتيجة', reset: 'البدء من جديد', processingNote: 'اترك هذه الصفحة مفتوحة أثناء عمل النموذج.'
   },
 } as const;
 
@@ -70,6 +84,16 @@ export default function App() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [background, setBackground] = useState<'white' | 'transparent'>('white');
+  const [resultUrl, setResultUrl] = useState<string | null>(null);
+  const [resultBlob, setResultBlob] = useState<Blob | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [processStatus, setProcessStatus] = useState('');
+  const [processError, setProcessError] = useState('');
+  const [sliderPosition, setSliderPosition] = useState(50);
+  const [tourStep, setTourStep] = useState(0);
+  const [tourOpen, setTourOpen] = useState(true);
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const sliderDragging = useRef(false);
   const [notice, setNotice] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -87,6 +111,11 @@ export default function App() {
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => () => photosRef.current.forEach(photo => URL.revokeObjectURL(photo.url)), []);
+  useEffect(() => {
+    if (!activePhoto || resultUrl || !tourOpen) return;
+    const timer = window.setInterval(() => setTourStep(step => (step + 1) % 4), 6500);
+    return () => window.clearInterval(timer);
+  }, [activePhoto, resultUrl, tourOpen]);
 
   function importPhotos(event: ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(event.target.files ?? []);
@@ -96,6 +125,10 @@ export default function App() {
       const added = valid.map(file => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }));
       setPhotos(current => [...current, ...added]);
       setActiveId(added[0].id);
+      setResultUrl(current => { if (current) URL.revokeObjectURL(current); return null; });
+      setResultBlob(null);
+      setTourStep(0);
+      setTourOpen(true);
       setScreen('studio');
       setNotice('');
     }
@@ -105,13 +138,64 @@ export default function App() {
   function removePhoto(id: string) {
     const target = photos.find(photo => photo.id === id);
     if (target) URL.revokeObjectURL(target.url);
+    if (activeId === id && resultUrl) { URL.revokeObjectURL(resultUrl); setResultUrl(null); setResultBlob(null); }
     const next = photos.filter(photo => photo.id !== id);
     setPhotos(next);
     if (activeId === id) setActiveId(next[0]?.id ?? null);
   }
 
-  function handleRemoveBackground() {
-    setNotice(t('engineUnavailable'));
+  async function handleRemoveBackground() {
+    if (!activePhoto || busy) return;
+    setBusy(true);
+    setProcessError('');
+    setProcessStatus(t('modelLoading'));
+    try {
+      const { removeBackground } = await import('@bg0/browser');
+      setProcessStatus(t('cutting'));
+      const cutout = await removeBackground(activePhoto.file);
+      let outputBlob = cutout.blob;
+      if (background === 'white') {
+        setProcessStatus(t('compositing'));
+        const bitmap = await createImageBitmap(cutout.blob);
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Canvas unavailable');
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        outputBlob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG export failed')), 'image/png'));
+      }
+      const nextUrl = URL.createObjectURL(outputBlob);
+      setResultUrl(previous => { if (previous) URL.revokeObjectURL(previous); return nextUrl; });
+      setResultBlob(outputBlob);
+      setSliderPosition(50);
+      setProcessStatus(t('resultReady'));
+      setTourOpen(false);
+    } catch (error) {
+      console.error('Vehicle background removal failed', error);
+      setProcessError(error instanceof Error ? error.message : t('processError'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function downloadResult() {
+    if (!resultUrl || !activePhoto) return;
+    const anchor = document.createElement('a');
+    anchor.href = resultUrl;
+    anchor.download = activePhoto.file.name.replace(/\\.[^/.]+$/, '') + (background === 'white' ? '-white-background.png' : '-transparent.png');
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  }
+
+  function updateSlider(clientX: number) {
+    const rect = sliderRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return;
+    setSliderPosition(Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)));
   }
 
   function goTo(next: Screen) {
@@ -158,8 +242,14 @@ export default function App() {
           <section className={`workbench ${activePhoto ? 'has-photo' : ''}`}>
             <div className="canvas-column">
               <div className="section-head"><span>{t('preview')}</span><span className="ready-state"><i />{activePhoto ? t('ready') : '01 — START'}</span></div>
-              <div className={`photo-canvas ${activePhoto ? 'with-image' : ''}`}>
-                {activePhoto ? <>
+              <div className={`photo-canvas ${activePhoto ? 'with-image' : ''} ${resultUrl ? 'comparison-canvas' : ''}`}>
+                {activePhoto ? resultUrl ? <div className="comparison-stage" ref={sliderRef} onPointerDown={event => { sliderDragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); updateSlider(event.clientX); }} onPointerMove={event => { if (sliderDragging.current) updateSlider(event.clientX); }} onPointerUp={() => { sliderDragging.current = false; }} onPointerCancel={() => { sliderDragging.current = false; }}>
+                  <img src={activePhoto.url} alt={t('original')} className="compare-image compare-original" draggable={false}/>
+                  <div className="compare-after-clip" style={{clipPath: `inset(0 ${100-sliderPosition}% 0 0)`}}><img src={resultUrl} alt={t('processed')} className="compare-image" draggable={false}/></div>
+                  <div className="compare-divider" style={{left: `${sliderPosition}%`}}><span>↔</span></div>
+                  <span className="compare-label compare-before">{t('before')}</span><span className="compare-label compare-after">{t('after')}</span>
+                  <input className="compare-range" aria-label={t('dragHint')} type="range" min="0" max="100" value={sliderPosition} onChange={event => setSliderPosition(Number(event.target.value))}/>
+                </div> : <>
                   <img src={activePhoto.url} alt={activePhoto.file.name} className="vehicle-preview" />
                   <div className="image-overlay"><span>{activePhoto.file.name}</span><button onClick={() => removePhoto(activePhoto.id)} aria-label={t('removePhoto')}><X size={16}/></button></div>
                 </> : <div className="empty-canvas">
@@ -183,14 +273,27 @@ export default function App() {
                 </div>
               </div>}
 
-              {activePhoto && <div className="edit-panel">
-                <div className="panel-top"><div><span className="eyebrow">{t('output')}</span><strong>{t('white')}</strong></div><span className="panel-icon"><SlidersHorizontal size={18}/></span></div>
+              {activePhoto && !resultUrl && <div className="edit-panel">
+                <div className="panel-top"><div><span className="eyebrow">{t('output')}</span><strong>{background === 'white' ? t('white') : t('transparent')}</strong></div><span className="panel-icon"><SlidersHorizontal size={18}/></span></div>
                 <div className="background-options">
                   <button className={background === 'white' ? 'chosen' : ''} onClick={() => setBackground('white')}><span className="swatch white-swatch"/><span><strong>{t('white')}</strong><small>{t('whiteHint')}</small></span>{background === 'white' && <Check size={17}/>}</button>
                   <button className={background === 'transparent' ? 'chosen' : ''} onClick={() => setBackground('transparent')}><span className="swatch transparent-swatch"/><span><strong>{t('transparent')}</strong><small>{t('transparentHint')}</small></span>{background === 'transparent' && <Check size={17}/>}</button>
                 </div>
-                <button className="remove-button" onClick={handleRemoveBackground}><Sparkles size={18}/>{t('remove')}<ArrowUpRight size={17}/></button>
+                <button className="remove-button" disabled={busy} onClick={handleRemoveBackground}>{busy ? <span className="spinner"/> : <Sparkles size={18}/>} {busy ? processStatus : t('remove')}<ArrowUpRight size={17}/></button>
+                <p className="processing-note">{t('processingHint')}</p>
+                {processError && <div className="notice" role="alert">{processError}</div>}
               </div>}
+              {activePhoto && resultUrl && <div className="edit-panel result-panel">
+                <div className="panel-top"><div><span className="eyebrow">{t('processed')}</span><strong>{t('resultReady')}</strong></div><span className="panel-icon"><Check size={18}/></span></div>
+                <div className="result-actions"><button className="remove-button" onClick={downloadResult}><ArrowDownToLine size={18}/>{t('downloadResult')}</button><button className="button-secondary" onClick={() => {URL.revokeObjectURL(resultUrl);setResultUrl(null);setResultBlob(null);setProcessStatus('');}}><RotateCcw size={17}/>{t('reset')}</button></div>
+              </div>}
+              {activePhoto && !resultUrl && tourOpen && <section className="guided-tour" aria-live="polite">
+                <div className="tour-top"><span className="eyebrow">{t('tutorial')}</span><button onClick={() => setTourOpen(false)} aria-label={t('skipTour')}><X size={16}/></button></div>
+                <div className="tour-progress">{[0,1,2,3].map(index => <span key={index} className={index===tourStep?'active':''}/>)}</div>
+                <p>{(messages[locale].tourSteps as readonly string[])[tourStep]}</p>
+                <div className="tour-controls"><button onClick={() => setTourStep(step => (step+3)%4)} aria-label={t('previous')}><ArrowLeft size={16}/></button><span>{tourStep+1} / 4</span><button onClick={() => setTourStep(step => (step+1)%4)} aria-label={t('next')}><ArrowRight size={16}/></button><button className="tour-replay" onClick={() => setTourStep(0)}><Play size={14}/>{t('restartTour')}</button></div>
+              </section>}
+              {busy && <div className="processing-banner" role="status"><span className="spinner"/><div><strong>{t('processing')}</strong><small>{processStatus || t('processingNote')}</small></div></div>}
               {notice && <div className="notice" role="status"><CircleHelp size={17}/><span>{notice}</span><button onClick={() => setNotice('')} aria-label={t('close')}><X size={15}/></button></div>}
             </div>
 
