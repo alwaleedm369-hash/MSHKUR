@@ -18,5 +18,5 @@
     "noUnusedParameters": false,
     "types": ["vite/client"]
   },
-  "include": ["src/main.tsx", "src/App.tsx", "vite.config.ts"]
+  "include": ["src/main.tsx", "src/App.tsx", "src/**/*.d.ts", "vite.config.ts"]
 }
