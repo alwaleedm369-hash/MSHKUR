@@ -200,7 +200,12 @@ export default function App() {
       const nextUrl = URL.createObjectURL(outputBlob);
       setResultUrl(nextUrl);
       setPhotos(current => current.map(photo => photo.id === activePhoto.id ? { ...photo, processedBlob: outputBlob, processedUrl: nextUrl, processedBackground: background } : photo));
-      await savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, processed: outputBlob, background, updatedAt: Date.now() });
+      try {
+        await savePhotoRecord({ id: activePhoto.id, name: activePhoto.file.name, type: activePhoto.file.type, lastModified: activePhoto.file.lastModified, original: activePhoto.file, processed: outputBlob, background, updatedAt: Date.now() });
+      } catch (storageError) {
+        console.warn('Processed output could not be persisted:', storageError);
+        setNotice(t('storageError'));
+      }
       setSliderPosition(50);
       setProcessStatus(t('resultReady'));
       setTourOpen(false);
