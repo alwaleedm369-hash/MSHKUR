@@ -120,3 +120,64 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 @media(max-width:380px){.intro-row h1,.secondary-screen h1{font-size:31px}.photo-canvas,.empty-canvas{min-height:275px}.vehicle-preview{min-height:275px}.button-primary,.button-secondary{padding:0 11px;font-size:10px}.background-options small{font-size:7px}.specialist-row{align-items:flex-start;flex-wrap:wrap}.planned-tag{margin-inline-start:48px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Guided onboarding and real before/after comparison */
+.comparison-canvas{aspect-ratio:1.42;min-height:380px;background:#fff}
+.comparison-stage{position:absolute;inset:0;overflow:hidden;touch-action:pan-y;user-select:none;background:#f2f4f0}
+.compare-image{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.compare-original{background:#fff}
+.compare-after-clip{position:absolute;inset:0;overflow:hidden;background:#fff}
+.compare-divider{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 10px rgba(0,0,0,.22);pointer-events:none;transform:translateX(-1px)}
+.compare-divider span{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#315d49;border:2px solid #315d49;box-shadow:0 5px 18px rgba(0,0,0,.2);font-size:20px;font-weight:700}
+.compare-label{position:absolute;bottom:14px;padding:7px 10px;border-radius:8px;background:rgba(25,34,28,.78);color:#fff;font-size:10px;font-weight:700;pointer-events:none}
+.compare-before{left:14px}.compare-after{right:14px}
+.compare-range{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize;touch-action:pan-y}
+.compare-range:focus-visible{opacity:.18;outline:3px solid #315d49;outline-offset:-5px}
+.guided-tour{margin-top:14px;padding:16px 17px;border:1px solid #e1e8df;border-radius:16px;background:linear-gradient(125deg,#fff 0%,#f1f5ef 100%);box-shadow:0 8px 24px rgba(30,42,32,.035)}
+.tour-top,.tour-controls{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tour-top button{width:30px;height:30px;border:1px solid var(--line);border-radius:9px;background:#fff;color:#788279;display:grid;place-items:center}
+.tour-progress{display:flex;gap:5px;margin-top:12px}
+.tour-progress span{height:3px;flex:1;border-radius:4px;background:#e5eae3;transition:background .2s}
+.tour-progress span.active{background:#315d49}
+.guided-tour>p{min-height:42px;margin:12px 0;color:#48534a;font-size:13px;line-height:1.65;font-weight:550}
+.tour-controls{justify-content:flex-start;color:#879087;font-size:10px}
+.tour-controls>button:not(.tour-replay){width:34px;height:34px;border:1px solid #e1e7df;border-radius:10px;background:#fff;color:#526b58;display:grid;place-items:center}
+.tour-replay{margin-inline-start:auto;display:flex;align-items:center;gap:6px;border:0;background:transparent;color:#6d796f;font-size:10px}
+.processing-note{margin:10px 2px 0;color:#89938a;font-size:10px;line-height:1.6}
+.processing-banner{display:flex;align-items:center;gap:12px;margin-top:14px;padding:14px 16px;border:1px solid #dfe8dd;background:#f0f5ef;border-radius:13px;color:#526b58}
+.processing-banner>div{display:grid;gap:4px}
+.processing-banner strong{font-size:12px}.processing-banner small{font-size:10px;color:#879187}
+.spinner{width:17px;height:17px;flex:0 0 auto;border:2px solid #d6e1d6;border-top-color:#315d49;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.result-panel .result-actions{align-items:stretch}
+.result-panel .remove-button{margin:0;flex:1}
+.result-panel .button-secondary{min-height:48px}
+.remove-button:disabled{opacity:.75;cursor:wait}
+@media(min-width:761px){
+ .main-content{max-width:1320px;padding-top:44px}
+ .intro-row{margin-bottom:30px}
+ .workbench{grid-template-columns:minmax(0,1.7fr) minmax(280px,.7fr);gap:28px}
+ .workbench.has-photo{grid-template-columns:minmax(0,1fr)}
+ .photo-canvas,.comparison-canvas{min-height:480px;max-height:72vh}
+ .vehicle-preview{max-height:72vh}
+ .side-card{padding:24px}
+ .guided-tour{padding:19px 21px}
+}
+@media(min-width:1100px){
+ .main-content{max-width:1440px;padding-left:64px;padding-right:64px}
+ .workbench{grid-template-columns:minmax(0,1.8fr) minmax(310px,.65fr);gap:34px}
+ .photo-canvas,.comparison-canvas{min-height:540px}
+ .intro-row h1{font-size:58px}
+}
+@media(max-width:760px){
+ .comparison-canvas{min-height:310px;aspect-ratio:1.12}
+ .compare-divider span{width:42px;height:42px}
+ .guided-tour{padding:13px 14px}
+ .guided-tour>p{font-size:12px;min-height:38px}
+ .processing-banner{padding:12px}
+}
+@media(max-width:380px){
+ .comparison-canvas{min-height:275px}
+ .compare-label{bottom:9px;padding:6px 8px;font-size:9px}
+ .tour-replay{font-size:9px}
+}
