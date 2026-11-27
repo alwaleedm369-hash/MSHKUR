@@ -10,6 +10,7 @@
 | [الحالة التجارية والهندسية](./COMMERCIAL_STATUS_AR.md) | ما يعمل وما لا نعلن اتصاله |
 | [خارطة الطريق](./ROADMAP_AR.md) | بوابات التنفيذ ومعايير القبول |
 | [قواعد UX والتصميم](./UX_DESIGN_RULES.md) | قواعد التصميم والجوال واللغة والحركة |
+| [تصور المهارات والإضافات في مساحة العمل](./WORKSPACE_SKILLS_PLUGINS_UX_AR.md) | سيناريو UI/UX، مركز القدرات، تدفقات التفعيل والربط، وهيكل الوثائق المقترح |
 | [دليل معاينة GitHub Pages](./GITHUB_PAGES_PREVIEW_AR.md) | النشر وحدود الاستضافة الثابتة |
 | [دليل AIBG Photo Studio](./engine/MSHKUR_AIBG_PHOTO_STUDIO_GUIDE_AR.md) | دليل استخدام الاستوديو وأوامره |
 | [عقد محرك AIBG](./engine/MSHKUR_AIBG_ENGINE_CONTRACT_AR.md) | ملكية المحرك وحدوده الفنية |
