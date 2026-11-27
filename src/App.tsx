@@ -1,170 +1,82 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import type { LucideIcon } from 'lucide-react';
 import {
-  ArrowUpRight, Aperture, Box, Brush, Camera, Check, ChevronRight,
-  CircleHelp, Compass, FileImage, FolderOpen, Globe2, ImagePlus,
-  Layers3, Library, MoreHorizontal, Palette, Plus, Settings2,
-  Sparkles, WandSparkles, X, Zap
+  ArrowDownToLine, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
+  CircleHelp, Globe2, ImagePlus, Images, Menu, MoreHorizontal, Share2,
+  SlidersHorizontal, Sparkles, X
 } from 'lucide-react';
 
 type Locale = 'en' | 'ar';
-type View = 'create' | 'library' | 'agents' | 'profile';
-type Project = { id: string; title: string; prompt: string; createdAt: number; sourceName?: string; sourceAssetId?: string };
+type Screen = 'studio' | 'library' | 'team' | 'settings';
+type Photo = { id: string; file: File; url: string };
 
-const copy = {
+const messages = {
   en: {
-    create:'Create', library:'Library', agents:'Creative team', profile:'Settings',
-    studio:'MSHKUR / CREATIVE STUDIO', headlineA:'Make something', headlineB:'worth keeping.',
-    intro:'A visual workspace for ideas, images and everything you want to bring to life.',
-    yourCanvas:'YOUR CANVAS', ready:'Ready when you are',
-    describe:'Describe what you want to create…', addImage:'Add image', camera:'Camera',
-    prepare:'Prepare my brief', directions:'A few places to begin', directionsHint:'Pick a direction. Make it your own.',
-    product:'Product imagery', productDesc:'A considered studio look for an object or product.',
-    campaign:'Campaign visual', campaignDesc:'A bold image with a clear visual point of view.',
-    identity:'Brand direction', identityDesc:'Color, type and a visual language that belong together.',
-    icons:'Icon family', iconsDesc:'A coherent set of icons with a shared visual rhythm.',
-    creativeTeam:'Your creative team', creativeTeamHint:'Specialists ready to shape the work with you.',
-    meetTeam:'Meet the team', openLibrary:'Open library', noProjects:'Your next favourite thing starts here.',
-    noProjectsHint:'Create a brief or bring in an image. Your work will collect here.',
-    projects:'Projects', source:'Source image', briefReady:'Brief prepared',
-    briefReadyText:'Your direction is saved in this workspace.',
-    providerNote:'Image rendering is not connected yet. Your brief and source stay here while provider connections are being built.',
-    workflow:'Suggested workflow', stepOne:'Shape the direction', stepTwo:'Choose the visual language',
-    stepThree:'Create and refine', stepFour:'Export the final work', switchLang:'العربية',
-    profileTitle:'Your workspace', language:'Language', providers:'Creative providers',
-    notConnected:'Not connected', coming:'Connection setup is next', account:'Account & preferences',
-    light:'Light appearance', lightHint:'The studio is designed around a bright, calm canvas.',
-    agentRole:'SPECIALIST', available:'Role preview',
-    creativeDirector:'Creative Director', creativeDirectorDesc:'Turns your intention into a focused plan and brings the right specialists together.',
-    artDirector:'Art Director', artDirectorDesc:'Shapes composition, mood, references and the visual point of view.',
-    brandDesigner:'Brand Designer', brandDesignerDesc:'Builds a connected language of color, type and identity.',
-    photographer:'Product Photographer', photographerDesc:'Creates lighting, scene and product-image direction.',
-    retoucher:'Image Retoucher', retoucherDesc:'Refines details, backgrounds, masks and image quality.',
-    graphicDesigner:'Graphic Designer', graphicDesignerDesc:'Creates campaign, editorial and social compositions.',
-    uiDesigner:'UI Systems Designer', uiDesignerDesc:'Builds thoughtful screens, reusable components and design tokens.',
-    iconDesigner:'Icon Designer', iconDesignerDesc:'Creates consistent icon families and export-ready SVG assets.',
-    motionDesigner:'Motion Designer', motionDesignerDesc:'Plans motion, storyboards and short-form visual sequences.',
-    threeDArtist:'3D Artist', threeDArtistDesc:'Creates scenes, materials, camera and lighting plans.',
-    savedLocally:'Saved in this workspace', removeImage:'Remove image', imageAdded:'Image added',
-    allWork:'All work', newProject:'New project', sourceReady:'Reference ready',
-    sourceHint:'Your original image stays untouched. Edits will become new versions.',
-    workspace:'Private workspace', direction:'Use a direction', empty:'Nothing here yet',
-    saved:'Saved locally', reference:'Reference', assistantNote:'Skills are reusable capabilities. Agents combine the right skills for each brief.',
+    studio: 'Studio', library: 'My work', team: 'Specialists', settings: 'Settings',
+    title: 'Perfect Car Photos', subtitle: 'Clean, consistent vehicle images start here.',
+    uploadTitle: 'Bring your car photo', uploadHint: 'Choose from your gallery or take a new photo.',
+    gallery: 'Choose photo', camera: 'Take photo', formats: 'JPG, PNG or WEBP · Up to 20 MB each',
+    remove: 'Remove background', addMore: 'Add photos', original: 'Original image',
+    white: 'Pure white', transparent: 'Transparent', output: 'Background',
+    ready: 'Ready to edit', selected: 'Selected photos', removePhoto: 'Remove photo',
+    engineUnavailable: 'The background-removal service is not connected in this build. Your original photo is safe.',
+    noPhotos: 'No photos yet', noPhotosHint: 'Your imported photos and saved results will appear here.',
+    libraryTitle: 'Your Recent Projects', libraryHint: 'Your work stays on this device until cloud sync is connected.',
+    teamTitle: 'Meet Your Specialists', teamHint: 'Specialist workflows are being prepared. They will appear when their skills are tested and connected.',
+    creative: 'Creative direction', vehicle: 'Vehicle retouching', quality: 'Image quality',
+    planned: 'In preparation', settingsTitle: 'Studio Preferences', language: 'Language',
+    appearance: 'Appearance', light: 'Light', privacy: 'Local-first storage',
+    privacyHint: 'Imported photos remain in this browser session. Nothing is uploaded by this screen.',
+    menu: 'Open menu', close: 'Close menu', signIn: 'Google sign in',
+    signInNote: 'Account sign-in is not connected yet.', save: 'Save photo', share: 'Share',
+    removeSelected: 'Remove selected', photoCount: 'photos selected', back: 'Back to studio',
+    whiteHint: 'A clean listing-ready background', transparentHint: 'For further design work',
+    before: 'Before', after: 'After', preview: 'Photo preview', change: 'Change photo',
+    imageError: 'Please choose a valid image file under 20 MB.',
   },
   ar: {
-    create:'إنشاء', library:'المكتبة', agents:'الفريق الإبداعي', profile:'الإعدادات',
-    studio:'مشكور / الاستوديو الإبداعي', headlineA:'اصنع شيئاً', headlineB:'يستحق أن يبقى.',
-    intro:'مساحة إبداعية تجمع أفكارك وصورك وكل ما تريد تحويله إلى عمل بصري.',
-    yourCanvas:'مساحة عملك', ready:'جاهز عندما تكون أنت جاهزاً',
-    describe:'صف ما تريد إنشاءه…', addImage:'إضافة صورة', camera:'الكاميرا',
-    prepare:'جهّز موجز العمل', directions:'بدايات ممكنة', directionsHint:'اختر اتجاهاً واجعله يعبر عنك.',
-    product:'صور المنتجات', productDesc:'مظهر استوديو متقن لمنتج أو قطعة.',
-    campaign:'تصميم حملة', campaignDesc:'صورة جريئة بفكرة بصرية واضحة.',
-    identity:'هوية العلامة', identityDesc:'ألوان وخطوط ولغة بصرية متناسقة.',
-    icons:'مجموعة أيقونات', iconsDesc:'أيقونات متناسقة بإيقاع بصري موحّد.',
-    creativeTeam:'فريقك الإبداعي', creativeTeamHint:'متخصصون يساعدونك في تشكيل العمل.',
-    meetTeam:'اكتشف الفريق', openLibrary:'افتح المكتبة', noProjects:'عملك القادم المفضّل يبدأ هنا.',
-    noProjectsHint:'أنشئ موجزاً أو أضف صورة. ستجد أعمالك هنا.',
-    projects:'المشاريع', source:'الصورة الأصلية', briefReady:'تم تجهيز موجز العمل',
-    briefReadyText:'تم حفظ توجهك في مساحة العمل هذه.',
-    providerNote:'توليد الصور غير متصل بعد. سيبقى موجزك وصورتك هنا حتى تجهيز ربط مزودي التوليد.',
-    workflow:'مسار العمل المقترح', stepOne:'تحديد التوجه', stepTwo:'اختيار اللغة البصرية',
-    stepThree:'الإنشاء والتحسين', stepFour:'تصدير العمل النهائي', switchLang:'English',
-    profileTitle:'مساحة عملك', language:'اللغة', providers:'مزودو الإبداع',
-    notConnected:'غير متصل', coming:'إعداد الربط هو الخطوة التالية', account:'الحساب والتفضيلات',
-    light:'المظهر الفاتح', lightHint:'صُمم الاستوديو حول مساحة عمل مشرقة وهادئة.',
-    agentRole:'متخصص', available:'تعريف بالدور',
-    creativeDirector:'Creative Director', creativeDirectorDesc:'يحوّل فكرتك إلى خطة مركزة ويجمع المتخصصين المناسبين.',
-    artDirector:'Art Director', artDirectorDesc:'يحدد التكوين والمزاج والمراجع والاتجاه البصري.',
-    brandDesigner:'Brand Designer', brandDesignerDesc:'يبني لغة متناسقة للألوان والخطوط والهوية.',
-    photographer:'Product Photographer', photographerDesc:'يضع اتجاه الإضاءة والمشهد وتصوير المنتجات.',
-    retoucher:'Image Retoucher', retoucherDesc:'يحسن التفاصيل والخلفيات والأقنعة وجودة الصور.',
-    graphicDesigner:'Graphic Designer', graphicDesignerDesc:'ينشئ تصاميم الحملات والمحتوى الاجتماعي والتحريري.',
-    uiDesigner:'UI Systems Designer', uiDesignerDesc:'يبني الشاشات والمكونات القابلة لإعادة الاستخدام.',
-    iconDesigner:'Icon Designer', iconDesignerDesc:'ينشئ مجموعات أيقونات متناسقة وملفات SVG جاهزة.',
-    motionDesigner:'Motion Designer', motionDesignerDesc:'يخطط للحركة ولوحات المشاهد والمقاطع القصيرة.',
-    threeDArtist:'3D Artist', threeDArtistDesc:'ينشئ المشاهد والخامات والكاميرا والإضاءة.',
-    savedLocally:'محفوظ في مساحة العمل', removeImage:'إزالة الصورة', imageAdded:'تمت إضافة الصورة',
-    allWork:'كل الأعمال', newProject:'مشروع جديد', sourceReady:'المرجع جاهز',
-    sourceHint:'تبقى صورتك الأصلية دون تغيير، وتُحفظ التعديلات كإصدارات جديدة.',
-    workspace:'مساحة خاصة', direction:'اختر توجهاً', empty:'لا يوجد محتوى بعد',
-    saved:'محفوظ محلياً', reference:'مرجع', assistantNote:'المهارات قدرات قابلة لإعادة الاستخدام، ويجمع المساعد المتخصص المهارات المناسبة لكل موجز.',
+    studio: 'الاستوديو', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
+    title: 'صور سيارات احترافية', subtitle: 'ابدأ بصور سيارات نظيفة ومتناسقة.',
+    uploadTitle: 'أضف صورة السيارة', uploadHint: 'اختر صورة من المعرض أو التقط صورة جديدة.',
+    gallery: 'اختيار صورة', camera: 'التقاط صورة', formats: 'JPG أو PNG أو WEBP · حتى 20 ميجابايت للصورة',
+    remove: 'إزالة الخلفية', addMore: 'إضافة صور', original: 'الصورة الأصلية',
+    white: 'أبيض ناصع', transparent: 'شفاف', output: 'الخلفية',
+    ready: 'جاهز للتحرير', selected: 'الصور المحددة', removePhoto: 'إزالة الصورة',
+    engineUnavailable: 'خدمة إزالة الخلفية غير متصلة في هذه النسخة. صورتك الأصلية محفوظة كما هي.',
+    noPhotos: 'لا توجد صور بعد', noPhotosHint: 'ستظهر هنا الصور المستوردة والنتائج المحفوظة.',
+    libraryTitle: 'مشاريعك الأخيرة', libraryHint: 'تبقى أعمالك على هذا الجهاز حتى تفعيل المزامنة السحابية.',
+    teamTitle: 'فريقك الإبداعي المتخصص', teamHint: 'نعمل على تجهيز مسارات المتخصصين. ستظهر عند اختبار مهاراتهم وربطها.',
+    creative: 'التوجيه الإبداعي', vehicle: 'تحسين صور السيارات', quality: 'جودة الصور',
+    planned: 'قيد التجهيز', settingsTitle: 'تفضيلات الاستوديو', language: 'اللغة',
+    appearance: 'المظهر', light: 'فاتح', privacy: 'تخزين محلي أولاً',
+    privacyHint: 'تبقى الصور المستوردة في جلسة المتصفح. هذه الشاشة لا ترفع صورك.',
+    menu: 'فتح القائمة', close: 'إغلاق القائمة', signIn: 'الدخول عبر Google',
+    signInNote: 'تسجيل الدخول غير متصل بعد.', save: 'حفظ الصورة', share: 'مشاركة',
+    removeSelected: 'إزالة المحدد', photoCount: 'صور محددة', back: 'العودة للاستوديو',
+    whiteHint: 'خلفية نظيفة مناسبة للإعلانات', transparentHint: 'لمتابعة التصميم لاحقاً',
+    before: 'قبل', after: 'بعد', preview: 'معاينة الصورة', change: 'تغيير الصورة',
+    imageError: 'اختر صورة صالحة لا يتجاوز حجمها 20 ميجابايت.',
   },
 } as const;
 
-type CopyKey = keyof typeof copy.en;
-const directions = [
-  { id:'product', icon:Aperture, title:'product', description:'productDesc', prompt:'Create a premium product photograph with soft directional studio lighting, refined materials and a clean editorial composition.' },
-  { id:'campaign', icon:Sparkles, title:'campaign', description:'campaignDesc', prompt:'Create a distinctive campaign visual with expressive art direction, bold composition and a clear visual idea.' },
-  { id:'identity', icon:Palette, title:'identity', description:'identityDesc', prompt:'Develop a cohesive brand direction with a thoughtful color palette, typography pairing and visual language.' },
-  { id:'icons', icon:Layers3, title:'icons', description:'iconsDesc', prompt:'Design a coherent icon family using one grid, consistent geometry and a unified stroke system.' },
-] as const;
-const agentData = [
-  { id:'creative-director', icon:Sparkles, name:'creativeDirector', description:'creativeDirectorDesc' },
-  { id:'art-director', icon:Compass, name:'artDirector', description:'artDirectorDesc' },
-  { id:'brand-designer', icon:Palette, name:'brandDesigner', description:'brandDesignerDesc' },
-  { id:'product-photographer', icon:Camera, name:'photographer', description:'photographerDesc' },
-  { id:'image-retoucher', icon:WandSparkles, name:'retoucher', description:'retoucherDesc' },
-  { id:'graphic-designer', icon:Brush, name:'graphicDesigner', description:'graphicDesignerDesc' },
-  { id:'ui-systems-designer', icon:Settings2, name:'uiDesigner', description:'uiDesignerDesc' },
-  { id:'icon-designer', icon:Layers3, name:'iconDesigner', description:'iconDesignerDesc' },
-  { id:'motion-designer', icon:Zap, name:'motionDesigner', description:'motionDesignerDesc' },
-  { id:'three-d-artist', icon:Box, name:'threeDArtist', description:'threeDArtistDesc' },
-] as const;
+type Key = keyof typeof messages.en;
 
-const ASSET_DB = 'mshkur-assets-v1';
-function saveAsset(id: string, dataUrl: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(ASSET_DB, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore('assets');
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const db = request.result;
-      const tx = db.transaction('assets', 'readwrite');
-      tx.objectStore('assets').put(dataUrl, id);
-      tx.oncomplete = () => { db.close(); resolve(); };
-      tx.onerror = () => { db.close(); reject(tx.error); };
-    };
-  });
-}
-function loadAsset(id: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    const request = indexedDB.open(ASSET_DB, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore('assets');
-    request.onerror = () => resolve(null);
-    request.onsuccess = () => {
-      const db = request.result;
-      const tx = db.transaction('assets', 'readonly');
-      const get = tx.objectStore('assets').get(id);
-      get.onsuccess = () => { db.close(); resolve(typeof get.result === 'string' ? get.result : null); };
-      get.onerror = () => { db.close(); resolve(null); };
-    };
-  });
-}
-
-function readProjects(): Project[] {
-  try {
-    const value = localStorage.getItem('mshkur.projects.v1');
-    return value ? JSON.parse(value) as Project[] : [];
-  } catch { return []; }
+function CarMark() {
+  return <span className="brand-mark"><CarFront size={20} strokeWidth={1.8} /></span>;
 }
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>(() => localStorage.getItem('mshkur.locale') === 'ar' ? 'ar' : 'en');
-  const [view, setView] = useState<View>('create');
-  const [prompt, setPrompt] = useState('');
-  const [projects, setProjects] = useState<Project[]>(readProjects);
-  const [assetPreviews, setAssetPreviews] = useState<Record<string, string>>({});
-  const [activeProject, setActiveProject] = useState<Project | null>(null);
-  const [sourcePreview, setSourcePreview] = useState<string | null>(null);
-  const [sourceName, setSourceName] = useState('');
-  const [pendingAssetId, setPendingAssetId] = useState<string | undefined>();
+  const [screen, setScreen] = useState<Screen>('studio');
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [background, setBackground] = useState<'white' | 'transparent'>('white');
   const [notice, setNotice] = useState('');
-  const [selectedAgent, setSelectedAgent] = useState('creative-director');
-  const galleryInput = useRef<HTMLInputElement>(null);
-  const cameraInput = useRef<HTMLInputElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const t = (key: Key) => messages[locale][key];
+  const activePhoto = photos.find(photo => photo.id === activeId) ?? photos[0] ?? null;
   const isArabic = locale === 'ar';
-  const t = (key: CopyKey) => copy[locale][key];
 
   useEffect(() => {
     localStorage.setItem('mshkur.locale', locale);
@@ -172,191 +84,172 @@ export default function App() {
     document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
   }, [locale, isArabic]);
 
-  useEffect(() => {
-    localStorage.setItem('mshkur.projects.v1', JSON.stringify(projects));
-  }, [projects]);
+  useEffect(() => () => photos.forEach(photo => URL.revokeObjectURL(photo.url)), []);
 
-  useEffect(() => {
-    let cancelled = false;
-    const hydratePreviews = async () => {
-      const entries = await Promise.all(projects.filter(project => project.sourceAssetId).map(async project => [project.id, await loadAsset(project.sourceAssetId!)] as const));
-      if (!cancelled) setAssetPreviews(current => ({ ...current, ...Object.fromEntries(entries.filter((entry): entry is readonly [string, string] => Boolean(entry[1]))) }));
-    };
-    void hydratePreviews();
-    return () => { cancelled = true; };
-  }, [projects]);
-
-  function handleImage(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { setNotice('Please choose an image file.'); return; }
-    if (file.size > 20 * 1024 * 1024) { setNotice('Choose an image smaller than 20 MB.'); return; }
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = String(reader.result);
-      const assetId = crypto.randomUUID();
-      try {
-        await saveAsset(assetId, dataUrl);
-        setSourcePreview(dataUrl);
-        setSourceName(file.name);
-        setPendingAssetId(assetId);
-        setNotice(t('imageAdded'));
-      } catch {
-        setNotice('Local image storage is unavailable. Try a smaller image or another browser.');
-      }
-    };
-    reader.onerror = () => setNotice('Could not read this image. Please try another file.');
-    reader.readAsDataURL(file);
+  function importPhotos(event: ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(event.target.files ?? []);
+    const valid = incoming.filter(file => file.type.startsWith('image/') && file.size <= 20 * 1024 * 1024);
+    if (valid.length !== incoming.length) setNotice(t('imageError'));
+    if (valid.length) {
+      const added = valid.map(file => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }));
+      setPhotos(current => [...current, ...added]);
+      setActiveId(added[0].id);
+      setScreen('studio');
+      setNotice('');
+    }
     event.target.value = '';
   }
 
-  function startNewProject() {
-    setActiveProject(null);
-    setPrompt('');
-    setSourcePreview(null);
-    setSourceName('');
-    setPendingAssetId(undefined);
+  function removePhoto(id: string) {
+    setPhotos(current => {
+      const target = current.find(photo => photo.id === id);
+      if (target) URL.revokeObjectURL(target.url);
+      const next = current.filter(photo => photo.id !== id);
+      if (activeId === id) setActiveId(next[0]?.id ?? null);
+      return next;
+    });
+  }
+
+  async function sharePhoto() {
+    if (!activePhoto) return;
+    try {
+      if (navigator.share && navigator.canShare?.({ files: [activePhoto.file] })) {
+        await navigator.share({ files: [activePhoto.file], title: 'MSHKUR vehicle photo' });
+      } else {
+        const link = document.createElement('a');
+        link.href = activePhoto.url;
+        link.download = activePhoto.file.name;
+        link.click();
+        setNotice(t('save'));
+      }
+    } catch {
+      setNotice('');
+    }
+  }
+
+  function savePhoto() {
+    if (!activePhoto) return;
+    const link = document.createElement('a');
+    link.href = activePhoto.url;
+    link.download = activePhoto.file.name;
+    link.click();
+  }
+
+  function handleRemoveBackground() {
+    setNotice(t('engineUnavailable'));
+  }
+
+  function goTo(next: Screen) {
+    setScreen(next);
+    setMenuOpen(false);
     setNotice('');
-    setView('create');
-  }
-
-  async function prepareBrief() {
-    if (!prompt.trim() && !sourcePreview) { setNotice('Add a short brief or an image to get started.'); return; }
-    const cleanPrompt = prompt.trim() || 'Refine the imported image into a polished creative direction.';
-    const project: Project = {
-      id: crypto.randomUUID(),
-      title: cleanPrompt.length > 48 ? cleanPrompt.slice(0, 48).trimEnd() + '…' : cleanPrompt,
-      prompt: cleanPrompt,
-      createdAt: Date.now(),
-      sourceName: sourceName || undefined,
-      sourceAssetId: pendingAssetId,
-    };
-    setProjects(current => [project, ...current]);
-    setActiveProject(project);
-    setNotice(t('briefReady'));
-  }
-
-  async function openProject(project: Project) {
-    setActiveProject(project);
-    setPrompt(project.prompt);
-    setSourceName(project.sourceName || '');
-    setPendingAssetId(project.sourceAssetId);
-    setSourcePreview(project.sourceAssetId ? await loadAsset(project.sourceAssetId) : null);
-    setView('create');
-  }
-
-  function NavButton({ target, icon: Icon, label }: { target: View; icon: LucideIcon; label: string }) {
-    return <button className={'nav-item ' + (view === target ? 'active' : '')} onClick={() => setView(target)} type="button"><Icon size={19} strokeWidth={1.8} /><span>{label}</span></button>;
   }
 
   return (
-    <div className={'app-shell ' + (isArabic ? 'is-rtl' : '')} dir={isArabic ? 'rtl' : 'ltr'}>
-      <aside className="side-rail">
-        <button className="brand-lockup" type="button" onClick={() => setView('create')} aria-label="MSHKUR home">
-          <span className="brand-mark"><span /></span><span className="brand-name">mshkur<span>.</span></span>
+    <div className={`app-shell ${isArabic ? 'rtl' : ''}`} dir={isArabic ? 'rtl' : 'ltr'}>
+      <header className="topbar">
+        <button className="brand" onClick={() => goTo('studio')} aria-label="MSHKUR home">
+          <CarMark /><span>mshkur<span className="brand-period">.</span></span>
         </button>
-        <div className="rail-caption">WORKSPACE</div>
-        <nav className="primary-nav">
-          <NavButton target="create" icon={WandSparkles} label={t('create')} />
-          <NavButton target="library" icon={Library} label={t('library')} />
-          <NavButton target="agents" icon={Layers3} label={t('agents')} />
-        </nav>
-        <div className="rail-spacer" />
-        <div className="rail-projects"><div className="rail-caption">{t('projects').toUpperCase()}</div>
-          {projects.slice(0, 3).map(project => <button className="rail-project" key={project.id} onClick={() => openProject(project)} type="button"><span className="project-dot" /><span>{project.title}</span></button>)}
+        <div className="top-actions">
+          <button className="language-toggle" onClick={() => setLocale(isArabic ? 'en' : 'ar')} aria-label={t('language')}>
+            <Globe2 size={17} /><span>{isArabic ? 'English' : 'العربية'}</span>
+          </button>
+          <button className="menu-toggle" onClick={() => setMenuOpen(value => !value)} aria-label={t('menu')}>
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
-        <div className="rail-footer"><NavButton target="profile" icon={Settings2} label={t('profile')} /><div className="profile-chip"><span className="avatar">M</span><span>My workspace</span><MoreHorizontal size={17} /></div></div>
-      </aside>
+      </header>
 
-      <div className="app-main">
-        <header className="topbar">
-          <div className="mobile-brand"><span className="brand-mark"><span /></span><span className="brand-name">mshkur<span>.</span></span></div>
-          <div className="breadcrumb"><span>Studio</span><ChevronRight size={14} /><strong>{t(view)}</strong></div>
-          <div className="top-actions"><span className="status-pill"><span />{t('workspace')}</span><button className="language-button" onClick={() => setLocale(isArabic ? 'en' : 'ar')} type="button"><Globe2 size={16} />{t('switchLang')}</button></div>
-        </header>
+      {menuOpen && <div className="menu-backdrop" onClick={() => setMenuOpen(false)}>
+        <nav className="menu-sheet" onClick={event => event.stopPropagation()}>
+          <div className="menu-sheet-head"><strong>MSHKUR</strong><button onClick={() => setMenuOpen(false)} aria-label={t('close')}><X size={19}/></button></div>
+          {(['studio', 'library', 'team', 'settings'] as Screen[]).map(item =>
+            <button key={item} className={`menu-link ${screen === item ? 'active' : ''}`} onClick={() => goTo(item)}>
+              <span>{t(item)}</span><ArrowUpRight size={17}/>
+            </button>
+          )}
+          <p className="menu-footnote">{t('privacyHint')}</p>
+        </nav>
+      </div>}
 
-        <main className="page-content">
-          {view === 'create' && <>
-            <section className="hero-copy"><div className="eyebrow"><span className="eyebrow-line" />{t('studio')}</div><h1>{t('headlineA')}<br /><em>{t('headlineB')}</em></h1><p>{t('intro')}</p></section>
-            <section className="workspace-grid">
-              <div className="canvas-column">
-                <div className="canvas-head"><span>{t('yourCanvas')}</span><span className="canvas-status"><i />{t('ready')}</span></div>
-                <div className={'canvas-stage ' + (sourcePreview ? 'has-source' : '')}>
-                  {sourcePreview ? <img className="source-preview" src={sourcePreview} alt="Uploaded creative reference" /> :
-                    <div className="sample-art" aria-label="Abstract sample artwork">
-                      <div className="sample-orbit orbit-one" /><div className="sample-orbit orbit-two" /><div className="sample-sun" /><div className="sample-disc" />
-                      <div className="sample-copy"><span>FORM / 001</span><strong>Shape<br />the idea.</strong><small>AN OPEN CREATIVE CANVAS</small></div><div className="sample-index">01 — 04</div>
-                    </div>}
-                  <div className="stage-bottom"><span className="stage-indicator"><span />{sourcePreview ? t('sourceReady') : 'Creative space 01'}</span>
-                    {sourcePreview && <button className="stage-remove" type="button" onClick={() => { setSourcePreview(null); setSourceName(''); setPendingAssetId(undefined); }}><X size={14} />{t('removeImage')}</button>}
+      <main className="main-content">
+        {screen === 'studio' && <>
+          <section className="intro-row">
+            <div><span className="eyebrow">VEHICLE PHOTO STUDIO</span><h1>{t('title')}</h1><p>{t('subtitle')}</p></div>
+            <span className="studio-index">01 / 04</span>
+          </section>
+
+          <section className={`workbench ${activePhoto ? 'has-photo' : ''}`}>
+            <div className="canvas-column">
+              <div className="section-head"><span>{t('preview')}</span><span className="ready-state"><i />{activePhoto ? t('ready') : '01 — START'}</span></div>
+              <div className={`photo-canvas ${activePhoto ? 'with-image' : ''} ${background === 'transparent' ? 'transparent-bg' : ''}`}>
+                {activePhoto ? <>
+                  <img src={activePhoto.url} alt={activePhoto.file.name} className="vehicle-preview" />
+                  <div className="image-overlay"><span>{activePhoto.file.name}</span><button onClick={() => removePhoto(activePhoto.id)} aria-label={t('removePhoto')}><X size={16}/></button></div>
+                </> : <div className="empty-canvas">
+                  <div className="car-outline"><CarFront size={72} strokeWidth={1.1}/></div>
+                  <strong>{t('uploadTitle')}</strong><p>{t('uploadHint')}</p>
+                  <div className="upload-actions">
+                    <button className="button-primary" onClick={() => galleryRef.current?.click()}><ImagePlus size={18}/>{t('gallery')}</button>
+                    <button className="button-secondary" onClick={() => cameraRef.current?.click()}><Camera size={18}/>{t('camera')}</button>
                   </div>
-                </div>
-                <div className="composer">
-                  <div className="composer-label"><Sparkles size={15} /><span>{t('describe')}</span></div>
-                  <textarea value={prompt} onChange={event => setPrompt(event.target.value)} placeholder={t('describe')} rows={3} />
-                  <div className="composer-actions"><div className="attach-actions">
-                    <button className="attach-button" type="button" onClick={() => galleryInput.current?.click()}><ImagePlus size={16} />{t('addImage')}</button>
-                    <button className="attach-button camera-action" type="button" onClick={() => cameraInput.current?.click()}><Camera size={16} />{t('camera')}</button>
-                    <input ref={galleryInput} className="visually-hidden" type="file" accept="image/*" onChange={handleImage} />
-                    <input ref={cameraInput} className="visually-hidden" type="file" accept="image/*" capture="environment" onChange={handleImage} />
-                  </div><button className="primary-action" type="button" onClick={prepareBrief}><span>{t('prepare')}</span><ArrowUpRight size={17} /></button></div>
-                  {sourcePreview && <div className="source-file"><FileImage size={14} /><span>{sourceName}</span><span className="source-size">{t('source')}</span></div>}
-                  {notice && <p className="notice-line" role="status">{notice}</p>}
-                </div>
-                {activeProject && <div className="brief-result">
-                  <div className="brief-result-top"><span className="success-icon"><Check size={15} /></span><div><strong>{t('briefReady')}</strong><small>{t('briefReadyText')}</small></div><span className="brief-saved">{t('savedLocally')}</span></div>
-                  <p>{activeProject.prompt}</p><div className="workflow-title">{t('workflow')}</div>
-                  <div className="workflow-steps">{[t('stepOne'),t('stepTwo'),t('stepThree'),t('stepFour')].map((step,index) => <div className="workflow-step" key={step}><span>{String(index + 1).padStart(2,'0')}</span>{step}</div>)}</div>
-                  <p className="provider-note"><CircleHelp size={15} />{t('providerNote')}</p>
+                  <small>{t('formats')}</small>
                 </div>}
               </div>
 
-              <aside className="direction-column">
-                <div className="direction-heading"><div><span className="section-kicker">{t('direction')}</span><h2>{t('directions')}</h2></div><span className="heading-spark"><Sparkles size={18} /></span></div>
-                <p className="section-description">{t('directionsHint')}</p>
-                <div className="direction-list">{directions.map((direction,index) => { const Icon = direction.icon; return <button className="direction-item" type="button" key={direction.id} onClick={() => { setPrompt(direction.prompt); setNotice('Direction selected'); }}>
-                  <span className={'direction-icon direction-icon-' + index}><Icon size={20} strokeWidth={1.7} /></span><span className="direction-text"><strong>{t(direction.title)}</strong><small>{t(direction.description)}</small></span><ArrowUpRight size={16} className="direction-arrow" />
-                </button>; })}</div>
-                <div className="team-callout"><div className="team-avatars"><span>AD</span><span>BD</span><span>PD</span><span>+7</span></div><div className="team-copy"><strong>{t('creativeTeam')}</strong><small>{t('creativeTeamHint')}</small></div><button className="text-link" type="button" onClick={() => setView('agents')}>{t('meetTeam')} <ArrowUpRight size={14} /></button></div>
-                <div className="mini-library"><div className="mini-library-head"><span>{t('allWork')}</span><button type="button" onClick={() => setView('library')}>{t('openLibrary')} <ArrowUpRight size={14} /></button></div>
-                  {projects.length === 0 ? <div className="mini-empty"><FolderOpen size={17} /><span>{t('empty')}</span></div> : projects.slice(0,2).map(project => <button className="mini-project" key={project.id} onClick={() => openProject(project)} type="button"><span className="mini-project-mark"><FileImage size={15} /></span><span>{project.title}</span><ChevronRight size={15} /></button>)}
+              {photos.length > 0 && <div className="photo-strip">
+                <div className="strip-label">{t('selected')} <span>{photos.length}</span></div>
+                <div className="thumb-list">
+                  {photos.map(photo => <button key={photo.id} className={`photo-thumb ${activePhoto?.id === photo.id ? 'selected' : ''}`} onClick={() => setActiveId(photo.id)} aria-label={photo.file.name}>
+                    <img src={photo.url} alt="" /><span className="thumb-check"><Check size={11}/></span>
+                  </button>)}
+                  <button className="add-thumb" onClick={() => galleryRef.current?.click()} aria-label={t('addMore')}><ImagePlus size={19}/></button>
                 </div>
-              </aside>
-            </section>
-          </>}
+              </div>}
 
-          {view === 'library' && <section className="secondary-view">
-            <div className="secondary-heading"><div className="eyebrow"><span className="eyebrow-line" />YOUR WORKSPACE</div><h1>{t('library')}<br /><em>{t('allWork').toLowerCase()}.</em></h1><p>{t('noProjectsHint')}</p><button className="primary-action" type="button" onClick={startNewProject}>{t('newProject')} <Plus size={17} /></button></div>
-            {projects.length ? <div className="project-grid">{projects.map((project,index) => <button className="project-card" key={project.id} onClick={() => openProject(project)} type="button"><div className={'project-art project-art-' + (index % 3)}>{assetPreviews[project.id] && <img className="project-thumb" src={assetPreviews[project.id]} alt="" loading="lazy" />}<span>MSHKUR / {String(index + 1).padStart(2,'0')}</span><strong>{project.title}</strong><ArrowUpRight size={20} /></div><div className="project-card-meta"><strong>{project.title}</strong><small>{new Date(project.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US')}</small></div></button>)}</div> : <div className="empty-library"><div className="empty-symbol"><FolderOpen size={27} /></div><h2>{t('noProjects')}</h2><p>{t('noProjectsHint')}</p><button className="primary-action" type="button" onClick={() => setView('create')}>{t('newProject')} <Plus size={17} /></button></div>}
-          </section>}
-
-          {view === 'agents' && <section className="secondary-view">
-            <div className="secondary-heading"><div className="eyebrow"><span className="eyebrow-line" />SPECIALIST WORKFLOWS</div><h1>{t('creativeTeam')}<br /><em>not just assistants.</em></h1><p>{t('creativeTeamHint')}</p></div>
-            <div className="agent-grid">{agentData.map((agent,index) => { const Icon = agent.icon; return <button className={'agent-card ' + (selectedAgent === agent.id ? 'selected' : '')} key={agent.id} type="button" onClick={() => setSelectedAgent(agent.id)}>
-              <div className="agent-card-top"><span className={'agent-icon agent-icon-' + (index % 5)}><Icon size={19} /></span><span className="agent-role">{t('agentRole')}</span></div><h3>{t(agent.name)}</h3><p>{t(agent.description)}</p><div className="agent-card-foot"><span><i />{t('available')}</span><ArrowUpRight size={16} /></div>
-            </button>; })}</div>
-            <div className="agent-note"><Sparkles size={17} /><p>{t('assistantNote')}</p></div>
-          </section>}
-
-          {view === 'profile' && <section className="secondary-view settings-view">
-            <div className="secondary-heading"><div className="eyebrow"><span className="eyebrow-line" />WORKSPACE PREFERENCES</div><h1>{t('profileTitle')}<br /><em>{t('profile').toLowerCase()}.</em></h1><p>{t('account')}</p></div>
-            <div className="settings-card">
-              <div className="settings-row"><div><strong>{t('language')}</strong><small>English is the primary product language. Arabic is fully supported.</small></div><button className="language-button" onClick={() => setLocale(isArabic ? 'en' : 'ar')} type="button"><Globe2 size={16} />{t('switchLang')}</button></div>
-              <div className="settings-row"><div><strong>{t('light')}</strong><small>{t('lightHint')}</small></div><span className="setting-value"><span className="sun-dot" />LIGHT</span></div>
-              <div className="settings-row"><div><strong>{t('providers')}</strong><small>Higgsfield API · 3D and render tools</small></div><span className="provider-state">{t('notConnected')}</span></div>
-              <div className="provider-footer">{t('coming')}</div>
+              {activePhoto && <div className="edit-panel">
+                <div className="panel-top"><div><span className="eyebrow">{t('output')}</span><strong>{t('white')}</strong></div><span className="panel-icon"><SlidersHorizontal size={18}/></span></div>
+                <div className="background-options">
+                  <button className={background === 'white' ? 'chosen' : ''} onClick={() => setBackground('white')}><span className="swatch white-swatch"/><span><strong>{t('white')}</strong><small>{t('whiteHint')}</small></span>{background === 'white' && <Check size={17}/>}</button>
+                  <button className={background === 'transparent' ? 'chosen' : ''} onClick={() => setBackground('transparent')}><span className="swatch transparent-swatch"/><span><strong>{t('transparent')}</strong><small>{t('transparentHint')}</small></span>{background === 'transparent' && <Check size={17}/>}</button>
+                </div>
+                <button className="remove-button" onClick={handleRemoveBackground}><Sparkles size={18}/>{t('remove')}<ArrowUpRight size={17}/></button>
+                <div className="result-actions">
+                  <button onClick={savePhoto}><ArrowDownToLine size={17}/>{t('save')}</button>
+                  <button onClick={sharePhoto}><Share2 size={17}/>{t('share')}</button>
+                </div>
+              </div>}
+              {notice && <div className="notice" role="status"><CircleHelp size={17}/><span>{notice}</span><button onClick={() => setNotice('')} aria-label={t('close')}><X size={15}/></button></div>}
             </div>
-            <p className="settings-footnote">Provider API keys should be stored securely on the server. They must never be exposed in the mobile client.</p>
-          </section>}
-        </main>
-      </div>
 
-      <nav className="bottom-nav" aria-label="Primary navigation">
-        <NavButton target="create" icon={WandSparkles} label={t('create')} />
-        <NavButton target="library" icon={Library} label={t('library')} />
-        <NavButton target="agents" icon={Layers3} label={t('agents')} />
-        <NavButton target="profile" icon={Settings2} label={t('profile')} />
-      </nav>
+            <aside className="side-column">
+              <div className="side-card">
+                <span className="eyebrow">START IN SECONDS</span><h2>{t('uploadTitle')}</h2><p>{t('uploadHint')}</p>
+                <button className="side-upload" onClick={() => galleryRef.current?.click()}><Images size={18}/>{t('gallery')}<ArrowUpRight size={16}/></button>
+                <button className="side-camera" onClick={() => cameraRef.current?.click()}><Camera size={18}/>{t('camera')}</button>
+                <small>{t('formats')}</small>
+              </div>
+              <div className="side-note"><span className="note-mark"><Check size={16}/></span><div><strong>{t('privacy')}</strong><p>{t('privacyHint')}</p></div></div>
+            </aside>
+          </section>
+        </>}
+
+        {screen === 'library' && <section className="secondary-screen"><span className="eyebrow">YOUR WORKSPACE</span><h1>{t('libraryTitle')}</h1><p>{t('libraryHint')}</p>
+          {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
+        </section>}
+
+        {screen === 'team' && <section className="secondary-screen"><span className="eyebrow">SPECIALIST WORKFLOWS</span><h1>{t('teamTitle')}</h1><p>{t('teamHint')}</p>
+          <div className="specialist-list">{[{icon:Sparkles,name:t('creative'),detail:'Art direction, references and consistent visual language.'},{icon:CarFront,name:t('vehicle'),detail:'Vehicle masking, glass edges, wheels and studio backgrounds.'},{icon:SlidersHorizontal,name:t('quality'),detail:'Resolution, lighting balance and export checks.'}].map(({icon:Icon,name,detail})=><article className="specialist-row" key={name}><span className="specialist-icon"><Icon size={21}/></span><div><strong>{name}</strong><p>{detail}</p></div><span className="planned-tag">{t('planned')}</span></article>)}</div>
+        </section>}
+
+        {screen === 'settings' && <section className="secondary-screen"><span className="eyebrow">PREFERENCES</span><h1>{t('settingsTitle')}</h1>
+          <div className="settings-list"><div className="settings-row"><div><strong>{t('language')}</strong><small>English / العربية</small></div><button className="setting-control" onClick={() => setLocale(isArabic ? 'en' : 'ar')}>{isArabic ? 'العربية' : 'English'} <ChevronDown size={16}/></button></div><div className="settings-row"><div><strong>{t('appearance')}</strong><small>{t('light')}</small></div><span className="light-chip">☼ {t('light')}</span></div><div className="settings-row"><div><strong>{t('privacy')}</strong><small>{t('privacyHint')}</small></div><Check size={18} color="#64806b"/></div></div>
+        </section>}
+      </main>
+
+      <input ref={galleryRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={importPhotos}/>
+      <input ref={cameraRef} className="visually-hidden" type="file" accept="image/*" capture="environment" onChange={importPhotos}/>
     </div>
   );
 }
