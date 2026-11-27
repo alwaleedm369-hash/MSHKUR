@@ -23,5 +23,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run isolated Smart Graph tests
-        run: node --test tests/smart-graph.test.mjs
+      - name: Install dependencies
+        run: npm ci
+      - name: Run Smart Graph repository tests
+        run: node --test tests/smart-graph.test.mjs tests/smart-graph-sqlite.test.mjs
