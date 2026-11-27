@@ -5,6 +5,8 @@ export type StoredPhotoRecord = {
   lastModified: number;
   original: Blob;
   processed?: Blob;
+  /** Transparent foreground cutout used by AIBG region-edit commands. */
+  cutout?: Blob;
   background?: 'white' | 'transparent';
   updatedAt: number;
 };
