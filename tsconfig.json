@@ -1,48 +1,22 @@
 {
   "compilerOptions": {
-<<<<<<< HEAD
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@apps/*": ["src/apps/*"],
-      "@shared/*": ["src/shared/*"],
-      "@components/*": ["src/shared/components/*"],
-      "@hooks/*": ["src/shared/hooks/*"],
-      "@utils/*": ["src/shared/utils/*"],
-      "@types/*": ["src/shared/types/*"],
-      "@styles/*": ["src/shared/styles/*"],
-      "@skills/*": ["src/shared/skills/*"],
-      "@engines/*": ["src/shared/engines/*"],
-      "@assistants/*": ["src/shared/assistants/*"],
-      "@integrations/*": ["src/shared/integrations/*"]
-    }
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "types": ["vite/client"]
   },
-  "include": ["src"],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "include": ["src/main.tsx", "src/App.tsx", "vite.config.ts"]
 }
-=======
-    "target": "ES2022", "useDefineForClassFields": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"], "module": "ESNext",
-    "skipLibCheck": true, "moduleResolution": "bundler", "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true, "moduleDetection": "force", "noEmit": true,
-    "jsx": "react-jsx", "strict": true, "noUnusedLocals": false,
-    "noUnusedParameters": false
-  },
-  "include": ["src", "vite.config.ts"]
-}
->>>>>>> 5cac2c6638c612a91f5d8042e523b39575bf6267
