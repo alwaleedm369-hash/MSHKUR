@@ -1,25 +1,59 @@
-# MSHKUR — UX and Interface Design Rules
+# MSHKUR — قواعد تجربة المستخدم والتصميم
 
-Design quality is a core engineering requirement and acceptance criterion—not a polish phase.
+آخر تحديث: 27 نوفمبر 2026. هذه القواعد ملزمة عند تنفيذ النسخة التالية من Photo Studio.
 
-## Direction
-- Modern, clean, refined, minimal, interactive, consistent and task-focused.
-- Mobile-first: design for mobile explicitly; do not merely shrink desktop layouts.
-- Default light mode; provide dark mode.
-- English-first initial interface; Arabic fully supported with RTL layout, not text-only translation.
-- Compact mobile header and menu; avoid large brand/title masthead.
-- Four application destinations in bottom navigation and a compact central three-star AI entry that opens contextual text/voice input.
-- Make the task workspace the focus; MSHKUR.com initially enters the Remove Background workflow.
+## التوجه
 
-## Interaction model
-Tool → Input → Execute → Result.
-Controls must work, loading/error/success states must be genuine, and progress should be shown only when available. Keep original assets intact and traceable.
+- الجوال أولاً فعلياً، لا تصغير تخطيط سطح المكتب.
+- إزالة الشعار واسم MSHKUR من الترويسة المرئية العلوية وفق طلب المالك. لا تعِدهما أثناء إعادة التصميم.
+- جعل الصورة والنتيجة محور الشاشة، مع تسلسل واضح: اختيار ← معالجة ← مراجعة ← تنزيل.
+- واجهة هادئة، بسيطة، احترافية، قليلة التشتيت.
+- دعم العربية RTL والإنجليزية LTR مع اتساق بصري كامل.
+- عدم تقليد منتج مرجعي حرفياً؛ نستفيد من مبادئ العرض والحركة وجودة التجربة.
 
-## Visual quality
-- Use restrained, coherent spacing, typography, icons, contrast and hierarchy.
-- Prefer purposeful controls and direct workflows over cluttered dashboards, redundant cards, marketing copy and decorative motion.
-- Avoid generic template layouts unless they demonstrably fit the task.
-- Maintain consistency between apps without forcing every app into identical layouts.
+## تخطيط الجوال
 
-## Review and acceptance
-After implementation, visually review screens and inspect interaction behavior, responsive breakpoints, accessibility basics, RTL, theme behavior, empty/loading/error/result states and navigation. Review mobile and desktop widths. Record the review and limitations. A successful build does not prove design quality; an attractive screen does not prove functional behavior.
+- اختبر 320 و360 و375 و390 و430px على الأقل.
+- لا قص أفقي، لا تداخل، ولا أزرار صغيرة أو متقاربة.
+- رتب الأدوات وفق التسلسل الفعلي للعمل، لا وفق بنية المكونات البرمجية.
+- قلل الارتفاع والمساحات البيضاء غير المفيدة، ولا تجعل المعاينة تبتلع أزرار التحكم.
+- اجعل الإجراء الأساسي واضحاً، وانقل الإجراءات الثانوية إلى مجموعة أقل بروزاً.
+- استخدم بطاقات الصور المصغرة بكثافة مناسبة، مع مساحة لمس مريحة.
+- راجع لوحة النتيجة والأوامر والتنزيل، وقائمة الأعمال والمتخصصين والتفضيلات.
+
+## تخطيط سطح المكتب
+
+- استغل العرض دون ترك فراغات كبيرة غير مقصودة.
+- اجعل المعاينة أكبر عنصر بصري، وضع الأدوات في لوحة قريبة منها.
+- حافظ على تناسب منطقة العمل والأشرطة الجانبية عبر عروض متوسطة وكبيرة.
+- لا تكبر كل العناصر لمجرد توفر مساحة.
+
+## الصور والحركة
+
+- أضف صوراً حقيقية مرخصة لسيارات متنوعة، مع حالات قبل/بعد تنتجها الأداة فعلياً.
+- أضف GIF أو فيديو قصيراً يشرح المسار: اختيار صورة، إزالة الخلفية، مراجعة الحواف، اختيار الإخراج، تنزيل.
+- لا تستخدم صوراً زخرفية لا تشرح وظيفة.
+- وفر poster، تحميل كسول، إيقاف الحركة، واحترام `prefers-reduced-motion`.
+- لا تشغل صوتاً تلقائياً، ولا تستخدم فيديو ثقيلاً يعطل أول تفاعل.
+- لا تعرض نتيجة تجميلية على أنها مخرجات المحرك الحقيقي.
+
+## النصوص
+
+- عنوان واضح وقصير، ووصف لا يتجاوز جملة موجزة حيث أمكن.
+- أزل التكرار والشروحات الطويلة والمصطلحات الداخلية.
+- استخدم أفعالاً مباشرة في الأزرار.
+- لا تذكر مكتبات أو نماذج أو أسماء وكلاء في واجهة المستخدم.
+- لا تصف النتيجة بأنها «احترافية» أو «مكتملة» دون معيار واختبار.
+- ترجم المعنى والسياق، لا الكلمات فقط.
+
+## التفاعل والإتاحة
+
+- كل زر يؤدي وظيفة حقيقية؛ حالات التحميل والنجاح والفشل صادقة.
+- حافظ على الأصل وأنشئ نسخة مشتقة قابلة للتنزيل.
+- اختبر لوحة المفاتيح، التركيز المرئي، التباين، قارئ الشاشة، التكبير، وحجم أهداف اللمس.
+- اختبر المقارنة بالسحب باللمس والماوس، مع بديل لوحة مفاتيح.
+- نجاح البناء لا يثبت جودة التصميم؛ يلزم فحص بصري وتفاعلي على متصفحات وأجهزة فعلية.
+
+## بوابة اعتماد التصميم
+
+لا تعتمد النسخة التالية حتى تنجح مراجعة الجوال وRTL/LTR، ويُحذف الاسم والشعار من الترويسة، وتُختبر حالات فارغة/تحميل/خطأ/نتيجة، ويُعرض مثال بصري حقيقي مرخص.
