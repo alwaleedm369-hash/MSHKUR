@@ -30,3 +30,11 @@ _Last handoff prepared: 2026-11-27 (Gate 8 intake verification). This is a hando
 - **Partially verified:** All backend API routes/services exist but untested (no DB/Redis/queue running).
 - **Unverified:** All TypeScript compilation, Vite build, Vitest tests, visual QA, responsive behavior, RTL layout, accessibility.
 - **Next acceptance gate:** Fix missing imports, sync to `https://github.com/alwaleedm369-hash/MSHKUR.git`, run `npm install`, `npm run type-check`, `npm run build`, `npx vitest run` in CI/Node env, verify Gates 1–8 visually and functionally.
+
+
+## 2026-11-27 continuation — Smart Graph and dormant WhatsApp
+- Added `docs/architecture/MSHKUR_SMART_GRAPH_AND_TRAINING_AR.md` defining Smart Graph (Graphy codename), node/edge model, skill consolidation, assistant delegation, staged training/evaluation strategy, storage boundaries and acceptance gates.
+- Changed `src/shared/integrations/whatsapp.ts` so auto-connect defaults to false; constructor and React hook connect only when `autoConnect: true`; reconnect loop is also opt-in. Explicit `connect()` remains available for a future user-approved activation.
+- No Meta API configured or paid; no WhatsApp connection attempted by this change.
+- Not yet implemented: production graph repository, persistent knowledge indexer, full memory service, training pipeline, WhatsApp UI/companion bridge.
+- Verification still pending: project CI workflows have startup failures before jobs; full npm install/typecheck/test/build and device QA are not verified. Source-level changes must be tested in a working Node environment before release.
