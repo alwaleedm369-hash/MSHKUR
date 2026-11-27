@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
-  ArrowDownToLine, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
-  CircleHelp, Globe2, ImagePlus, Images, Menu, MoreHorizontal, Share2,
+  ArrowUpRight, Camera, CarFront, Check, ChevronDown,
+  CircleHelp, Globe2, ImagePlus, Images, Menu,
   SlidersHorizontal, Sparkles, X
 } from 'lucide-react';
 
@@ -20,10 +20,10 @@ const messages = {
     ready: 'Ready to edit', selected: 'Selected photos', removePhoto: 'Remove photo',
     engineUnavailable: 'The background-removal service is not connected in this build. Your original photo is safe.',
     noPhotos: 'No photos yet', noPhotosHint: 'Your imported photos and saved results will appear here.',
-    libraryTitle: 'Your Recent Projects', libraryHint: 'Your work stays on this device until cloud sync is connected.',
+    libraryTitle: 'Your Recent Projects', libraryHint: 'Photos imported in this session appear here. Nothing is uploaded by this screen.',
     teamTitle: 'Meet Your Specialists', teamHint: 'Specialist workflows are being prepared. They will appear when their skills are tested and connected.',
     creative: 'Creative direction', vehicle: 'Vehicle retouching', quality: 'Image quality',
-    planned: 'In preparation', settingsTitle: 'Studio Preferences', language: 'Language',
+    planned: 'In preparation', settingsTitle: 'Manage Studio Preferences', language: 'Language',
     appearance: 'Appearance', light: 'Light', privacy: 'Local-first storage',
     privacyHint: 'Imported photos remain in this browser session. Nothing is uploaded by this screen.',
     menu: 'Open menu', close: 'Close menu', signIn: 'Google sign in',
@@ -43,10 +43,10 @@ const messages = {
     ready: 'جاهز للتحرير', selected: 'الصور المحددة', removePhoto: 'إزالة الصورة',
     engineUnavailable: 'خدمة إزالة الخلفية غير متصلة في هذه النسخة. صورتك الأصلية محفوظة كما هي.',
     noPhotos: 'لا توجد صور بعد', noPhotosHint: 'ستظهر هنا الصور المستوردة والنتائج المحفوظة.',
-    libraryTitle: 'مشاريعك الأخيرة', libraryHint: 'تبقى أعمالك على هذا الجهاز حتى تفعيل المزامنة السحابية.',
+    libraryTitle: 'مشاريعك الأخيرة', libraryHint: 'تظهر هنا الصور التي استوردتها خلال هذه الجلسة. لا يتم رفع الصور من هذه الشاشة.',
     teamTitle: 'فريقك الإبداعي المتخصص', teamHint: 'نعمل على تجهيز مسارات المتخصصين. ستظهر عند اختبار مهاراتهم وربطها.',
     creative: 'التوجيه الإبداعي', vehicle: 'تحسين صور السيارات', quality: 'جودة الصور',
-    planned: 'قيد التجهيز', settingsTitle: 'تفضيلات الاستوديو', language: 'اللغة',
+    planned: 'قيد التجهيز', settingsTitle: 'إدارة تفضيلات الاستوديو', language: 'اللغة',
     appearance: 'المظهر', light: 'فاتح', privacy: 'تخزين محلي أولاً',
     privacyHint: 'تبقى الصور المستوردة في جلسة المتصفح. هذه الشاشة لا ترفع صورك.',
     menu: 'فتح القائمة', close: 'إغلاق القائمة', signIn: 'الدخول عبر Google',
@@ -110,31 +110,6 @@ export default function App() {
     });
   }
 
-  async function sharePhoto() {
-    if (!activePhoto) return;
-    try {
-      if (navigator.share && navigator.canShare?.({ files: [activePhoto.file] })) {
-        await navigator.share({ files: [activePhoto.file], title: 'MSHKUR vehicle photo' });
-      } else {
-        const link = document.createElement('a');
-        link.href = activePhoto.url;
-        link.download = activePhoto.file.name;
-        link.click();
-        setNotice(t('save'));
-      }
-    } catch {
-      setNotice('');
-    }
-  }
-
-  function savePhoto() {
-    if (!activePhoto) return;
-    const link = document.createElement('a');
-    link.href = activePhoto.url;
-    link.download = activePhoto.file.name;
-    link.click();
-  }
-
   function handleRemoveBackground() {
     setNotice(t('engineUnavailable'));
   }
@@ -183,7 +158,7 @@ export default function App() {
           <section className={`workbench ${activePhoto ? 'has-photo' : ''}`}>
             <div className="canvas-column">
               <div className="section-head"><span>{t('preview')}</span><span className="ready-state"><i />{activePhoto ? t('ready') : '01 — START'}</span></div>
-              <div className={`photo-canvas ${activePhoto ? 'with-image' : ''} ${background === 'transparent' ? 'transparent-bg' : ''}`}>
+              <div className={`photo-canvas ${activePhoto ? 'with-image' : ''}`}>
                 {activePhoto ? <>
                   <img src={activePhoto.url} alt={activePhoto.file.name} className="vehicle-preview" />
                   <div className="image-overlay"><span>{activePhoto.file.name}</span><button onClick={() => removePhoto(activePhoto.id)} aria-label={t('removePhoto')}><X size={16}/></button></div>
@@ -215,15 +190,11 @@ export default function App() {
                   <button className={background === 'transparent' ? 'chosen' : ''} onClick={() => setBackground('transparent')}><span className="swatch transparent-swatch"/><span><strong>{t('transparent')}</strong><small>{t('transparentHint')}</small></span>{background === 'transparent' && <Check size={17}/>}</button>
                 </div>
                 <button className="remove-button" onClick={handleRemoveBackground}><Sparkles size={18}/>{t('remove')}<ArrowUpRight size={17}/></button>
-                <div className="result-actions">
-                  <button onClick={savePhoto}><ArrowDownToLine size={17}/>{t('save')}</button>
-                  <button onClick={sharePhoto}><Share2 size={17}/>{t('share')}</button>
-                </div>
               </div>}
               {notice && <div className="notice" role="status"><CircleHelp size={17}/><span>{notice}</span><button onClick={() => setNotice('')} aria-label={t('close')}><X size={15}/></button></div>}
             </div>
 
-            <aside className="side-column">
+            {!activePhoto && <aside className="side-column">
               <div className="side-card">
                 <span className="eyebrow">START IN SECONDS</span><h2>{t('uploadTitle')}</h2><p>{t('uploadHint')}</p>
                 <button className="side-upload" onClick={() => galleryRef.current?.click()}><Images size={18}/>{t('gallery')}<ArrowUpRight size={16}/></button>
@@ -231,7 +202,7 @@ export default function App() {
                 <small>{t('formats')}</small>
               </div>
               <div className="side-note"><span className="note-mark"><Check size={16}/></span><div><strong>{t('privacy')}</strong><p>{t('privacyHint')}</p></div></div>
-            </aside>
+            </aside>}
           </section>
         </>}
 
