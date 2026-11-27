@@ -40,7 +40,7 @@ export function parseImageCommand(input) {
   const value=String(input??"").trim().toUpperCase();
   const simple={"CENTER":"CENTER","CENTER/":"CENTER","FIT":"FIT","FIT/":"FIT","WHITE":"WHITE","WHITE/":"WHITE","TRANSPARENT":"TRANSPARENT","TRANSPARENT/":"TRANSPARENT","REVIEW":"REVIEW","REVIEW/":"REVIEW"};
   if (simple[value]) return {action:simple[value]};
-  const match=/^(REMOVE|KEEP)(?:\/REGION)?\/\s*([0-9]*\.?[0-9]+)\s*,\s*([0-9]*\.?[0-9]+)\s*,\s*([0-9]*\.?[0-9]+)\s*,\s*([0-9]*\.?[0-9]+)$/.exec(value);
+  const match=/^(REMOVE|KEEP)(?:\/REGION)?(?:\/|\s)+([0-9]*\.?[0-9]+)\s*,\s*([0-9]*\.?[0-9]+)\s*,\s*([0-9]*\.?[0-9]+)\s*,\s*([0-9]*\.?[0-9]+)$/.exec(value);
   if (!match) throw new Error("Use REMOVE/ x,y,w,h; KEEP/ x,y,w,h; CENTER/; FIT/; WHITE/; TRANSPARENT/; or REVIEW/.");
   return {action:match[1],region:normalizeRect({x:Number(match[2]),y:Number(match[3]),width:Number(match[4]),height:Number(match[5])})};
 }
