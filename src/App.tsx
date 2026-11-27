@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoStorage';
-import { applyAlphaRegion, getGroundedSubjectPlacement, inspectAlphaPlane, parseImageCommand, reviewVehicleMask } from './vehicleImageEngine.mjs';
+import { applyAlphaRegion, getCenteredSubjectPlacement, getGroundedSubjectPlacement, inspectAlphaPlane, parseImageCommand, reviewVehicleMask } from './vehicleImageEngine.mjs';
 import { runVehicleBatch } from './vehicleBatchPipeline.mjs';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
@@ -82,7 +82,7 @@ function CarMark() {
 }
 
 
-async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transparent') {
+async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transparent', composition: 'ground' | 'center' = 'ground') {
   const bitmap = await createImageBitmap(input);
   try {
     const source = document.createElement('canvas');
@@ -95,7 +95,7 @@ async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transp
     for (let i = 0; i < alpha.length; i++) alpha[i] = pixels[i * 4 + 3];
     const report = inspectAlphaPlane(alpha, bitmap.width, bitmap.height);
     if (!report.bounds) throw new Error('The vehicle mask is empty. Try another image.');
-    const placement = getGroundedSubjectPlacement(bitmap.width, bitmap.height, report.bounds);
+    const placement = composition === 'center' ? getCenteredSubjectPlacement(bitmap.width, bitmap.height, report.bounds) : getGroundedSubjectPlacement(bitmap.width, bitmap.height, report.bounds);
     const output = document.createElement('canvas');
     output.width = placement.canvas.width; output.height = placement.canvas.height;
     const context = output.getContext('2d');
@@ -286,9 +286,9 @@ export default function App() {
           applyAlphaRegion(alpha,bitmap.width,bitmap.height,{action:command.action,region:command.region});
           for (let i=0;i<alpha.length;i++) imageData.data[i*4+3]=alpha[i];
           context.putImageData(imageData,0,0);
-        } else if (!['CENTER','FIT'].includes(command.action)) throw new Error('Unsupported AIBG command.');
+        } else if (!['CENTER','FIT','WHITE','TRANSPARENT'].includes(command.action)) throw new Error('Unsupported AIBG command.');
         const edited = await new Promise<Blob>((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Could not encode edited mask.')),'image/png'));
-        const normalized = await normalizeVehicleOutput(edited,targetBackground);
+        const normalized = await normalizeVehicleOutput(edited,targetBackground,command.action === 'CENTER' ? 'center' : 'ground');
         const url = URL.createObjectURL(normalized.blob);
         if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);
         setPhotos(current=>current.map(photo=>photo.id===activePhoto.id?{...photo,cutoutBlob:edited,processedBlob:normalized.blob,processedUrl:url,processedBackground:targetBackground,processingState:normalized.review.status==='passed'?'ready':'needs-review'}:photo));
