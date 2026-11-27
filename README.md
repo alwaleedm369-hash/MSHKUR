@@ -54,3 +54,8 @@ Imported originals and processed derivatives are stored in the browser's Indexed
 - Never fabricate a processed image or processing status.
 - Do not claim a provider, assistant, skill or account integration is connected unless it is implemented and verified.
 - Keep the first-use path visual, direct and mobile-first.
+
+
+## AIBG Photo Studio guide
+
+See the [Arabic MSHKUR/AIBG Photo Studio guide](docs/engine/MSHKUR_AIBG_PHOTO_STUDIO_GUIDE_AR.md) for the workflow, mask commands, local storage behavior, limitations, and troubleshooting. For the technical ownership and engine contract, see [MSHKUR/AIBG engine contract](docs/engine/MSHKUR_AIBG_ENGINE_CONTRACT_AR.md).

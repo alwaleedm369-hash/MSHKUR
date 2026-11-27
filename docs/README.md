@@ -12,6 +12,7 @@
 | [ENGINE_CORE_AR.md](./ENGINE_CORE_AR.md) | Maestro / skills / MCP |
 | [OPEN_SOURCE_LICENSE_REGISTER_AR.md](./OPEN_SOURCE_LICENSE_REGISTER_AR.md) | تراخيص النماذج والمكتبات |
 | [DEPLOYMENT_AR.md](./DEPLOYMENT_AR.md) | التشغيل والنشر |
+| [MSHKUR_AIBG_PHOTO_STUDIO_GUIDE_AR.md](./engine/MSHKUR_AIBG_PHOTO_STUDIO_GUIDE_AR.md) | دليل المستخدم لاستوديو الصور وأوامر AIBG وحدود المعالجة |
 | [RESEARCH_DECONSTRUCTION_PLAYBOOK_AR.md](./RESEARCH_DECONSTRUCTION_PLAYBOOK_AR.md) | منهج البحث والتفكيك |
 | [RESEARCH_CAR_IMAGE_PIPELINES_AR.md](./RESEARCH_CAR_IMAGE_PIPELINES_AR.md) | نتائج بحث أولية (ليست تنفيذ) |
 
@@ -19,6 +20,7 @@
 
 - `src/mshkurImageEngine.ts` — SEGMENT → MATTE → SCENE → LIGHT → PLATE
 - `src/GuestStudio.tsx` / `src/CarAdWorkflow.tsx` / `src/EngineWorkbench.tsx`
+- [دليل AIBG للمستخدم](./engine/MSHKUR_AIBG_PHOTO_STUDIO_GUIDE_AR.md) و[عقد المحرك](./engine/MSHKUR_AIBG_ENGINE_CONTRACT_AR.md)
 
 ## أرشيف
 
