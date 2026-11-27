@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoStorage';
+import { getCenteredSubjectPlacement, inspectAlphaPlane } from './vehicleImageEngine.mjs';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
   CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
@@ -77,6 +78,33 @@ type Key = keyof typeof messages.en;
 
 function CarMark() {
   return <span className="brand-mark"><CarFront size={20} strokeWidth={1.8} /></span>;
+}
+
+
+async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transparent') {
+  const bitmap = await createImageBitmap(input);
+  try {
+    const source = document.createElement('canvas');
+    source.width = bitmap.width; source.height = bitmap.height;
+    const sourceContext = source.getContext('2d', { willReadFrequently: true });
+    if (!sourceContext) throw new Error('Image inspection is unavailable.');
+    sourceContext.drawImage(bitmap, 0, 0);
+    const pixels = sourceContext.getImageData(0, 0, bitmap.width, bitmap.height).data;
+    const alpha = new Uint8Array(bitmap.width * bitmap.height);
+    for (let i = 0; i < alpha.length; i++) alpha[i] = pixels[i * 4 + 3];
+    const report = inspectAlphaPlane(alpha, bitmap.width, bitmap.height);
+    if (!report.bounds) throw new Error('The vehicle mask is empty. Try another image.');
+    const placement = getCenteredSubjectPlacement(bitmap.width, bitmap.height, report.bounds);
+    const output = document.createElement('canvas');
+    output.width = placement.canvas.width; output.height = placement.canvas.height;
+    const context = output.getContext('2d');
+    if (!context) throw new Error('Canvas export is unavailable.');
+    if (background === 'white') { context.fillStyle = '#fff'; context.fillRect(0, 0, output.width, output.height); }
+    const s = placement.source, d = placement.destination;
+    context.drawImage(bitmap, s.x, s.y, s.width, s.height, d.x, d.y, d.width, d.height);
+    const blob = await new Promise<Blob>((resolve, reject) => output.toBlob(value => value ? resolve(value) : reject(new Error('PNG export failed.')), 'image/png'));
+    return { blob, review: { touchesEdge: report.touchesEdge, visiblePixels: report.visiblePixels, bounds: report.bounds } };
+  } finally { bitmap.close(); }
 }
 
 export default function App() {
@@ -190,21 +218,10 @@ export default function App() {
       if (runtime.backends?.onnx?.wasm) runtime.backends.onnx.wasm.wasmPaths = '/onnx/';
       setProcessStatus(t('cutting'));
       const cutout = await removeBackground(activePhoto.file);
-      let outputBlob = cutout.blob;
-      if (background === 'white') {
-        setProcessStatus(t('compositing'));
-        const bitmap = await createImageBitmap(cutout.blob);
-        const canvas = document.createElement('canvas');
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        const context = canvas.getContext('2d');
-        if (!context) throw new Error('Canvas unavailable');
-        context.fillStyle = '#ffffff';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(bitmap, 0, 0);
-        bitmap.close();
-        outputBlob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('PNG export failed')), 'image/png'));
-      }
+      setProcessStatus(t('compositing'));
+      const normalized = await normalizeVehicleOutput(cutout.blob, background);
+      const outputBlob = normalized.blob;
+      if (normalized.review.touchesEdge) setNotice(isArabic ? 'تنبيه الجودة: قناع السيارة يلامس حافة الصورة؛ راجع القص قبل الاعتماد.' : 'Quality review: the vehicle mask touches an image edge. Inspect the crop before approval.');
       const nextUrl = URL.createObjectURL(outputBlob);
       if (activePhoto.processedUrl) URL.revokeObjectURL(activePhoto.processedUrl);
       setResultUrl(nextUrl);
