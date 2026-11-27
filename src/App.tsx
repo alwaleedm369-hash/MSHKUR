@@ -23,7 +23,7 @@ const messages = {
     noPhotos: 'No photos yet', noPhotosHint: 'Your imported photos and saved results will appear here.',
     libraryTitle: 'Your Recent Projects', libraryHint: 'Photos imported in this session appear here. Nothing is uploaded by this screen.',
     teamTitle: 'Meet Your Specialists', teamHint: 'Specialist workflows are being prepared. They will appear when their skills are tested and connected.',
-    creative: 'Creative direction', vehicle: 'Vehicle retouching', quality: 'Image quality',
+    creative: 'Creative direction', vehicle: 'Vehicle retouching', quality: 'Image quality', creativeDetail: 'Art direction, references and consistent visual language.', vehicleDetail: 'Vehicle masking, glass edges, wheels and studio backgrounds.', qualityDetail: 'Resolution, lighting balance and export checks.',
     planned: 'In preparation', settingsTitle: 'Manage Studio Preferences', language: 'Language',
     appearance: 'Appearance', light: 'Light', privacy: 'Local-first storage',
     privacyHint: 'Imported photos remain in this browser session. Nothing is uploaded by this screen.',
@@ -53,7 +53,7 @@ const messages = {
     noPhotos: 'لا توجد صور بعد', noPhotosHint: 'ستظهر هنا الصور المستوردة والنتائج المحفوظة.',
     libraryTitle: 'أعمالك ومشاريعك الأخيرة', libraryHint: 'تظهر هنا الصور التي استوردتها خلال هذه الجلسة. لا يتم رفع الصور من هذه الشاشة.',
     teamTitle: 'فريقك الإبداعي المتخصص', teamHint: 'نعمل على تجهيز مسارات المتخصصين. ستظهر عند اختبار مهاراتهم وربطها.',
-    creative: 'التوجيه الإبداعي', vehicle: 'تحسين صور السيارات', quality: 'جودة الصور',
+    creative: 'التوجيه الإبداعي', vehicle: 'تحسين صور السيارات', quality: 'جودة الصور', creativeDetail: 'تحديد الاتجاه الفني والمراجع والهوية البصرية.', vehicleDetail: 'عزل السيارة وحواف الزجاج والعجلات وخلفيات الاستوديو.', qualityDetail: 'الدقة وتوازن الإضاءة وفحص ملفات التصدير.',
     planned: 'قيد التجهيز', settingsTitle: 'إدارة تفضيلات الاستوديو', language: 'اللغة',
     appearance: 'المظهر', light: 'فاتح', privacy: 'تخزين محلي أولاً',
     privacyHint: 'تبقى الصور المستوردة في جلسة المتصفح. هذه الشاشة لا ترفع صورك.',
@@ -358,7 +358,7 @@ export default function App() {
         </section>}
 
         {screen === 'team' && <section className="secondary-screen"><span className="eyebrow">SPECIALIST WORKFLOWS</span><h1>{t('teamTitle')}</h1><p>{t('teamHint')}</p>
-          <div className="specialist-list">{[{icon:Sparkles,name:t('creative'),detail:'Art direction, references and consistent visual language.'},{icon:CarFront,name:t('vehicle'),detail:'Vehicle masking, glass edges, wheels and studio backgrounds.'},{icon:SlidersHorizontal,name:t('quality'),detail:'Resolution, lighting balance and export checks.'}].map(({icon:Icon,name,detail})=><article className="specialist-row" key={name}><span className="specialist-icon"><Icon size={21}/></span><div><strong>{name}</strong><p>{detail}</p></div><span className="planned-tag">{t('planned')}</span></article>)}</div>
+          <div className="specialist-list">{[{icon:Sparkles,name:t('creative'),detail:t('creativeDetail')},{icon:CarFront,name:t('vehicle'),detail:t('vehicleDetail')},{icon:SlidersHorizontal,name:t('quality'),detail:t('qualityDetail')}].map(({icon:Icon,name,detail})=><article className="specialist-row" key={name}><span className="specialist-icon"><Icon size={21}/></span><div><strong>{name}</strong><p>{detail}</p></div><span className="planned-tag">{t('planned')}</span></article>)}</div>
         </section>}
 
         {screen === 'settings' && <section className="secondary-screen"><span className="eyebrow">PREFERENCES</span><h1>{t('settingsTitle')}</h1>
