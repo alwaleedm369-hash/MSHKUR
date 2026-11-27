@@ -355,7 +355,7 @@ export default function App() {
           <div className="menu-sheet-head"><strong>MSHKUR</strong><button onClick={() => setMenuOpen(false)} aria-label={t('close')}><X size={19}/></button></div>
           {(['assistant', 'studio', 'library', 'settings'] as Screen[]).map(item =>
             <button key={item} className={`menu-link ${screen === item ? 'active' : ''}`} onClick={() => goTo(item)}>
-              <span>{t(item)}</span><ArrowUpRight size={17}/>
+              <span>{t(item as Key)}</span><ArrowUpRight size={17}/>
             </button>
           )}
           <p className="menu-footnote">{t('privacyHint')}</p>
