@@ -9,12 +9,12 @@ import {
 } from 'lucide-react';
 
 type Locale = 'en' | 'ar';
-type Screen = 'studio' | 'library' | 'team' | 'settings';
+type Screen = 'studio' | 'assistant' | 'library' | 'team' | 'settings';
 type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; cutoutBlob?: Blob; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string; approved?: boolean };
 
 const messages = {
   en: {
-    studio: 'Studio', library: 'My work', team: 'Specialists', settings: 'Settings',
+    studio: 'Studio', assistant: 'MSHKUR AI', library: 'My work', team: 'Specialists', settings: 'Settings',
     title: 'Perfect Car Photos', subtitle: 'Clean, consistent vehicle images start here.',
     uploadTitle: 'Bring your car photo', uploadHint: 'Choose from your gallery or take a new photo.',
     gallery: 'Choose photo', camera: 'Take photo', formats: 'JPG, PNG or WEBP · Up to 20 MB each',
@@ -45,7 +45,7 @@ const messages = {
     downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.', command: 'AIBG commands', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'Apply command', commandNeedsCutout: 'Run background removal first to enable mask commands.', commandApplied: 'Command applied.', approve: 'Approve result', approved: 'Approved for export', approvalRequired: 'Review and approve this image before downloading.'
   },
   ar: {
-    studio: 'الاستوديو', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
+    studio: 'الاستوديو', assistant: 'مشكور الذكي', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
     title: 'صور سيارات احترافية', subtitle: 'ابدأ بصور سيارات نظيفة ومتناسقة.',
     uploadTitle: 'أضف صورة السيارة', uploadHint: 'اختر صورة من المعرض أو التقط صورة جديدة.',
     gallery: 'اختيار صورة', camera: 'التقاط صورة', formats: 'JPG أو PNG أو WEBP · حتى 20 ميجابايت للصورة',
@@ -121,6 +121,8 @@ async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transp
 export default function App() {
   const [locale, setLocale] = useState<Locale>(() => localStorage.getItem('mshkur.locale') === 'ar' ? 'ar' : 'en');
   const [screen, setScreen] = useState<Screen>('studio');
+  const [assistantPrompt, setAssistantPrompt] = useState('');
+  const [assistantReply, setAssistantReply] = useState('');
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [background, setBackground] = useState<'white' | 'transparent'>('white');
@@ -136,6 +138,7 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [commandText, setCommandText] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [smartOpen, setSmartOpen] = useState(false);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<Photo[]>([]);
@@ -308,10 +311,27 @@ export default function App() {
     setSliderPosition(Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)));
   }
 
+  function runSmartAction(action: 'upload' | 'white' | 'transparent' | 'process' | 'guide') {
+    setSmartOpen(false);
+    if (action === 'upload') { galleryRef.current?.click(); return; }
+    if (action === 'white' || action === 'transparent') { setBackground(action); setNotice(isArabic ? 'تم اختيار الخلفية. أضف صورة أو تابع المعالجة.' : 'Background selected. Add a photo or continue processing.'); return; }
+    if (action === 'process') { if (photos.length) { void handleRemoveBackground(); } else { setNotice(isArabic ? 'أضف صورة أولاً لبدء المعالجة.' : 'Add a photo first to start processing.'); galleryRef.current?.click(); } return; }
+    setTourOpen(true); setTourStep(0); setNotice(isArabic ? 'بدأ الشرح المرئي خطوة بخطوة.' : 'The visual guide has started.');
+  }
+
   function goTo(next: Screen) {
     setScreen(next);
     setMenuOpen(false);
     setNotice('');
+  }
+
+  function submitAssistantPrompt() {
+    const prompt = assistantPrompt.trim();
+    if (!prompt) return;
+    setAssistantReply(isArabic
+      ? 'وصل طلبك. أستطيع فتح استوديو الصور وتنفيذ خطوات إزالة الخلفية المتاحة الآن. بقية الخدمات لن أظهرها كأنها متصلة قبل ربطها واختبارها.'
+      : 'Request received. I can open the photo studio and run the background-removal steps currently available. I will not present other services as connected until they are integrated and tested.');
+    if (/خلفية|ازالة|إزالة|background|remove/i.test(prompt)) window.setTimeout(() => goTo('studio'), 500);
   }
 
   return (
@@ -333,9 +353,9 @@ export default function App() {
       {menuOpen && <div className="menu-backdrop" onClick={() => setMenuOpen(false)}>
         <nav className="menu-sheet" onClick={event => event.stopPropagation()}>
           <div className="menu-sheet-head"><strong>MSHKUR</strong><button onClick={() => setMenuOpen(false)} aria-label={t('close')}><X size={19}/></button></div>
-          {(['studio', 'library', 'team', 'settings'] as Screen[]).map(item =>
+          {(['assistant', 'studio', 'library', 'settings'] as Screen[]).map(item =>
             <button key={item} className={`menu-link ${screen === item ? 'active' : ''}`} onClick={() => goTo(item)}>
-              <span>{t(item)}</span><ArrowUpRight size={17}/>
+              <span>{t(item as Key)}</span><ArrowUpRight size={17}/>
             </button>
           )}
           <p className="menu-footnote">{t('privacyHint')}</p>
@@ -370,6 +390,14 @@ export default function App() {
                     <button className="button-secondary" onClick={() => cameraRef.current?.click()}><Camera size={18}/>{t('camera')}</button>
                   </div>
                   <small>{t('formats')}</small>
+                  <div className="visual-inspiration" aria-label={isArabic ? 'أمثلة مرئية للنتائج' : 'Visual result examples'}>
+                    <div className="visual-inspiration-title">{isArabic ? 'شاهد ما يمكنك إنجازه' : 'See what you can create'}</div>
+                    <div className="visual-inspiration-grid">
+                      <figure><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=420&q=80" alt={isArabic ? 'سيارة جاهزة بخلفية نظيفة' : 'Car with a clean studio look'} loading="lazy"/><figcaption>{isArabic ? 'صورة جاهزة للإعلان' : 'Listing-ready photo'}</figcaption></figure>
+                      <figure><img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=420&q=80" alt={isArabic ? 'تفاصيل سيارة' : 'Vehicle detail'} loading="lazy"/><figcaption>{isArabic ? 'تفاصيل أوضح' : 'Sharper details'}</figcaption></figure>
+                      <figure><img src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=420&q=80" alt={isArabic ? 'سيارة في مشهد خارجي' : 'Car in an outdoor scene'} loading="lazy"/><figcaption>{isArabic ? 'خلفية موحدة' : 'Consistent background'}</figcaption></figure>
+                    </div>
+                  </div>
                 </div>}
               </div>
 
@@ -426,6 +454,25 @@ export default function App() {
           </section>
         </>}
 
+        {screen === 'assistant' && <section className="assistant-home" aria-label={isArabic ? 'مشكور الذكي' : 'MSHKUR smart workspace'}>
+          <div className="assistant-hero"><div className="assistant-hero-copy">
+            <span className="assistant-kicker"><Sparkles size={14}/> {isArabic ? 'مساحة العمل الذكية' : 'YOUR SMART WORKSPACE'}</span>
+            <h1>{isArabic ? 'أهلاً، ماذا ننجز اليوم؟' : 'What shall we make today?'}</h1>
+            <p>{isArabic ? 'صف ما تحتاجه بكلماتك، أو اختر بداية مرئية. مشكور يرتب لك الطريق.' : 'Tell us what you need, or choose a visual starting point. MSHKUR keeps the next step clear.'}</p>
+          </div><div className="assistant-orbit-art" aria-hidden="true"><span className="orbit orbit-one"/><span className="orbit orbit-two"/><span className="orbit-core"><Sparkles size={34}/></span><i className="orbit-star star-one">✦</i><i className="orbit-star star-two">✧</i></div></div>
+          <div className="assistant-composer"><label htmlFor="assistant-prompt">{isArabic ? 'ما النتيجة التي تريد الوصول إليها؟' : 'Describe the result you want'}</label>
+            <textarea id="assistant-prompt" rows={3} value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} placeholder={isArabic ? 'مثلاً: أزل خلفية صورة السيارة واجعلها بيضاء...' : 'For example: Remove the background from my car photo and make it white…'}/>
+            <div className="assistant-composer-foot"><small>{isArabic ? 'اكتب بطريقتك الطبيعية' : 'Use your own words'}</small><button onClick={submitAssistantPrompt} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'ابدأ' : 'Start'}</span><ArrowUpRight size={17}/></button></div>
+            {assistantReply && <p className="assistant-honest-reply" role="status">{assistantReply}</p>}
+          </div>
+          <div className="assistant-section-title"><div><span>{isArabic ? 'ابدأ من هنا' : 'START WITH A RESULT'}</span><h2>{isArabic ? 'أفكار مرئية وسريعة' : 'Visual ways to get started'}</h2></div><span className="assistant-section-spark">✧</span></div>
+          <div className="assistant-visual-grid">
+            <button className="assistant-visual-card photo-card" onClick={() => goTo('studio')}><img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=900&q=85" alt={isArabic ? 'سيارة في تصوير احترافي' : 'Car in a professional photo setting'} loading="lazy"/><span className="assistant-card-overlay"><b>{isArabic ? 'جهّز صورة منتجك' : 'Prepare a product photo'}</b><small>{isArabic ? 'إزالة الخلفية وتحضير الصورة' : 'Remove the background and prepare the image'}</small><i><ArrowUpRight size={17}/></i></span></button>
+            <button className="assistant-visual-card concept-card" onClick={() => goTo('studio')}><img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=85" alt={isArabic ? 'تفاصيل سيارة واضحة' : 'Detailed vehicle photography'} loading="lazy"/><span className="assistant-card-overlay"><b>{isArabic ? 'حسّن مظهر صورك' : 'Give your images a cleaner look'}</b><small>{isArabic ? 'ابدأ من استوديو الصور' : 'Continue in the photo studio'}</small><i><ArrowUpRight size={17}/></i></span></button>
+          </div>
+          <div className="assistant-next-strip"><span className="assistant-next-icon"><Images size={19}/></span><div><b>{isArabic ? 'كل أعمالك في مكان واحد' : 'Your work, in one place'}</b><small>{isArabic ? 'ارجع إلى الصور التي أضفتها ونتائجك المحفوظة' : 'Return to the photos you imported and saved results'}</small></div><button onClick={() => goTo('library')} aria-label={isArabic ? 'افتح أعمالي' : 'Open my work'}><ArrowUpRight size={18}/></button></div>
+        </section>}
+
         {screen === 'library' && <section className="secondary-screen"><span className="eyebrow">YOUR WORKSPACE</span><h1>{t('libraryTitle')}</h1><p>{t('libraryHint')}</p>
           {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
         </section>}
@@ -444,6 +491,27 @@ export default function App() {
         </section>}
       </main>
 
+      <button className={`smart-orb ${smartOpen ? 'is-open' : ''}`} onClick={() => setSmartOpen(value => !value)} aria-label={isArabic ? 'افتح مساعد مشكور الذكي' : 'Open MSHKUR smart assistant'} aria-expanded={smartOpen}>
+        {smartOpen ? <X size={22}/> : <><Sparkles size={23}/><span className="smart-orb-pulse"/></>}
+      </button>
+      {smartOpen && <div className="smart-backdrop" onClick={() => setSmartOpen(false)}>
+        <section className="smart-sheet" role="dialog" aria-modal="true" aria-label={isArabic ? 'مساعد مشكور' : 'MSHKUR assistant'} onClick={event => event.stopPropagation()}>
+          <div className="smart-sheet-handle"/>
+          <div className="smart-sheet-head">
+            <span className="smart-sheet-mark"><Sparkles size={19}/></span>
+            <div><strong>{isArabic ? 'مشكور معك' : 'MSHKUR is here'}</strong><small>{isArabic ? 'مساعدة ذكية حسب الشاشة التي تعمل عليها' : 'Context-aware help for this screen'}</small></div>
+            <button onClick={() => setSmartOpen(false)} aria-label={t('close')}><X size={19}/></button>
+          </div>
+          <p className="smart-sheet-prompt">{isArabic ? (activePhoto ? 'صورتك جاهزة. ماذا تريد أن تفعل؟' : 'ابدأ بخطوة واحدة، وسأرشدك بصرياً.') : (activePhoto ? 'Your photo is ready. What would you like to do?' : 'Start with one simple step. I’ll guide you visually.')}</p>
+          <div className="smart-action-grid">
+            <button onClick={() => runSmartAction('upload')}><span className="smart-action-image upload-art"><ImagePlus size={23}/></span><strong>{isArabic ? 'أضف صورة' : 'Add a photo'}</strong><small>{isArabic ? 'من المعرض أو الكاميرا' : 'Gallery or camera'}</small></button>
+            <button onClick={() => runSmartAction('process')}><span className="smart-action-image process-art"><Sparkles size={23}/></span><strong>{isArabic ? 'أزل الخلفية' : 'Remove background'}</strong><small>{isArabic ? 'ابدأ المعالجة مباشرة' : 'Start processing'}</small></button>
+            <button onClick={() => runSmartAction('white')}><span className="smart-action-image white-art"><span/></span><strong>{isArabic ? 'خلفية بيضاء' : 'White background'}</strong><small>{isArabic ? 'مناسبة للإعلانات' : 'Ready for listings'}</small></button>
+            <button onClick={() => runSmartAction('guide')}><span className="smart-action-image guide-art"><Play size={23}/></span><strong>{isArabic ? 'أرني كيف أبدأ' : 'Show me how'}</strong><small>{isArabic ? 'جولة مرئية قصيرة' : 'A short visual tour'}</small></button>
+          </div>
+          <div className="smart-sheet-foot"><span className="smart-live-dot"/>{isArabic ? 'الأوامر هنا تنفّذ إجراءات فعلية داخل الاستوديو' : 'Actions run directly in the studio'}</div>
+        </section>
+      </div>}
       <input ref={galleryRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={importPhotos}/>
       <input ref={cameraRef} className="visually-hidden" type="file" accept="image/*" capture="environment" onChange={importPhotos}/>
     </div>
