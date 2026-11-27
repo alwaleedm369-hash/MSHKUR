@@ -14,7 +14,7 @@ type Photo = { id: string; file: File; url: string; processedBlob?: Blob; proces
 
 const messages = {
   en: {
-    studio: 'Studio', library: 'My work', team: 'Specialists', settings: 'Settings',
+    studio: 'Studio', assistant: 'MSHKUR AI', library: 'My work', team: 'Specialists', settings: 'Settings',
     title: 'Perfect Car Photos', subtitle: 'Clean, consistent vehicle images start here.',
     uploadTitle: 'Bring your car photo', uploadHint: 'Choose from your gallery or take a new photo.',
     gallery: 'Choose photo', camera: 'Take photo', formats: 'JPG, PNG or WEBP · Up to 20 MB each',
@@ -45,7 +45,7 @@ const messages = {
     downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.', command: 'AIBG commands', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'Apply command', commandNeedsCutout: 'Run background removal first to enable mask commands.', commandApplied: 'Command applied.', approve: 'Approve result', approved: 'Approved for export', approvalRequired: 'Review and approve this image before downloading.'
   },
   ar: {
-    studio: 'الاستوديو', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
+    studio: 'الاستوديو', assistant: 'مشكور الذكي', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
     title: 'صور سيارات احترافية', subtitle: 'ابدأ بصور سيارات نظيفة ومتناسقة.',
     uploadTitle: 'أضف صورة السيارة', uploadHint: 'اختر صورة من المعرض أو التقط صورة جديدة.',
     gallery: 'اختيار صورة', camera: 'التقاط صورة', formats: 'JPG أو PNG أو WEBP · حتى 20 ميجابايت للصورة',
