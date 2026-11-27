@@ -88,12 +88,13 @@ export class InMemorySmartGraphRepository {
     if (input.from === input.to) throw new Error('Self-referential edges are not allowed');
     // System/public capabilities may be referenced by scoped tasks, but graph links
     // never grant permissions or make private data public.
-    if (from.scope.visibility === 'private' && to.scope.visibility === 'private' &&
-        from.scope.ownerId !== to.scope.ownerId) {
-      throw new Error('Cross-user private edges are forbidden');
+    const fromScoped = ['private','workspace'].includes(from.scope.visibility);
+    const toScoped = ['private','workspace'].includes(to.scope.visibility);
+    if (fromScoped && toScoped && from.scope.ownerId !== to.scope.ownerId) {
+      throw new Error('Cross-user scoped edges are forbidden');
     }
     if (from.scope.visibility === 'workspace' && to.scope.visibility === 'workspace' &&
-        (from.scope.ownerId !== to.scope.ownerId || from.scope.workspaceId !== to.scope.workspaceId)) {
+        from.scope.workspaceId !== to.scope.workspaceId) {
       throw new Error('Cross-workspace edges are forbidden');
     }
     const edge = {
