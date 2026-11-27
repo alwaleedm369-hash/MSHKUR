@@ -154,6 +154,7 @@ export default function App() {
   const [view, setView] = useState<View>('create');
   const [prompt, setPrompt] = useState('');
   const [projects, setProjects] = useState<Project[]>(readProjects);
+  const [assetPreviews, setAssetPreviews] = useState<Record<string, string>>({});
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [sourcePreview, setSourcePreview] = useState<string | null>(null);
   const [sourceName, setSourceName] = useState('');
@@ -173,6 +174,16 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('mshkur.projects.v1', JSON.stringify(projects));
+  }, [projects]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const hydratePreviews = async () => {
+      const entries = await Promise.all(projects.filter(project => project.sourceAssetId).map(async project => [project.id, await loadAsset(project.sourceAssetId!)] as const));
+      if (!cancelled) setAssetPreviews(current => ({ ...current, ...Object.fromEntries(entries.filter((entry): entry is readonly [string, string] => Boolean(entry[1]))) }));
+    };
+    void hydratePreviews();
+    return () => { cancelled = true; };
   }, [projects]);
 
   function handleImage(event: ChangeEvent<HTMLInputElement>) {
@@ -197,6 +208,16 @@ export default function App() {
     reader.onerror = () => setNotice('Could not read this image. Please try another file.');
     reader.readAsDataURL(file);
     event.target.value = '';
+  }
+
+  function startNewProject() {
+    setActiveProject(null);
+    setPrompt('');
+    setSourcePreview(null);
+    setSourceName('');
+    setPendingAssetId(undefined);
+    setNotice('');
+    setView('create');
   }
 
   async function prepareBrief() {
@@ -305,8 +326,8 @@ export default function App() {
           </>}
 
           {view === 'library' && <section className="secondary-view">
-            <div className="secondary-heading"><div className="eyebrow"><span className="eyebrow-line" />YOUR WORKSPACE</div><h1>{t('library')}<br /><em>{t('allWork').toLowerCase()}.</em></h1><p>{t('noProjectsHint')}</p></div>
-            {projects.length ? <div className="project-grid">{projects.map((project,index) => <button className="project-card" key={project.id} onClick={() => openProject(project)} type="button"><div className={'project-art project-art-' + (index % 3)}><span>MSHKUR / {String(index + 1).padStart(2,'0')}</span><strong>{project.title}</strong><ArrowUpRight size={20} /></div><div className="project-card-meta"><strong>{project.title}</strong><small>{new Date(project.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US')}</small></div></button>)}</div> : <div className="empty-library"><div className="empty-symbol"><FolderOpen size={27} /></div><h2>{t('noProjects')}</h2><p>{t('noProjectsHint')}</p><button className="primary-action" type="button" onClick={() => setView('create')}>{t('newProject')} <Plus size={17} /></button></div>}
+            <div className="secondary-heading"><div className="eyebrow"><span className="eyebrow-line" />YOUR WORKSPACE</div><h1>{t('library')}<br /><em>{t('allWork').toLowerCase()}.</em></h1><p>{t('noProjectsHint')}</p><button className="primary-action" type="button" onClick={startNewProject}>{t('newProject')} <Plus size={17} /></button></div>
+            {projects.length ? <div className="project-grid">{projects.map((project,index) => <button className="project-card" key={project.id} onClick={() => openProject(project)} type="button"><div className={'project-art project-art-' + (index % 3)}>{assetPreviews[project.id] && <img className="project-thumb" src={assetPreviews[project.id]} alt="" loading="lazy" />}<span>MSHKUR / {String(index + 1).padStart(2,'0')}</span><strong>{project.title}</strong><ArrowUpRight size={20} /></div><div className="project-card-meta"><strong>{project.title}</strong><small>{new Date(project.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US')}</small></div></button>)}</div> : <div className="empty-library"><div className="empty-symbol"><FolderOpen size={27} /></div><h2>{t('noProjects')}</h2><p>{t('noProjectsHint')}</p><button className="primary-action" type="button" onClick={() => setView('create')}>{t('newProject')} <Plus size={17} /></button></div>}
           </section>}
 
           {view === 'agents' && <section className="secondary-view">
