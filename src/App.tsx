@@ -9,7 +9,7 @@ import {
 
 type Locale = 'en' | 'ar';
 type View = 'create' | 'library' | 'agents' | 'profile';
-type Project = { id: string; title: string; prompt: string; createdAt: number; sourceName?: string };
+type Project = { id: string; title: string; prompt: string; createdAt: number; sourceName?: string; sourceAssetId?: string };
 
 const copy = {
   en: {
@@ -112,6 +112,36 @@ const agentData = [
   { id:'three-d-artist', icon:Box, name:'threeDArtist', description:'threeDArtistDesc' },
 ] as const;
 
+const ASSET_DB = 'mshkur-assets-v1';
+function saveAsset(id: string, dataUrl: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(ASSET_DB, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('assets');
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction('assets', 'readwrite');
+      tx.objectStore('assets').put(dataUrl, id);
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+    };
+  });
+}
+function loadAsset(id: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(ASSET_DB, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('assets');
+    request.onerror = () => resolve(null);
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction('assets', 'readonly');
+      const get = tx.objectStore('assets').get(id);
+      get.onsuccess = () => { db.close(); resolve(typeof get.result === 'string' ? get.result : null); };
+      get.onerror = () => { db.close(); resolve(null); };
+    };
+  });
+}
+
 function readProjects(): Project[] {
   try {
     const value = localStorage.getItem('mshkur.projects.v1');
@@ -127,6 +157,7 @@ export default function App() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [sourcePreview, setSourcePreview] = useState<string | null>(null);
   const [sourceName, setSourceName] = useState('');
+  const [pendingAssetId, setPendingAssetId] = useState<string | undefined>();
   const [notice, setNotice] = useState('');
   const [selectedAgent, setSelectedAgent] = useState('creative-director');
   const galleryInput = useRef<HTMLInputElement>(null);
@@ -150,13 +181,25 @@ export default function App() {
     if (!file.type.startsWith('image/')) { setNotice('Please choose an image file.'); return; }
     if (file.size > 20 * 1024 * 1024) { setNotice('Choose an image smaller than 20 MB.'); return; }
     const reader = new FileReader();
-    reader.onload = () => { setSourcePreview(String(reader.result)); setSourceName(file.name); setNotice(t('imageAdded')); };
+    reader.onload = async () => {
+      const dataUrl = String(reader.result);
+      const assetId = crypto.randomUUID();
+      try {
+        await saveAsset(assetId, dataUrl);
+        setSourcePreview(dataUrl);
+        setSourceName(file.name);
+        setPendingAssetId(assetId);
+        setNotice(t('imageAdded'));
+      } catch {
+        setNotice('Local image storage is unavailable. Try a smaller image or another browser.');
+      }
+    };
     reader.onerror = () => setNotice('Could not read this image. Please try another file.');
     reader.readAsDataURL(file);
     event.target.value = '';
   }
 
-  function prepareBrief() {
+  async function prepareBrief() {
     if (!prompt.trim() && !sourcePreview) { setNotice('Add a short brief or an image to get started.'); return; }
     const cleanPrompt = prompt.trim() || 'Refine the imported image into a polished creative direction.';
     const project: Project = {
@@ -165,15 +208,19 @@ export default function App() {
       prompt: cleanPrompt,
       createdAt: Date.now(),
       sourceName: sourceName || undefined,
+      sourceAssetId: pendingAssetId,
     };
     setProjects(current => [project, ...current]);
     setActiveProject(project);
     setNotice(t('briefReady'));
   }
 
-  function openProject(project: Project) {
+  async function openProject(project: Project) {
     setActiveProject(project);
     setPrompt(project.prompt);
+    setSourceName(project.sourceName || '');
+    setPendingAssetId(project.sourceAssetId);
+    setSourcePreview(project.sourceAssetId ? await loadAsset(project.sourceAssetId) : null);
     setView('create');
   }
 
@@ -220,7 +267,7 @@ export default function App() {
                       <div className="sample-copy"><span>FORM / 001</span><strong>Shape<br />the idea.</strong><small>AN OPEN CREATIVE CANVAS</small></div><div className="sample-index">01 — 04</div>
                     </div>}
                   <div className="stage-bottom"><span className="stage-indicator"><span />{sourcePreview ? t('sourceReady') : 'Creative space 01'}</span>
-                    {sourcePreview && <button className="stage-remove" type="button" onClick={() => { setSourcePreview(null); setSourceName(''); }}><X size={14} />{t('removeImage')}</button>}
+                    {sourcePreview && <button className="stage-remove" type="button" onClick={() => { setSourcePreview(null); setSourceName(''); setPendingAssetId(undefined); }}><X size={14} />{t('removeImage')}</button>}
                   </div>
                 </div>
                 <div className="composer">
