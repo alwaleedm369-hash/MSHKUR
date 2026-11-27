@@ -427,8 +427,13 @@ export default function App() {
           {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
         </section>}
 
-        {screen === 'team' && <section className="secondary-screen"><span className="eyebrow">SPECIALIST WORKFLOWS</span><h1>{t('teamTitle')}</h1><p>{t('teamHint')}</p>
-          <div className="specialist-list">{[{icon:Sparkles,name:t('creative'),detail:t('creativeDetail')},{icon:CarFront,name:t('vehicle'),detail:t('vehicleDetail')},{icon:SlidersHorizontal,name:t('quality'),detail:t('qualityDetail')}].map(({icon:Icon,name,detail})=><article className="specialist-row" key={name}><span className="specialist-icon"><Icon size={21}/></span><div><strong>{name}</strong><p>{detail}</p></div><span className="planned-tag">{t('planned')}</span></article>)}</div>
+        {screen === 'team' && <section className="secondary-screen"><span className="eyebrow">MSHKUR AIBG ASSISTANTS</span><h1>{t('teamTitle')}</h1><p>{t('teamHint')}</p>
+          <div className="specialist-list">{[
+            {id:'vehicle-retoucher',icon:CarFront,name:isArabic?'مساعد تحسين صور السيارات':'Vehicle Retoucher',detail:isArabic?'عزل الخلفية وتعديل القناع وتوحيد التمركز والخلفية.':'Segmentation, mask editing, grounded placement and background output.',active:true},
+            {id:'quality-inspector',icon:SlidersHorizontal,name:isArabic?'مساعد مراجعة الجودة':'Quality Inspector',detail:isArabic?'فحص الحواف والقناع والتنبيه إلى القص والتسرب.':'Checks mask geometry, edge contact, crop risk and leakage.',active:true},
+            {id:'batch-operator',icon:Images,name:isArabic?'مساعد معالجة الدفعات':'Batch Operator',detail:isArabic?'يعالج الصور بالتتابع ويعرض حالة مستقلة لكل صورة.':'Processes images sequentially with per-image status.',active:true},
+            {id:'workflow-orchestrator',icon:Sparkles,name:isArabic?'منسق سير العمل':'Workflow Orchestrator',detail:isArabic?'ينظم خطوات المعالجة والمراجعة والاعتماد البشري.':'Coordinates processing, review and human approval.',active:false}
+          ].map(({id,icon:Icon,name,detail,active})=><article className="specialist-row" key={id}><span className="specialist-icon"><Icon size={21}/></span><div><strong>{name}</strong><p>{detail}</p></div><span className="planned-tag">{active?(isArabic?'متصل بالاستوديو':'Studio connected'):(isArabic?'عقد سير عمل':'Workflow contract')}</span></article>)}</div>
         </section>}
 
         {screen === 'settings' && <section className="secondary-screen"><span className="eyebrow">PREFERENCES</span><h1>{t('settingsTitle')}</h1>
