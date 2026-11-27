@@ -8,7 +8,7 @@ export function normalizeRect(rect) {
   const x1=clamp(Math.min(rect.x,rect.x+rect.width),0,1), y1=clamp(Math.min(rect.y,rect.y+rect.height),0,1);
   const x2=clamp(Math.max(rect.x,rect.x+rect.width),0,1), y2=clamp(Math.max(rect.y,rect.y+rect.height),0,1);
   if (x2-x1<=0 || y2-y1<=0) throw new Error("Region must have a positive area.");
-  return {x:x1,y:y1,width:x2-x1,height:y2-y1};
+  return {x:x1,y:y1,width:Number((x2-x1).toFixed(12)),height:Number((y2-y1).toFixed(12))};
 }
 
 function validateBounds(sourceWidth,sourceHeight,bounds,target,padding) {
