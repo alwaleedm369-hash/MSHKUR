@@ -120,9 +120,10 @@ async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transp
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>(() => localStorage.getItem('mshkur.locale') === 'ar' ? 'ar' : 'en');
-  const [screen, setScreen] = useState<Screen>('studio');
+  const [screen, setScreen] = useState<Screen>('assistant');
   const [assistantPrompt, setAssistantPrompt] = useState('');
   const [assistantReply, setAssistantReply] = useState('');
+  const [autoProcessAfterUpload, setAutoProcessAfterUpload] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [background, setBackground] = useState<'white' | 'transparent'>('white');
@@ -153,6 +154,13 @@ export default function App() {
   }, [locale, isArabic]);
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
+  useEffect(() => {
+    if (!autoProcessAfterUpload || !photos.length || busy) return;
+    setAutoProcessAfterUpload(false);
+    window.setTimeout(() => { void handleRemoveBackground(); }, 0);
+  }, [autoProcessAfterUpload, photos.length, busy]);
+
+
   useEffect(() => () => photosRef.current.forEach(photo => {
     URL.revokeObjectURL(photo.url);
     if (photo.processedUrl) URL.revokeObjectURL(photo.processedUrl);
@@ -188,6 +196,7 @@ export default function App() {
 
   function importPhotos(event: ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(event.target.files ?? []);
+    if (!incoming.length) { setAutoProcessAfterUpload(false); return; }
     const valid = incoming.filter(file => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type) && file.size <= 20 * 1024 * 1024);
     if (valid.length !== incoming.length) setNotice(t('imageError'));
     if (valid.length) {
@@ -325,13 +334,49 @@ export default function App() {
     setNotice('');
   }
 
-  function submitAssistantPrompt() {
-    const prompt = assistantPrompt.trim();
+  function submitAssistantPrompt(promptValue = assistantPrompt) {
+    const prompt = promptValue.trim();
     if (!prompt) return;
+    setAssistantPrompt(prompt);
+    setAssistantReply('');
+    const wantsLibrary = /أعمالي|المحفوظات|المكتبة|library|my work/i.test(prompt);
+    const wantsSettings = /إعدادات|settings/i.test(prompt);
+    const wantsUpload = /ارفع|أضف صورة|اضف صورة|تحميل صورة|upload|add photo|choose photo/i.test(prompt);
+    const wantsTransparent = /شفاف|شفافة|transparent/i.test(prompt);
+    const wantsWhite = /أبيض|بيضاء|white/i.test(prompt);
+    const wantsRemove = /إزالة|ازل|أزل|احذف|حذف|قص الخلفية|بدون خلفية|remove background|remove bg|background removal/i.test(prompt);
+
+    if (wantsLibrary) { setAssistantReply(isArabic ? 'فتحت لك أعمالك المحفوظة.' : 'Opening your saved work.'); goTo('library'); return; }
+    if (wantsSettings) { setAssistantReply(isArabic ? 'فتحت الإعدادات.' : 'Opening settings.'); goTo('settings'); return; }
+    if (wantsUpload) {
+      setAssistantReply(isArabic ? 'اختر صورة من جهازك، وستظهر في الاستوديو.' : 'Choose an image from your device. It will open in the studio.');
+      goTo('studio'); window.setTimeout(() => galleryRef.current?.click(), 80); return;
+    }
+    if (wantsWhite || wantsTransparent) {
+      const nextBackground = wantsTransparent ? 'transparent' : 'white';
+      setBackground(nextBackground);
+      if (photos.length) {
+        setAssistantReply(isArabic ? 'تم اختيار الخلفية. أبدأ الآن تجهيز الصورة.' : 'Background selected. Preparing your image now.');
+        goTo('studio'); window.setTimeout(() => { void handleRemoveBackground(); }, 80);
+      } else {
+        setAssistantReply(isArabic ? 'اختر صورة وسأبدأ تجهيزها بالخلفية المطلوبة تلقائياً.' : 'Choose an image and I will prepare it with the selected background.');
+        setAutoProcessAfterUpload(true); goTo('studio'); window.setTimeout(() => galleryRef.current?.click(), 80);
+      }
+      return;
+    }
+    if (wantsRemove) {
+      if (photos.length) {
+        setAssistantReply(isArabic ? 'بدأت إزالة الخلفية من صورك. يمكنك متابعة التقدم في الاستوديو.' : 'Background removal has started. Follow the progress in the studio.');
+        goTo('studio'); window.setTimeout(() => { void handleRemoveBackground(); }, 80);
+      } else {
+        setAssistantReply(isArabic ? 'اختر صورة أولاً، وسأبدأ إزالة الخلفية تلقائياً بعد إضافتها.' : 'Choose an image first. I will start removing its background automatically after upload.');
+        setAutoProcessAfterUpload(true); goTo('studio'); window.setTimeout(() => galleryRef.current?.click(), 80);
+      }
+      return;
+    }
     setAssistantReply(isArabic
-      ? 'وصل طلبك. أستطيع فتح استوديو الصور وتنفيذ خطوات إزالة الخلفية المتاحة الآن. بقية الخدمات لن أظهرها كأنها متصلة قبل ربطها واختبارها.'
-      : 'Request received. I can open the photo studio and run the background-removal steps currently available. I will not present other services as connected until they are integrated and tested.');
-    if (/خلفية|ازالة|إزالة|background|remove/i.test(prompt)) window.setTimeout(() => goTo('studio'), 500);
+      ? 'أستطيع الآن تنفيذ: رفع صورة، إزالة الخلفية، تجهيز خلفية بيضاء أو شفافة، وفتح أعمالك أو الإعدادات. جرّب أحد هذه الطلبات.'
+      : 'I can currently: upload a photo, remove its background, prepare a white or transparent background, and open your work or settings. Try one of those requests.');
   }
 
   return (
@@ -461,8 +506,14 @@ export default function App() {
             <p>{isArabic ? 'صف ما تحتاجه بكلماتك، أو اختر بداية مرئية. مشكور يرتب لك الطريق.' : 'Tell us what you need, or choose a visual starting point. MSHKUR keeps the next step clear.'}</p>
           </div><div className="assistant-orbit-art" aria-hidden="true"><span className="orbit orbit-one"/><span className="orbit orbit-two"/><span className="orbit-core"><Sparkles size={34}/></span><i className="orbit-star star-one">✦</i><i className="orbit-star star-two">✧</i></div></div>
           <div className="assistant-composer"><label htmlFor="assistant-prompt">{isArabic ? 'ما النتيجة التي تريد الوصول إليها؟' : 'Describe the result you want'}</label>
-            <textarea id="assistant-prompt" rows={3} value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} placeholder={isArabic ? 'مثلاً: أزل خلفية صورة السيارة واجعلها بيضاء...' : 'For example: Remove the background from my car photo and make it white…'}/>
-            <div className="assistant-composer-foot"><small>{isArabic ? 'اكتب بطريقتك الطبيعية' : 'Use your own words'}</small><button onClick={submitAssistantPrompt} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'ابدأ' : 'Start'}</span><ArrowUpRight size={17}/></button></div>
+            <textarea id="assistant-prompt" rows={3} value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submitAssistantPrompt(); }} placeholder={isArabic ? 'مثلاً: أزل خلفية صورة السيارة واجعلها بيضاء...' : 'For example: Remove the background from my car photo and make it white…'}/>
+            <div className="assistant-composer-foot"><small>{isArabic ? 'اكتب بطريقتك الطبيعية' : 'Use your own words'}</small><button onClick={() => submitAssistantPrompt()} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'نفّذ الطلب' : 'Run request'}</span><ArrowUpRight size={17}/></button></div>
+            <div className="assistant-quick-actions" aria-label={isArabic ? 'إجراءات سريعة' : 'Quick actions'}>
+              <button onClick={() => submitAssistantPrompt(isArabic ? 'أضف صورة جديدة' : 'Upload a photo')}>{isArabic ? '＋ أضف صورة' : '＋ Add photo'}</button>
+              <button onClick={() => submitAssistantPrompt(isArabic ? 'أزل الخلفية' : 'Remove background')}>{isArabic ? 'إزالة الخلفية' : 'Remove background'}</button>
+              <button onClick={() => submitAssistantPrompt(isArabic ? 'اجعل الخلفية بيضاء' : 'Make the background white')}>{isArabic ? 'خلفية بيضاء' : 'White background'}</button>
+              <button onClick={() => submitAssistantPrompt(isArabic ? 'اجعل الخلفية شفافة' : 'Make the background transparent')}>{isArabic ? 'شفافة' : 'Transparent'}</button>
+            </div>
             {assistantReply && <p className="assistant-honest-reply" role="status">{assistantReply}</p>}
           </div>
           <div className="assistant-section-title"><div><span>{isArabic ? 'ابدأ من هنا' : 'START WITH A RESULT'}</span><h2>{isArabic ? 'أفكار مرئية وسريعة' : 'Visual ways to get started'}</h2></div><span className="assistant-section-spark">✧</span></div>
