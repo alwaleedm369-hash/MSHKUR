@@ -54,3 +54,9 @@
 - اكتملت مسارات CI الأربعة على commit الكود `09aab7ceb818f6a24dbb4516024dc654ea3c6cf8`: `verify` #1021، و`MSHKUR AIBG Verification` #96، و`Vehicle Studio Production Gate` #149، و`Smart Graph Runtime Tests` #62؛ جميعها `success`.
 - اكتملت اختبارات الوحدة وTypeScript وبناء الإنتاج في مساري verify وAIBG.
 - لم يجرِ اختبار متصفح/جهاز فعلي؛ دعم SpeechRecognition ما زال بحاجة إلى تحقق تفاعلي على متصفحات مختلفة.
+
+### تحقق CI النهائي بعد توضيح خصوصية الصوت — 28 نوفمبر 2026
+- commit `74bb5bfb9d3b29c9e608a71276104df15d1c020d`: `verify` #1023، و`MSHKUR AIBG Verification` #98، و`Vehicle Studio Production Gate` #151، و`Smart Graph Runtime Tests` #64 — جميعها مكتملة بنتيجة `success`.
+- اكتملت اختبارات الوحدة وفحص TypeScript وبناء الإنتاج في مساري verify وAIBG.
+- أضيف توضيح ظاهر للمستخدم بأن معالجة الصوت تعتمد على المتصفح وقد تتم لدى مزوده؛ لا ادعاء بمعالجة محلية.
+- اختبار المتصفح والجهاز الفعلي لا يزال غير منفذ.
