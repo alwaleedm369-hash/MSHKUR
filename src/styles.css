@@ -348,3 +348,4 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .task-row-copy{min-width:0}
 .task-row-copy strong,.task-row-copy small{overflow-wrap:anywhere}
 @media(max-width:480px){.workspace-filters{gap:6px}.workspace-filters button{min-height:39px;padding:0 10px}.task-tools{gap:10px}.library-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.library-item img{height:125px}}
+.task-error-detail{display:block;margin-top:4px;color:#a34b4b!important;font-size:9px;line-height:1.5}
