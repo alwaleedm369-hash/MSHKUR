@@ -319,3 +319,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .assistant-quick-actions button:active{transform:scale(.97)}
 .assistant-quick-actions button:focus-visible,.assistant-composer-foot button:focus-visible{outline:3px solid #8178ed55;outline-offset:2px}
 @media(max-width:760px){.assistant-quick-actions{gap:7px}.assistant-quick-actions button{min-height:42px;padding:0 12px;font-size:10px}}
+
+/* iAI voice input: explicit, touch-friendly and visibly stateful */
+.assistant-composer-actions{display:flex;align-items:center;gap:8px}
+.assistant-voice-button{min-height:43px;padding:0 13px;border:1px solid #dedff0;border-radius:12px;background:#fff;color:#5147a8;display:inline-flex;align-items:center;justify-content:center;gap:7px;font:inherit;font-size:11px;font-weight:750}
+.assistant-voice-button.is-listening{border-color:#c96d75;background:#fff1f2;color:#a73543}
+.assistant-voice-button:focus-visible{outline:3px solid #8178ed55;outline-offset:2px}
+.assistant-voice-status{margin:10px 0 0;padding:9px 11px;border-radius:10px;background:#f1f0ff;color:#5147a8;font-size:11px;line-height:1.6}
+.assistant-voice-status.is-warning{background:#fff6e9;color:#805b27}
+@media(max-width:420px){.assistant-composer-foot{align-items:flex-start;flex-direction:column}.assistant-composer-actions{width:100%}.assistant-composer-actions button{flex:1}}
