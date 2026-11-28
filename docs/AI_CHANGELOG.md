@@ -78,3 +78,10 @@
 - commit `973f3a500f572be4ad1c3927766b30ba00c1d853`: `verify` #1031، و`MSHKUR AIBG Verification` #106، و`Vehicle Studio Production Gate` #159، و`Smart Graph Runtime Tests` #72 — جميعها مكتملة بنتيجة `success`.
 - اكتملت الاختبارات وTypeScript وبناء الإنتاج في verify وAIBG.
 - لم يتم اختبار واجهة فعلية على أجهزة أو متصفحات في هذه الجلسة.
+
+## 2026-11-28 — Gate 1: تفعيل ثيمات مساحة العمل
+- تفعيل قيم Sage/Violet/Ocean المختارة فعلياً على جذر مساحة العمل عبر `data-theme` ومتغيرات CSS.
+- التحقق من قيمة الثيم عند قراءتها من localStorage، والرجوع إلى Sage إذا كانت القيمة غير معروفة.
+- إضافة تنسيق بطاقة الشخصية وحقل الاسم وخيارات الثيم وملاحظة التخزين المحلي.
+- CI على commit `da9c44d9d7632da08c5e305e8fe591845afe3774`: verify #1034 وAIBG #109 وVehicle Studio #162 وSmart Graph #75 — جميعها success. شملت verify وAIBG الاختبارات وTypeScript وبناء الإنتاج.
+- لم يتم اختبار واجهة فعلية على أجهزة/متصفحات أو نشر هذه التغييرات.
