@@ -9,12 +9,12 @@ import {
 } from 'lucide-react';
 
 type Locale = 'en' | 'ar';
-type Screen = 'studio' | 'assistant' | 'library' | 'team' | 'settings';
+type Screen = 'studio' | 'assistant' | 'library' | 'tasks' | 'profile' | 'settings';
 type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; cutoutBlob?: Blob; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string; approved?: boolean };
 
 const messages = {
   en: {
-    studio: 'Studio', assistant: 'MSHKUR AI', library: 'My work', team: 'Specialists', settings: 'Settings',
+    studio: 'Studio', assistant: 'MSHKUR AI', library: 'My work', tasks: 'Tasks', profile: 'Profile', settings: 'Settings',
     title: 'Perfect Car Photos', subtitle: 'Clean, consistent vehicle images start here.',
     uploadTitle: 'Bring your car photo', uploadHint: 'Choose from your gallery or take a new photo.',
     gallery: 'Choose photo', camera: 'Take photo', formats: 'JPG, PNG or WEBP · Up to 20 MB each',
@@ -45,7 +45,7 @@ const messages = {
     downloadResult: 'Download result', reset: 'Start over', processingNote: 'Keep this tab open while the model runs.', batchWarning: 'Some images need visual review before export.', command: 'AIBG commands', commandHint: 'REMOVE/ 0.1,0.2,0.2,0.3', runCommand: 'Apply command', commandNeedsCutout: 'Run background removal first to enable mask commands.', commandApplied: 'Command applied.', approve: 'Approve result', approved: 'Approved for export', approvalRequired: 'Review and approve this image before downloading.'
   },
   ar: {
-    studio: 'الاستوديو', assistant: 'مشكور الذكي', library: 'أعمالي', team: 'المتخصصون', settings: 'الإعدادات',
+    studio: 'الاستوديو', assistant: 'مشكور iAI', library: 'أعمالي', tasks: 'المهام', profile: 'شخصيتي', settings: 'الإعدادات',
     title: 'صور سيارات احترافية', subtitle: 'ابدأ بصور سيارات نظيفة ومتناسقة.',
     uploadTitle: 'أضف صورة السيارة', uploadHint: 'اختر صورة من المعرض أو التقط صورة جديدة.',
     gallery: 'اختيار صورة', camera: 'التقاط صورة', formats: 'JPG أو PNG أو WEBP · حتى 20 ميجابايت للصورة',
@@ -123,6 +123,8 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('assistant');
   const [assistantPrompt, setAssistantPrompt] = useState('');
   const [assistantReply, setAssistantReply] = useState('');
+  const [profileName, setProfileName] = useState(() => localStorage.getItem('mshkur.profile.name') || 'مساعدي');
+  const [workspaceTheme, setWorkspaceTheme] = useState(() => localStorage.getItem('mshkur.workspace.theme') || 'sage');
   const [autoProcessAfterUpload, setAutoProcessAfterUpload] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -151,6 +153,9 @@ export default function App() {
     localStorage.setItem('mshkur.locale', locale);
     document.documentElement.lang = locale;
     document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
+    localStorage.setItem('mshkur.profile.name', profileName);
+    localStorage.setItem('mshkur.workspace.theme', workspaceTheme);
+  }, [locale, isArabic, profileName, workspaceTheme]);
   }, [locale, isArabic]);
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
@@ -398,7 +403,7 @@ export default function App() {
       {menuOpen && <div className="menu-backdrop" onClick={() => setMenuOpen(false)}>
         <nav className="menu-sheet" onClick={event => event.stopPropagation()}>
           <div className="menu-sheet-head"><strong>MSHKUR</strong><button onClick={() => setMenuOpen(false)} aria-label={t('close')}><X size={19}/></button></div>
-          {(['assistant', 'studio', 'library', 'settings'] as Screen[]).map(item =>
+          {(['assistant', 'studio', 'tasks', 'library', 'profile', 'settings'] as Screen[]).map(item =>
             <button key={item} className={`menu-link ${screen === item ? 'active' : ''}`} onClick={() => goTo(item)}>
               <span>{t(item as Key)}</span><ArrowUpRight size={17}/>
             </button>
@@ -406,6 +411,8 @@ export default function App() {
           <p className="menu-footnote">{t('privacyHint')}</p>
         </nav>
       </div>}
+
+      <nav className="workspace-dock" aria-label={isArabic ? 'التنقل الرئيسي' : 'Main navigation'}>{([{id:'assistant' as Screen,icon:Sparkles,label:isArabic?'الرئيسية':'Home'},{id:'tasks' as Screen,icon:Check,label:isArabic?'المهام':'Tasks'},{id:'studio' as Screen,icon:CarFront,label:isArabic?'الاستوديو':'Studio'},{id:'library' as Screen,icon:Images,label:isArabic?'أعمالي':'Library'},{id:'profile' as Screen,icon:Globe2,label:isArabic?'شخصيتي':'Profile'}]).map(item=><button key={item.id} className={screen===item.id?'active':''} onClick={()=>goTo(item.id)}><item.icon size={18}/><span>{item.label}</span></button>)}</nav>
 
       <main className="main-content">
         {screen === 'studio' && <>
@@ -522,6 +529,32 @@ export default function App() {
             <button className="assistant-visual-card concept-card" onClick={() => goTo('studio')}><img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=900&q=85" alt={isArabic ? 'تفاصيل سيارة واضحة' : 'Detailed vehicle photography'} loading="lazy"/><span className="assistant-card-overlay"><b>{isArabic ? 'حسّن مظهر صورك' : 'Give your images a cleaner look'}</b><small>{isArabic ? 'ابدأ من استوديو الصور' : 'Continue in the photo studio'}</small><i><ArrowUpRight size={17}/></i></span></button>
           </div>
           <div className="assistant-next-strip"><span className="assistant-next-icon"><Images size={19}/></span><div><b>{isArabic ? 'كل أعمالك في مكان واحد' : 'Your work, in one place'}</b><small>{isArabic ? 'ارجع إلى الصور التي أضفتها ونتائجك المحفوظة' : 'Return to the photos you imported and saved results'}</small></div><button onClick={() => goTo('library')} aria-label={isArabic ? 'افتح أعمالي' : 'Open my work'}><ArrowUpRight size={18}/></button></div>
+        </section>}
+
+        {screen === 'tasks' && <section className="secondary-screen workspace-tasks">
+          <span className="eyebrow">MSHKUR WORKSPACE</span>
+          <h1>{isArabic ? 'مساحة المهام' : 'Your tasks'}</h1>
+          <p>{isArabic ? 'تابع الصور التي تعمل عليها وحالة كل نتيجة. لا نعرض مهمة على أنها تعمل ما لم تبدأ فعلياً.' : 'Track your image work and each result. A task is only shown as running when processing has actually started.'}</p>
+          <div className="task-summary-grid">
+            <article><span>{photos.length}</span><small>{isArabic ? 'صور في مساحة العمل' : 'Photos in workspace'}</small></article>
+            <article><span>{photos.filter(photo => photo.processingState === 'ready').length}</span><small>{isArabic ? 'نتائج جاهزة' : 'Ready results'}</small></article>
+            <article><span>{photos.filter(photo => photo.processingState === 'needs-review').length}</span><small>{isArabic ? 'تحتاج مراجعة' : 'Need review'}</small></article>
+          </div>
+          <div className="task-list">{photos.length ? photos.map(photo => <article className="task-row" key={photo.id}>
+            <img src={photo.processedUrl || photo.url} alt={photo.file.name}/>
+            <div className="task-row-copy"><strong>{photo.file.name}</strong><small>{photo.processingState === 'processing' ? (isArabic ? 'قيد المعالجة' : 'Processing') : photo.processingState === 'ready' ? (isArabic ? 'جاهزة للمراجعة والاعتماد' : 'Ready for review and approval') : photo.processingState === 'needs-review' ? (isArabic ? 'تحتاج مراجعة قبل التنزيل' : 'Review required before download') : photo.processingState === 'failed' ? (isArabic ? 'تعذرت المعالجة' : 'Processing failed') : (isArabic ? 'لم تبدأ المعالجة بعد' : 'Not processed yet')}</small></div>
+            <button className="task-open" onClick={() => {setActiveId(photo.id);setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');goTo('studio')}}>{isArabic ? 'فتح' : 'Open'} <ArrowUpRight size={15}/></button>
+          </article>) : <div className="empty-state"><Images size={30}/><strong>{isArabic ? 'لا توجد مهام بعد' : 'No tasks yet'}</strong><p>{isArabic ? 'أضف صورة من الاستوديو لتظهر هنا مراحل عملها.' : 'Add a photo in the studio and its workflow will appear here.'}</p><button className="button-primary" onClick={() => goTo('studio')}>{isArabic ? 'افتح الاستوديو' : 'Open studio'}</button></div>}</div>
+          <div className="task-honesty-note"><Check size={16}/>{isArabic ? 'كل حالة مرتبطة بحالة الصورة الفعلية داخل الاستوديو.' : 'Every status reflects the actual photo state in the studio.'}</div>
+        </section>}
+
+        {screen === 'profile' && <section className="secondary-screen profile-screen">
+          <span className="eyebrow">YOUR MSHKUR</span><h1>{isArabic ? 'شخصيتك ومساحتك' : 'Your space, your style'}</h1>
+          <p>{isArabic ? 'خصص اسم مساعدك ومظهر مساحة العمل. ستُحفظ التفضيلات على هذا الجهاز.' : 'Personalize your assistant name and workspace appearance. Preferences are saved on this device.'}</p>
+          <div className="persona-card"><div className="persona-avatar"><Sparkles size={28}/></div><div><strong>{profileName || (isArabic ? 'مساعدي' : 'My assistant')}</strong><small>{isArabic ? 'شخصية مساحة العمل' : 'Your workspace companion'}</small></div></div>
+          <label className="profile-field"><span>{isArabic ? 'اسم الشخصية' : 'Assistant name'}</span><input value={profileName} maxLength={28} onChange={event => setProfileName(event.target.value)} placeholder={isArabic ? 'اكتب اسماً قصيراً' : 'Choose a short name'}/></label>
+          <div className="theme-picker"><strong>{isArabic ? 'لون المساحة' : 'Workspace theme'}</strong><div>{([{id:'sage',label:isArabic?'أخضر هادئ':'Sage'},{id:'violet',label:isArabic?'بنفسجي':'Violet'},{id:'ocean',label:isArabic?'أزرق':'Ocean'}]).map(theme => <button key={theme.id} className={workspaceTheme===theme.id?'selected':''} onClick={()=>setWorkspaceTheme(theme.id)}><i className={'theme-swatch '+theme.id}/>{theme.label}</button>)}</div></div>
+          <div className="profile-note"><Check size={16}/>{isArabic ? 'التخصيص محلي على هذا المتصفح، وليس مزامنة حساب بعد.' : 'Personalization is local to this browser; account sync is not connected yet.'}</div>
         </section>}
 
         {screen === 'library' && <section className="secondary-screen"><span className="eyebrow">YOUR WORKSPACE</span><h1>{t('libraryTitle')}</h1><p>{t('libraryHint')}</p>
