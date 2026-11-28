@@ -136,7 +136,7 @@ export default function App() {
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'listening' | 'unsupported' | 'error'>('idle');
   const [voiceMessage, setVoiceMessage] = useState('');
   const [profileName, setProfileName] = useState(() => localStorage.getItem('mshkur.profile.name') || 'مساعدي');
-  const [workspaceTheme, setWorkspaceTheme] = useState(() => localStorage.getItem('mshkur.workspace.theme') || 'sage');
+  const [workspaceTheme, setWorkspaceTheme] = useState(() => { const saved = localStorage.getItem('mshkur.workspace.theme'); return saved === 'violet' || saved === 'ocean' ? saved : 'sage'; });
   const [autoProcessAfterUpload, setAutoProcessAfterUpload] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'review' | 'ready' | 'failed'>('all');
@@ -470,7 +470,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app-shell ${isArabic ? 'rtl' : ''}`} dir={isArabic ? 'rtl' : 'ltr'}>
+    <div className={`app-shell ${isArabic ? 'rtl' : ''}`} dir={isArabic ? 'rtl' : 'ltr'} data-theme={workspaceTheme}>
       <header className="topbar">
         <button className="brand" onClick={() => goTo('studio')} aria-label="MSHKUR home">
           <CarMark /><span>mshkur<span className="brand-period">.</span></span>
