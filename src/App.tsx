@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoStorage';
 import { applyAlphaRegion, getCenteredSubjectPlacement, getGroundedSubjectPlacement, inspectAlphaPlane, parseImageCommand, reviewVehicleMask } from './vehicleImageEngine.mjs';
 import { runVehicleBatch } from './vehicleBatchPipeline.mjs';
+import skillRegistry from '../skills/registry.json';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
   CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
@@ -137,6 +138,7 @@ export default function App() {
   const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'review' | 'ready' | 'failed'>('all');
   const [taskQuery, setTaskQuery] = useState('');
   const [libraryFilter, setLibraryFilter] = useState<'all' | 'results' | 'originals'>('all');
+  const [libraryView, setLibraryView] = useState<'photos' | 'skills'>('photos');
   const [libraryQuery, setLibraryQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [background, setBackground] = useState<'white' | 'transparent'>('white');
@@ -175,6 +177,7 @@ export default function App() {
     const matchesFilter = libraryFilter === 'all' || (libraryFilter === 'results' && Boolean(photo.processedBlob)) || (libraryFilter === 'originals' && !photo.processedBlob);
     return matchesQuery && matchesFilter;
   });
+  const filteredSkills = skillRegistry.filter(skill => `${skill.name} ${skill.description} ${skill.category}`.toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
 
   useEffect(() => {
     localStorage.setItem('mshkur.locale', locale);
@@ -655,14 +658,25 @@ export default function App() {
         </section>}
 
         {screen === 'library' && <section className="secondary-screen"><span className="eyebrow">YOUR WORKSPACE</span><h1>{t('libraryTitle')}</h1><p>{t('libraryHint')}</p>
-          {photos.length > 0 && <div className="task-tools library-tools">
-            <label className="workspace-search"><span>{isArabic ? 'ابحث في أعمالك' : 'Search your work'}</span><input type="search" value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} placeholder={isArabic ? 'اسم الصورة…' : 'Photo name…'}/></label>
-            <div className="workspace-filters" role="group" aria-label={isArabic ? 'تصفية الأعمال' : 'Filter library'}>
-              {([{id:'all',ar:'الكل',en:'All'},{id:'results',ar:'نتائج معالجة',en:'With results'},{id:'originals',ar:'أصلية فقط',en:'Originals only'}] as const).map(filter => <button key={filter.id} className={libraryFilter===filter.id?'selected':''} aria-pressed={libraryFilter===filter.id} onClick={() => setLibraryFilter(filter.id)}>{isArabic?filter.ar:filter.en}</button>)}
+          <div className="library-tabs" role="tablist" aria-label={isArabic ? 'أقسام المكتبة' : 'Library sections'}>
+            <button type="button" role="tab" aria-selected={libraryView === 'photos'} className={libraryView === 'photos' ? 'selected' : ''} onClick={() => { setLibraryView('photos'); setLibraryQuery(''); }}>{isArabic ? 'الصور والأعمال' : 'Photos & work'} <span>{photos.length}</span></button>
+            <button type="button" role="tab" aria-selected={libraryView === 'skills'} className={libraryView === 'skills' ? 'selected' : ''} onClick={() => { setLibraryView('skills'); setLibraryQuery(''); }}>{isArabic ? 'المهارات' : 'Skills'} <span>{skillRegistry.length}</span></button>
+          </div>
+          {libraryView === 'photos' && <>
+            <div className="task-tools library-tools">
+              <label className="workspace-search"><span>{isArabic ? 'ابحث في أعمالك' : 'Search your work'}</span><input type="search" value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} placeholder={isArabic ? 'اسم الصورة…' : 'Photo name…'}/></label>
+              {photos.length > 0 && <div className="workspace-filters" role="group" aria-label={isArabic ? 'تصفية الأعمال' : 'Filter library'}>
+                {([{id:'all',ar:'الكل',en:'All'},{id:'results',ar:'نتائج معالجة',en:'With results'},{id:'originals',ar:'أصلية فقط',en:'Originals only'}] as const).map(filter => <button key={filter.id} type="button" className={libraryFilter===filter.id?'selected':''} aria-pressed={libraryFilter===filter.id} onClick={() => setLibraryFilter(filter.id)}>{isArabic?filter.ar:filter.en}</button>)}
+              </div>}
+              <small className="library-count">{isArabic ? `${filteredLibrary.length} من ${photos.length} صورة` : `${filteredLibrary.length} of ${photos.length} photos`}</small>
             </div>
-            <small className="library-count">{isArabic ? `${filteredLibrary.length} من ${photos.length} صورة` : `${filteredLibrary.length} of ${photos.length} photos`}</small>
-          </div>}
-          {filteredLibrary.length ? <div className="library-grid">{filteredLibrary.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.processedUrl || photo.url} alt={photo.file.name}/><span>{photo.file.name}</span><small>{photo.processedBlob ? (isArabic ? 'توجد نتيجة معالجة' : 'Processed result available') : (isArabic ? 'الصورة الأصلية' : 'Original image')}</small></button>)}</div> : photos.length ? <div className="empty-state"><Images size={30}/><strong>{isArabic ? 'لا توجد عناصر مطابقة' : 'No matching items'}</strong><p>{isArabic ? 'جرّب تغيير البحث أو التصفية.' : 'Try changing your search or filter.'}</p></div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
+            {filteredLibrary.length ? <div className="library-grid">{filteredLibrary.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.processedUrl || photo.url} alt={photo.file.name}/><span>{photo.file.name}</span><small>{photo.processedBlob ? (isArabic ? 'توجد نتيجة معالجة' : 'Processed result available') : (isArabic ? 'الصورة الأصلية' : 'Original image')}</small></button>)}</div> : photos.length ? <div className="empty-state"><Images size={30}/><strong>{isArabic ? 'لا توجد عناصر مطابقة' : 'No matching items'}</strong><p>{isArabic ? 'جرّب تغيير البحث أو التصفية.' : 'Try changing your search or filter.'}</p></div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
+          </>}
+          {libraryView === 'skills' && <>
+            <div className="task-tools library-tools"><label className="workspace-search"><span>{isArabic ? 'ابحث في المهارات' : 'Search skills'}</span><input type="search" value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} placeholder={isArabic ? 'اسم المهارة أو وصفها…' : 'Skill name or description…'}/></label><small className="library-count">{isArabic ? `${filteredSkills.length} من ${skillRegistry.length} مهارة مسجلة` : `${filteredSkills.length} of ${skillRegistry.length} registered skills`}</small></div>
+            <div className="skill-library-list">{filteredSkills.length ? filteredSkills.map(skill => <article className="skill-library-item" key={skill.id}><div className="skill-library-main"><span className="skill-category">{isArabic ? (skill.category === 'image' ? 'الصور' : skill.category === 'cars' ? 'السيارات' : skill.category === 'quality' ? 'الجودة' : 'الهندسة والتشغيل') : skill.category}</span><strong>{skill.name}</strong><p>{skill.description}</p><small>v{skill.version} · {skill.input} → {skill.output}</small></div><span className="skill-registry-status">{isArabic ? 'تعريف مسجل' : 'Registered'}</span></article>) : <div className="empty-state"><strong>{isArabic ? 'لا توجد مهارات مطابقة' : 'No matching skills'}</strong><p>{isArabic ? 'جرّب كلمة بحث أخرى.' : 'Try another search term.'}</p></div>}</div>
+            <div className="profile-note"><CircleHelp size={16}/>{isArabic ? 'هذه قائمة تعريفات من سجل المشروع. عرضها لا يعني أن لكل مهارة زر تشغيل أو أن جميعها موصولة ومختبرة من هذه الشاشة.' : 'This catalogue is read from the project registry. Listing a skill does not mean it can be launched here or that every entry is connected and tested.'}</div>
+          </>}
         </section>}
 
         {screen === 'team' && <section className="secondary-screen"><span className="eyebrow">MSHKUR AIBG ASSISTANTS</span><h1>{t('teamTitle')}</h1><p>{t('teamHint')}</p>
