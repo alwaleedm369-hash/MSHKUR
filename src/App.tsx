@@ -5,9 +5,19 @@ import { runVehicleBatch } from './vehicleBatchPipeline.mjs';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
   CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
-  SlidersHorizontal, Sparkles, X
+  SlidersHorizontal, Sparkles, X, Mic, MicOff
 } from 'lucide-react';
 
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
 type Locale = 'en' | 'ar';
 type Screen = 'studio' | 'assistant' | 'library' | 'team' | 'tasks' | 'profile' | 'settings';
 type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; cutoutBlob?: Blob; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string; approved?: boolean };
@@ -123,6 +133,8 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('assistant');
   const [assistantPrompt, setAssistantPrompt] = useState('');
   const [assistantReply, setAssistantReply] = useState('');
+  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'listening' | 'unsupported' | 'error'>('idle');
+  const [voiceMessage, setVoiceMessage] = useState('');
   const [profileName, setProfileName] = useState(() => localStorage.getItem('mshkur.profile.name') || 'مساعدي');
   const [workspaceTheme, setWorkspaceTheme] = useState(() => localStorage.getItem('mshkur.workspace.theme') || 'sage');
   const [autoProcessAfterUpload, setAutoProcessAfterUpload] = useState(false);
@@ -145,6 +157,7 @@ export default function App() {
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<Photo[]>([]);
+  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const t = (key: Key) => messages[locale][key];
   const activePhoto = photos.find(photo => photo.id === activeId) ?? photos[0] ?? null;
   const isArabic = locale === 'ar';
@@ -158,6 +171,10 @@ export default function App() {
   }, [locale, isArabic, profileName, workspaceTheme]);
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
+  useEffect(() => () => {
+    speechRecognitionRef.current?.stop();
+    speechRecognitionRef.current = null;
+  }, []);
   useEffect(() => {
     if (!autoProcessAfterUpload || !photos.length || busy) return;
     setAutoProcessAfterUpload(false);
@@ -333,9 +350,56 @@ export default function App() {
   }
 
   function goTo(next: Screen) {
+    if (next !== 'assistant' && voiceStatus === 'listening') speechRecognitionRef.current?.stop();
     setScreen(next);
     setMenuOpen(false);
     setNotice('');
+  }
+
+  function startVoiceInput() {
+    if (voiceStatus === 'listening') {
+      speechRecognitionRef.current?.stop();
+      return;
+    }
+    const speechWindow = window as Window & {
+      SpeechRecognition?: new () => SpeechRecognitionLike;
+      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+    };
+    const SpeechRecognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceStatus('unsupported');
+      setVoiceMessage(isArabic ? 'الإملاء الصوتي غير مدعوم في هذا المتصفح. يمكنك الكتابة أو استخدام الإدخال الصوتي في لوحة المفاتيح.' : 'Voice dictation is not supported in this browser. You can type or use your keyboard voice input.');
+      return;
+    }
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = isArabic ? 'ar-SA' : 'en-US';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.onresult = event => {
+        const transcript = Array.from(event.results).map(result => result[0]?.transcript ?? '').join(' ').trim();
+        if (transcript) setAssistantPrompt(current => [current.trim(), transcript].filter(Boolean).join(' '));
+        setVoiceMessage(transcript ? (isArabic ? 'تم تحويل الصوت إلى نص. راجع النص قبل التنفيذ.' : 'Speech converted to text. Review it before running the request.') : '');
+      };
+      recognition.onerror = event => {
+        setVoiceStatus('error');
+        setVoiceMessage(isArabic ? 'تعذر استخدام الميكروفون. تحقق من إذن المتصفح وحاول مجدداً.' : 'Microphone access failed. Check your browser permission and try again.');
+        if (event.error) console.warn('Speech recognition error:', event.error);
+      };
+      recognition.onend = () => {
+        setVoiceStatus('idle');
+        speechRecognitionRef.current = null;
+      };
+      speechRecognitionRef.current = recognition;
+      setVoiceStatus('listening');
+      setVoiceMessage(isArabic ? 'أستمع الآن… تحدث بوضوح.' : 'Listening… speak clearly.');
+      recognition.start();
+    } catch (error) {
+      speechRecognitionRef.current = null;
+      setVoiceStatus('error');
+      setVoiceMessage(isArabic ? 'لم نتمكن من بدء التسجيل. حاول مرة أخرى.' : 'Could not start voice input. Please try again.');
+      console.warn('Speech recognition could not start:', error);
+    }
   }
 
   function submitAssistantPrompt(promptValue = assistantPrompt) {
@@ -513,7 +577,17 @@ export default function App() {
           </div><div className="assistant-orbit-art" aria-hidden="true"><span className="orbit orbit-one"/><span className="orbit orbit-two"/><span className="orbit-core"><Sparkles size={34}/></span><i className="orbit-star star-one">✦</i><i className="orbit-star star-two">✧</i></div></div>
           <div className="assistant-composer"><label htmlFor="assistant-prompt">{isArabic ? 'ما النتيجة التي تريد الوصول إليها؟' : 'Describe the result you want'}</label>
             <textarea id="assistant-prompt" rows={3} value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submitAssistantPrompt(); }} placeholder={isArabic ? 'مثلاً: أزل خلفية صورة السيارة واجعلها بيضاء...' : 'For example: Remove the background from my car photo and make it white…'}/>
-            <div className="assistant-composer-foot"><small>{isArabic ? 'اكتب بطريقتك الطبيعية' : 'Use your own words'}</small><button onClick={() => submitAssistantPrompt()} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'نفّذ الطلب' : 'Run request'}</span><ArrowUpRight size={17}/></button></div>
+            <div className="assistant-composer-foot">
+              <small>{isArabic ? 'اكتب أو تحدث بطريقتك الطبيعية' : 'Type or speak naturally'}</small>
+              <div className="assistant-composer-actions">
+                <button className={`assistant-voice-button ${voiceStatus === 'listening' ? 'is-listening' : ''}`} type="button" onClick={startVoiceInput} aria-label={voiceStatus === 'listening' ? (isArabic ? 'إيقاف الاستماع' : 'Stop listening') : (isArabic ? 'إدخال صوتي' : 'Voice input')} aria-pressed={voiceStatus === 'listening'}>
+                  {voiceStatus === 'listening' ? <MicOff size={18}/> : <Mic size={18}/>}
+                  <span>{voiceStatus === 'listening' ? (isArabic ? 'إيقاف' : 'Stop') : (isArabic ? 'تحدث' : 'Speak')}</span>
+                </button>
+                <button onClick={() => submitAssistantPrompt()} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'نفّذ الطلب' : 'Run request'}</span><ArrowUpRight size={17}/></button>
+              </div>
+            </div>
+            {voiceMessage && <p className={`assistant-voice-status ${voiceStatus === 'error' || voiceStatus === 'unsupported' ? 'is-warning' : ''}`} role="status" aria-live="polite">{voiceMessage}</p>}
             <div className="assistant-quick-actions" aria-label={isArabic ? 'إجراءات سريعة' : 'Quick actions'}>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'أضف صورة جديدة' : 'Upload a photo')}>{isArabic ? '＋ أضف صورة' : '＋ Add photo'}</button>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'أزل الخلفية' : 'Remove background')}>{isArabic ? 'إزالة الخلفية' : 'Remove background'}</button>
