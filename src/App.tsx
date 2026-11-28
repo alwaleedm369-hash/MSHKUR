@@ -2,14 +2,26 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoStorage';
 import { applyAlphaRegion, getCenteredSubjectPlacement, getGroundedSubjectPlacement, inspectAlphaPlane, parseImageCommand, reviewVehicleMask } from './vehicleImageEngine.mjs';
 import { runVehicleBatch } from './vehicleBatchPipeline.mjs';
+import skillRegistry from '../skills/registry.json';
+import { extensionCandidates } from './extensionCandidates';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
   CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
-  SlidersHorizontal, Sparkles, X
+  SlidersHorizontal, Sparkles, X, Mic, MicOff
 } from 'lucide-react';
 
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
 type Locale = 'en' | 'ar';
-type Screen = 'studio' | 'assistant' | 'library' | 'tasks' | 'profile' | 'settings';
+type Screen = 'studio' | 'assistant' | 'library' | 'team' | 'tasks' | 'profile' | 'settings';
 type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; cutoutBlob?: Blob; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string; approved?: boolean };
 
 const messages = {
@@ -78,11 +90,6 @@ const messages = {
 
 type Key = Exclude<keyof typeof messages.en, 'tourSteps'>;
 
-function CarMark() {
-  return <span className="brand-mark"><CarFront size={20} strokeWidth={1.8} /></span>;
-}
-
-
 async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transparent', composition: 'ground' | 'center' = 'ground') {
   const bitmap = await createImageBitmap(input);
   try {
@@ -123,10 +130,17 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>('assistant');
   const [assistantPrompt, setAssistantPrompt] = useState('');
   const [assistantReply, setAssistantReply] = useState('');
+  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'listening' | 'unsupported' | 'error'>('idle');
+  const [voiceMessage, setVoiceMessage] = useState('');
   const [profileName, setProfileName] = useState(() => localStorage.getItem('mshkur.profile.name') || 'مساعدي');
-  const [workspaceTheme, setWorkspaceTheme] = useState(() => localStorage.getItem('mshkur.workspace.theme') || 'sage');
+  const [workspaceTheme, setWorkspaceTheme] = useState(() => { const saved = localStorage.getItem('mshkur.workspace.theme'); return saved === 'violet' || saved === 'ocean' ? saved : 'sage'; });
   const [autoProcessAfterUpload, setAutoProcessAfterUpload] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'review' | 'ready' | 'failed'>('all');
+  const [taskQuery, setTaskQuery] = useState('');
+  const [libraryFilter, setLibraryFilter] = useState<'all' | 'results' | 'originals'>('all');
+  const [libraryView, setLibraryView] = useState<'photos' | 'skills' | 'apps'>('photos');
+  const [libraryQuery, setLibraryQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [background, setBackground] = useState<'white' | 'transparent'>('white');
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -145,9 +159,27 @@ export default function App() {
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<Photo[]>([]);
+  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const voiceFailedRef = useRef(false);
   const t = (key: Key) => messages[locale][key];
   const activePhoto = photos.find(photo => photo.id === activeId) ?? photos[0] ?? null;
   const isArabic = locale === 'ar';
+  const filteredTasks = photos.filter(photo => {
+    const matchesQuery = photo.file.name.toLocaleLowerCase().includes(taskQuery.trim().toLocaleLowerCase());
+    const matchesFilter = taskFilter === 'all'
+      || (taskFilter === 'active' && (photo.processingState === 'queued' || photo.processingState === 'processing'))
+      || (taskFilter === 'review' && photo.processingState === 'needs-review')
+      || (taskFilter === 'ready' && photo.processingState === 'ready')
+      || (taskFilter === 'failed' && photo.processingState === 'failed');
+    return matchesQuery && matchesFilter;
+  });
+  const filteredLibrary = photos.filter(photo => {
+    const matchesQuery = photo.file.name.toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase());
+    const matchesFilter = libraryFilter === 'all' || (libraryFilter === 'results' && Boolean(photo.processedBlob)) || (libraryFilter === 'originals' && !photo.processedBlob);
+    return matchesQuery && matchesFilter;
+  });
+  const filteredSkills = skillRegistry.filter(skill => `${skill.name} ${skill.description} ${skill.category}`.toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
+  const filteredExtensions = extensionCandidates.filter(extension => `${extension.name} ${extension.description} ${extension.category}`.toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
 
   useEffect(() => {
     localStorage.setItem('mshkur.locale', locale);
@@ -156,9 +188,13 @@ export default function App() {
     localStorage.setItem('mshkur.profile.name', profileName);
     localStorage.setItem('mshkur.workspace.theme', workspaceTheme);
   }, [locale, isArabic, profileName, workspaceTheme]);
-  }, [locale, isArabic]);
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
+  useEffect(() => () => {
+    speechRecognitionRef.current?.stop();
+    speechRecognitionRef.current = null;
+    voiceFailedRef.current = false;
+  }, []);
   useEffect(() => {
     if (!autoProcessAfterUpload || !photos.length || busy) return;
     setAutoProcessAfterUpload(false);
@@ -334,9 +370,58 @@ export default function App() {
   }
 
   function goTo(next: Screen) {
+    if (next !== 'assistant' && voiceStatus === 'listening') speechRecognitionRef.current?.stop();
     setScreen(next);
     setMenuOpen(false);
     setNotice('');
+  }
+
+  function startVoiceInput() {
+    if (voiceStatus === 'listening') {
+      speechRecognitionRef.current?.stop();
+      return;
+    }
+    const speechWindow = window as Window & {
+      SpeechRecognition?: new () => SpeechRecognitionLike;
+      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+    };
+    const SpeechRecognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceStatus('unsupported');
+      setVoiceMessage(isArabic ? 'الإملاء الصوتي غير مدعوم في هذا المتصفح. يمكنك الكتابة أو استخدام الإدخال الصوتي في لوحة المفاتيح.' : 'Voice dictation is not supported in this browser. You can type or use your keyboard voice input.');
+      return;
+    }
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = isArabic ? 'ar-SA' : 'en-US';
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      voiceFailedRef.current = false;
+      recognition.onresult = event => {
+        const transcript = Array.from(event.results).map(result => result[0]?.transcript ?? '').join(' ').trim();
+        if (transcript) setAssistantPrompt(current => [current.trim(), transcript].filter(Boolean).join(' '));
+        setVoiceMessage(transcript ? (isArabic ? 'تم تحويل الصوت إلى نص. راجع النص قبل التنفيذ.' : 'Speech converted to text. Review it before running the request.') : '');
+      };
+      recognition.onerror = event => {
+        voiceFailedRef.current = true;
+        setVoiceStatus('error');
+        setVoiceMessage(isArabic ? 'تعذر استخدام الميكروفون. تحقق من إذن المتصفح وحاول مجدداً.' : 'Microphone access failed. Check your browser permission and try again.');
+        if (event.error) console.warn('Speech recognition error:', event.error);
+      };
+      recognition.onend = () => {
+        if (!voiceFailedRef.current) setVoiceStatus('idle');
+        speechRecognitionRef.current = null;
+      };
+      speechRecognitionRef.current = recognition;
+      setVoiceStatus('listening');
+      setVoiceMessage(isArabic ? 'أستمع الآن… تحدث بوضوح.' : 'Listening… speak clearly.');
+      recognition.start();
+    } catch (error) {
+      speechRecognitionRef.current = null;
+      setVoiceStatus('error');
+      setVoiceMessage(isArabic ? 'لم نتمكن من بدء التسجيل. حاول مرة أخرى.' : 'Could not start voice input. Please try again.');
+      console.warn('Speech recognition could not start:', error);
+    }
   }
 
   function submitAssistantPrompt(promptValue = assistantPrompt) {
@@ -385,11 +470,9 @@ export default function App() {
   }
 
   return (
-    <div className={`app-shell ${isArabic ? 'rtl' : ''}`} dir={isArabic ? 'rtl' : 'ltr'}>
+    <div className={`app-shell ${isArabic ? 'rtl' : ''}`} dir={isArabic ? 'rtl' : 'ltr'} data-theme={workspaceTheme}>
       <header className="topbar">
-        <button className="brand" onClick={() => goTo('studio')} aria-label="MSHKUR home">
-          <CarMark /><span>mshkur<span className="brand-period">.</span></span>
-        </button>
+        <span className="topbar-context">{screen === 'assistant' ? (isArabic ? 'مساحتك الذكية' : 'Your workspace') : t(screen as Key)}</span>
         <div className="top-actions">
           <button className="language-toggle" onClick={() => setLocale(isArabic ? 'en' : 'ar')} aria-label={t('language')}>
             <Globe2 size={17} /><span>{isArabic ? 'English' : 'العربية'}</span>
@@ -514,12 +597,25 @@ export default function App() {
           </div><div className="assistant-orbit-art" aria-hidden="true"><span className="orbit orbit-one"/><span className="orbit orbit-two"/><span className="orbit-core"><Sparkles size={34}/></span><i className="orbit-star star-one">✦</i><i className="orbit-star star-two">✧</i></div></div>
           <div className="assistant-composer"><label htmlFor="assistant-prompt">{isArabic ? 'ما النتيجة التي تريد الوصول إليها؟' : 'Describe the result you want'}</label>
             <textarea id="assistant-prompt" rows={3} value={assistantPrompt} onChange={event => setAssistantPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) submitAssistantPrompt(); }} placeholder={isArabic ? 'مثلاً: أزل خلفية صورة السيارة واجعلها بيضاء...' : 'For example: Remove the background from my car photo and make it white…'}/>
-            <div className="assistant-composer-foot"><small>{isArabic ? 'اكتب بطريقتك الطبيعية' : 'Use your own words'}</small><button onClick={() => submitAssistantPrompt()} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'نفّذ الطلب' : 'Run request'}</span><ArrowUpRight size={17}/></button></div>
+            <div className="assistant-composer-foot">
+              <small>{isArabic ? 'اكتب أو تحدث بطريقتك الطبيعية' : 'Type or speak naturally'}</small>
+              <div className="assistant-composer-actions">
+                <button className={`assistant-voice-button ${voiceStatus === 'listening' ? 'is-listening' : ''}`} type="button" onClick={startVoiceInput} aria-label={voiceStatus === 'listening' ? (isArabic ? 'إيقاف الاستماع' : 'Stop listening') : (isArabic ? 'إدخال صوتي' : 'Voice input')} aria-pressed={voiceStatus === 'listening'}>
+                  {voiceStatus === 'listening' ? <MicOff size={18}/> : <Mic size={18}/>}
+                  <span>{voiceStatus === 'listening' ? (isArabic ? 'إيقاف' : 'Stop') : (isArabic ? 'تحدث' : 'Speak')}</span>
+                </button>
+                <button onClick={() => submitAssistantPrompt()} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'نفّذ الطلب' : 'Run request'}</span><ArrowUpRight size={17}/></button>
+              </div>
+            </div>
+            <small className="assistant-voice-privacy">{isArabic ? 'الإدخال الصوتي يعتمد على المتصفح؛ وقد يعالج مزوده الصوت وفق سياساته.' : 'Voice input depends on your browser; its provider may process audio under its own policies.'}</small>
+            {voiceMessage && <p className={`assistant-voice-status ${voiceStatus === 'error' || voiceStatus === 'unsupported' ? 'is-warning' : ''}`} role="status" aria-live="polite">{voiceMessage}</p>}
             <div className="assistant-quick-actions" aria-label={isArabic ? 'إجراءات سريعة' : 'Quick actions'}>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'أضف صورة جديدة' : 'Upload a photo')}>{isArabic ? '＋ أضف صورة' : '＋ Add photo'}</button>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'أزل الخلفية' : 'Remove background')}>{isArabic ? 'إزالة الخلفية' : 'Remove background'}</button>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'اجعل الخلفية بيضاء' : 'Make the background white')}>{isArabic ? 'خلفية بيضاء' : 'White background'}</button>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'اجعل الخلفية شفافة' : 'Make the background transparent')}>{isArabic ? 'شفافة' : 'Transparent'}</button>
+              <button onClick={() => goTo('tasks')}>{isArabic ? 'متابعة المهام' : 'View tasks'}</button>
+              <button onClick={() => goTo('library')}>{isArabic ? 'افتح أعمالي' : 'Open my work'}</button>
             </div>
             {assistantReply && <p className="assistant-honest-reply" role="status">{assistantReply}</p>}
           </div>
@@ -540,11 +636,17 @@ export default function App() {
             <article><span>{photos.filter(photo => photo.processingState === 'ready').length}</span><small>{isArabic ? 'نتائج جاهزة' : 'Ready results'}</small></article>
             <article><span>{photos.filter(photo => photo.processingState === 'needs-review').length}</span><small>{isArabic ? 'تحتاج مراجعة' : 'Need review'}</small></article>
           </div>
-          <div className="task-list">{photos.length ? photos.map(photo => <article className="task-row" key={photo.id}>
+          <div className="task-tools">
+            <label className="workspace-search"><span>{isArabic ? 'ابحث في المهام' : 'Search tasks'}</span><input type="search" value={taskQuery} onChange={event => setTaskQuery(event.target.value)} placeholder={isArabic ? 'اسم الصورة…' : 'Photo name…'}/></label>
+            <div className="workspace-filters" role="group" aria-label={isArabic ? 'تصفية المهام' : 'Filter tasks'}>
+              {([{id:'all',ar:'الكل',en:'All'},{id:'active',ar:'نشطة',en:'Active'},{id:'review',ar:'للمراجعة',en:'Review'},{id:'ready',ar:'جاهزة',en:'Ready'},{id:'failed',ar:'فشلت',en:'Failed'}] as const).map(filter => <button key={filter.id} className={taskFilter===filter.id?'selected':''} aria-pressed={taskFilter===filter.id} onClick={() => setTaskFilter(filter.id)}>{isArabic?filter.ar:filter.en}<span>{filter.id==='all'?photos.length:filter.id==='active'?photos.filter(photo=>photo.processingState==='queued'||photo.processingState==='processing').length:filter.id==='review'?photos.filter(photo=>photo.processingState==='needs-review').length:filter.id==='ready'?photos.filter(photo=>photo.processingState==='ready').length:photos.filter(photo=>photo.processingState==='failed').length}</span></button>)}
+            </div>
+          </div>
+          <div className="task-list">{filteredTasks.length ? filteredTasks.map(photo => <article className="task-row" key={photo.id}>
             <img src={photo.processedUrl || photo.url} alt={photo.file.name}/>
-            <div className="task-row-copy"><strong>{photo.file.name}</strong><small>{photo.processingState === 'processing' ? (isArabic ? 'قيد المعالجة' : 'Processing') : photo.processingState === 'ready' ? (isArabic ? 'جاهزة للمراجعة والاعتماد' : 'Ready for review and approval') : photo.processingState === 'needs-review' ? (isArabic ? 'تحتاج مراجعة قبل التنزيل' : 'Review required before download') : photo.processingState === 'failed' ? (isArabic ? 'تعذرت المعالجة' : 'Processing failed') : (isArabic ? 'لم تبدأ المعالجة بعد' : 'Not processed yet')}</small></div>
+            <div className="task-row-copy"><strong>{photo.file.name}</strong><small>{photo.processingState === 'processing' ? (isArabic ? 'قيد المعالجة' : 'Processing') : photo.processingState === 'queued' ? (isArabic ? 'في قائمة الانتظار' : 'Queued') : photo.processingState === 'ready' ? (isArabic ? 'جاهزة للمراجعة والاعتماد' : 'Ready for review and approval') : photo.processingState === 'needs-review' ? (isArabic ? 'تحتاج مراجعة قبل التنزيل' : 'Review required before download') : photo.processingState === 'failed' ? (isArabic ? 'تعذرت المعالجة' : 'Processing failed') : (isArabic ? 'لم تبدأ المعالجة بعد' : 'Not processed yet')}</small>{photo.processingState === 'failed' && photo.processingError && <small className="task-error-detail">{photo.processingError}</small>}</div>
             <button className="task-open" onClick={() => {setActiveId(photo.id);setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');goTo('studio')}}>{isArabic ? 'فتح' : 'Open'} <ArrowUpRight size={15}/></button>
-          </article>) : <div className="empty-state"><Images size={30}/><strong>{isArabic ? 'لا توجد مهام بعد' : 'No tasks yet'}</strong><p>{isArabic ? 'أضف صورة من الاستوديو لتظهر هنا مراحل عملها.' : 'Add a photo in the studio and its workflow will appear here.'}</p><button className="button-primary" onClick={() => goTo('studio')}>{isArabic ? 'افتح الاستوديو' : 'Open studio'}</button></div>}</div>
+          </article>) : <div className="empty-state"><Images size={30}/><strong>{photos.length ? (isArabic ? 'لا توجد نتائج مطابقة' : 'No matching tasks') : (isArabic ? 'لا توجد مهام بعد' : 'No tasks yet')}</strong><p>{photos.length ? (isArabic ? 'جرّب تغيير البحث أو التصفية.' : 'Try changing your search or filter.') : (isArabic ? 'أضف صورة من الاستوديو لتظهر هنا مراحل عملها.' : 'Add a photo in the studio and its workflow will appear here.')}</p>{!photos.length && <button className="button-primary" onClick={() => goTo('studio')}>{isArabic ? 'افتح الاستوديو' : 'Open studio'}</button>}</div>}</div>
           <div className="task-honesty-note"><Check size={16}/>{isArabic ? 'كل حالة مرتبطة بحالة الصورة الفعلية داخل الاستوديو.' : 'Every status reflects the actual photo state in the studio.'}</div>
         </section>}
 
@@ -553,12 +655,36 @@ export default function App() {
           <p>{isArabic ? 'خصص اسم مساعدك ومظهر مساحة العمل. ستُحفظ التفضيلات على هذا الجهاز.' : 'Personalize your assistant name and workspace appearance. Preferences are saved on this device.'}</p>
           <div className="persona-card"><div className="persona-avatar"><Sparkles size={28}/></div><div><strong>{profileName || (isArabic ? 'مساعدي' : 'My assistant')}</strong><small>{isArabic ? 'شخصية مساحة العمل' : 'Your workspace companion'}</small></div></div>
           <label className="profile-field"><span>{isArabic ? 'اسم الشخصية' : 'Assistant name'}</span><input value={profileName} maxLength={28} onChange={event => setProfileName(event.target.value)} placeholder={isArabic ? 'اكتب اسماً قصيراً' : 'Choose a short name'}/></label>
-          <div className="theme-picker"><strong>{isArabic ? 'لون المساحة' : 'Workspace theme'}</strong><div>{([{id:'sage',label:isArabic?'أخضر هادئ':'Sage'},{id:'violet',label:isArabic?'بنفسجي':'Violet'},{id:'ocean',label:isArabic?'أزرق':'Ocean'}]).map(theme => <button key={theme.id} className={workspaceTheme===theme.id?'selected':''} onClick={()=>setWorkspaceTheme(theme.id)}><i className={'theme-swatch '+theme.id}/>{theme.label}</button>)}</div></div>
+          <div className="theme-picker"><strong>{isArabic ? 'لون المساحة' : 'Workspace theme'}</strong><div>{([{id:'sage',label:isArabic?'أخضر هادئ':'Sage'},{id:'violet',label:isArabic?'بنفسجي':'Violet'},{id:'ocean',label:isArabic?'أزرق':'Ocean'}]).map(theme => <button key={theme.id} type="button" className={workspaceTheme===theme.id?'selected':''} aria-pressed={workspaceTheme===theme.id} onClick={()=>setWorkspaceTheme(theme.id)}><i className={'theme-swatch '+theme.id}/>{theme.label}</button>)}</div></div>
           <div className="profile-note"><Check size={16}/>{isArabic ? 'التخصيص محلي على هذا المتصفح، وليس مزامنة حساب بعد.' : 'Personalization is local to this browser; account sync is not connected yet.'}</div>
         </section>}
 
         {screen === 'library' && <section className="secondary-screen"><span className="eyebrow">YOUR WORKSPACE</span><h1>{t('libraryTitle')}</h1><p>{t('libraryHint')}</p>
-          {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
+          <div className="library-tabs" role="tablist" aria-label={isArabic ? 'أقسام المكتبة' : 'Library sections'}>
+            <button type="button" role="tab" aria-selected={libraryView === 'photos'} className={libraryView === 'photos' ? 'selected' : ''} onClick={() => { setLibraryView('photos'); setLibraryQuery(''); }}>{isArabic ? 'الصور والأعمال' : 'Photos & work'} <span>{photos.length}</span></button>
+            <button type="button" role="tab" aria-selected={libraryView === 'skills'} className={libraryView === 'skills' ? 'selected' : ''} onClick={() => { setLibraryView('skills'); setLibraryQuery(''); }}>{isArabic ? 'المهارات' : 'Skills'} <span>{skillRegistry.length}</span></button>
+            <button type="button" role="tab" aria-selected={libraryView === 'apps'} className={libraryView === 'apps' ? 'selected' : ''} onClick={() => { setLibraryView('apps'); setLibraryQuery(''); }}>{isArabic ? 'الإضافات' : 'Apps'} <span>{extensionCandidates.length}</span></button>
+          </div>
+          {libraryView === 'photos' && <>
+            <div className="task-tools library-tools">
+              <label className="workspace-search"><span>{isArabic ? 'ابحث في أعمالك' : 'Search your work'}</span><input type="search" value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} placeholder={isArabic ? 'اسم الصورة…' : 'Photo name…'}/></label>
+              {photos.length > 0 && <div className="workspace-filters" role="group" aria-label={isArabic ? 'تصفية الأعمال' : 'Filter library'}>
+                {([{id:'all',ar:'الكل',en:'All'},{id:'results',ar:'نتائج معالجة',en:'With results'},{id:'originals',ar:'أصلية فقط',en:'Originals only'}] as const).map(filter => <button key={filter.id} type="button" className={libraryFilter===filter.id?'selected':''} aria-pressed={libraryFilter===filter.id} onClick={() => setLibraryFilter(filter.id)}>{isArabic?filter.ar:filter.en}</button>)}
+              </div>}
+              <small className="library-count">{isArabic ? `${filteredLibrary.length} من ${photos.length} صورة` : `${filteredLibrary.length} of ${photos.length} photos`}</small>
+            </div>
+            {filteredLibrary.length ? <div className="library-grid">{filteredLibrary.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.processedUrl || photo.url} alt={photo.file.name}/><span>{photo.file.name}</span><small>{photo.processedBlob ? (isArabic ? 'توجد نتيجة معالجة' : 'Processed result available') : (isArabic ? 'الصورة الأصلية' : 'Original image')}</small></button>)}</div> : photos.length ? <div className="empty-state"><Images size={30}/><strong>{isArabic ? 'لا توجد عناصر مطابقة' : 'No matching items'}</strong><p>{isArabic ? 'جرّب تغيير البحث أو التصفية.' : 'Try changing your search or filter.'}</p></div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
+          </>}
+          {libraryView === 'skills' && <>
+            <div className="task-tools library-tools"><label className="workspace-search"><span>{isArabic ? 'ابحث في المهارات' : 'Search skills'}</span><input type="search" value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} placeholder={isArabic ? 'اسم المهارة أو وصفها…' : 'Skill name or description…'}/></label><small className="library-count">{isArabic ? `${filteredSkills.length} من ${skillRegistry.length} مهارة مسجلة` : `${filteredSkills.length} of ${skillRegistry.length} registered skills`}</small></div>
+            <div className="skill-library-list">{filteredSkills.length ? filteredSkills.map(skill => <article className="skill-library-item" key={skill.id}><div className="skill-library-main"><span className="skill-category">{isArabic ? (skill.category === 'image' ? 'الصور' : skill.category === 'cars' ? 'السيارات' : skill.category === 'quality' ? 'الجودة' : 'الهندسة والتشغيل') : skill.category}</span><strong>{skill.name}</strong><p>{skill.description}</p><small>v{skill.version} · {skill.input} → {skill.output}</small></div><span className="skill-registry-status">{isArabic ? 'تعريف مسجل' : 'Registered'}</span></article>) : <div className="empty-state"><strong>{isArabic ? 'لا توجد مهارات مطابقة' : 'No matching skills'}</strong><p>{isArabic ? 'جرّب كلمة بحث أخرى.' : 'Try another search term.'}</p></div>}</div>
+            <div className="profile-note"><CircleHelp size={16}/>{isArabic ? 'هذه قائمة تعريفات من سجل المشروع. عرضها لا يعني أن لكل مهارة زر تشغيل أو أن جميعها موصولة ومختبرة من هذه الشاشة.' : 'This catalogue is read from the project registry. Listing a skill does not mean it can be launched here or that every entry is connected and tested.'}</div>
+          </>}
+          {libraryView === 'apps' && <>
+            <div className="task-tools library-tools"><label className="workspace-search"><span>{isArabic ? 'ابحث في الإضافات' : 'Search apps'}</span><input type="search" value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} placeholder={isArabic ? 'اسم الإضافة أو وصفها…' : 'App name or description…'}/></label><small className="library-count">{isArabic ? `${filteredExtensions.length} من ${extensionCandidates.length} إضافات مرشحة` : `${filteredExtensions.length} of ${extensionCandidates.length} candidate apps`}</small></div>
+            <div className="skill-library-list">{filteredExtensions.length ? filteredExtensions.map(extension => <article className="skill-library-item" key={extension.id}><div className="skill-library-main"><span className="skill-category">{isArabic ? (extension.category === 'video' ? 'الفيديو' : extension.category === 'voice' ? 'الصوت' : extension.category === 'marketing' ? 'التسويق' : extension.category === 'knowledge' ? 'المعرفة' : extension.category === 'work' ? 'إدارة العمل' : extension.category === 'scheduling' ? 'المواعيد' : extension.category === 'support' ? 'خدمة العملاء' : 'التسجيل') : extension.category}</span><strong>{extension.name}</strong><p>{extension.description}</p></div><span className="skill-registry-status">{isArabic ? 'مرشح · غير متصل' : 'Candidate · Offline'}</span></article>) : <div className="empty-state"><strong>{isArabic ? 'لا توجد إضافات مطابقة' : 'No matching apps'}</strong><p>{isArabic ? 'جرّب كلمة بحث أخرى.' : 'Try another search term.'}</p></div>}</div>
+            <div className="profile-note"><CircleHelp size={16}/>{isArabic ? 'هذه إضافات مرشحة للتقييم فقط. لم يتم تثبيتها أو ربط حساباتها أو اختبار اتصالاتها، ولن تظهر كمتصلة قبل اجتياز الفحص والموافقة.' : 'These are evaluation candidates only. They are not installed, authenticated or connected, and will not be marked connected before verification and approval.'}</div>
+          </>}
         </section>}
 
         {screen === 'team' && <section className="secondary-screen"><span className="eyebrow">MSHKUR AIBG ASSISTANTS</span><h1>{t('teamTitle')}</h1><p>{t('teamHint')}</p>
@@ -571,7 +697,7 @@ export default function App() {
         </section>}
 
         {screen === 'settings' && <section className="secondary-screen"><span className="eyebrow">PREFERENCES</span><h1>{t('settingsTitle')}</h1>
-          <div className="settings-list"><div className="settings-row"><div><strong>{t('language')}</strong><small>English / العربية</small></div><button className="setting-control" onClick={() => setLocale(isArabic ? 'en' : 'ar')}>{isArabic ? 'العربية' : 'English'} <ChevronDown size={16}/></button></div><div className="settings-row"><div><strong>{t('appearance')}</strong><small>{t('light')}</small></div><span className="light-chip">☼ {t('light')}</span></div><div className="settings-row"><div><strong>{t('privacy')}</strong><small>{t('privacyHint')}</small></div><Check size={18} color="#64806b"/></div></div>
+          <div className="settings-list"><div className="settings-row"><div><strong>{t('language')}</strong><small>English / العربية</small></div><button className="setting-control" onClick={() => setLocale(isArabic ? 'en' : 'ar')}>{isArabic ? 'العربية' : 'English'} <ChevronDown size={16}/></button></div><div className="settings-row"><div><strong>{t('appearance')}</strong><small>{isArabic ? (workspaceTheme === 'sage' ? 'أخضر هادئ' : workspaceTheme === 'violet' ? 'بنفسجي' : 'أزرق') : (workspaceTheme === 'sage' ? 'Sage' : workspaceTheme === 'violet' ? 'Violet' : 'Ocean')}</small></div><span className="light-chip">☼ {isArabic ? 'ثيم فاتح' : 'Light theme'}</span></div><div className="settings-row"><div><strong>{t('privacy')}</strong><small>{t('privacyHint')}</small></div><Check size={18} color="#64806b"/></div></div>
         </section>}
       </main>
 

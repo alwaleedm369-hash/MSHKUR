@@ -47,3 +47,12 @@ Every AI session must intake, inspect, independently verify prior claims, contin
 
 ## Smart Graph / Graphy direction
 The shared relationship layer is named **MSHKUR Smart Graph** (internal codename: Graphy). It connects scoped memory, knowledge sources, skills, assistants, workflows, tasks, permissions and evaluation evidence. It does not replace SkillRuntime, TaskRuntime, durable storage, audit or approval gates. See `docs/architecture/MSHKUR_SMART_GRAPH_AND_TRAINING_AR.md`. Treat legacy skill definitions and mock handlers as catalogue/reference only unless separately verified by the newer SkillRuntime.
+
+
+## Owner design and implementation master reference (2026-11-28)
+- The owner supplied Stitch screen references for Organizing Companion, Minimal Chat-First, Orbit Workspace, Agent Network, Tasks, Library and Themes/Avatar. The sourceProjectIds and node names are documented in `docs/architecture/MSHKUR_IMPLEMENTATION_MASTER_AR.md`; exported Stitch HTML/CSS was not included, so do not claim pixel-level source inspection.
+- Product UX direction: MSHKUR iAI is a standalone personal assistant inside MSHKUR, not a corporate dashboard. Combine the organizing, chat-first and orbit-workspace concepts with a small customizable persona, clear voice input, ready-made task buttons, visible task stages and a real library.
+- Voice and touch-first access are required so users who do not type comfortably can still operate the product. Confirm speech-to-text before sensitive actions; retain text input as an alternative.
+- Dealer Workspace, Ad Studio and Photo Studio remain separate products. Photo Studio before/after must show the same vehicle and source image, linked by source/derived asset IDs; never use unrelated cars as a before/after pair.
+- Admin Browser/Workbench is a later owner-only surface for editing, review, operations and maintenance; do not prioritize it ahead of iAI/mobile UX and core product gates.
+- See the master implementation architecture for the detailed target, phase gates, APIs, data model and AI-agent protocol. These are target specifications, not claims that all routes/services are implemented.
