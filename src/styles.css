@@ -349,3 +349,20 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .task-row-copy strong,.task-row-copy small{overflow-wrap:anywhere}
 @media(max-width:480px){.workspace-filters{gap:6px}.workspace-filters button{min-height:39px;padding:0 10px}.task-tools{gap:10px}.library-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.library-item img{height:125px}}
 .task-error-detail{display:block;margin-top:4px;color:#a34b4b!important;font-size:9px;line-height:1.5}
+
+/* Tasks workspace: compact, readable status rows */
+.task-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:22px 0 18px;max-width:780px}
+.task-summary-grid article{min-width:0;padding:15px;border:1px solid var(--line);border-radius:14px;background:#fff;display:grid;gap:5px}
+.task-summary-grid article>span{font-size:23px;font-weight:780;line-height:1;color:var(--accent)}
+.task-summary-grid article>small{font-size:9px;line-height:1.5;color:var(--muted)}
+.task-list{max-width:780px;display:grid;gap:9px}
+.task-row{min-width:0;display:flex;align-items:center;gap:12px;padding:11px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.task-row>img{width:58px;height:52px;flex:0 0 auto;object-fit:cover;border-radius:9px;background:#f0f2ee}
+.task-row-copy{flex:1;display:grid;gap:5px}
+.task-row-copy strong{font-size:11px;color:var(--ink)}
+.task-row-copy small{font-size:9px;line-height:1.5;color:var(--muted)}
+.task-open{min-height:37px;flex:0 0 auto;padding:0 11px;border:1px solid var(--line);border-radius:10px;background:#f8faf7;color:var(--accent);display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:750}
+.task-honesty-note{max-width:780px;display:flex;align-items:flex-start;gap:8px;margin-top:14px;padding:11px 12px;border-radius:11px;background:#eef4ee;color:#5b725f;font-size:10px;line-height:1.6}
+.task-honesty-note svg{flex:0 0 auto;margin-top:1px}
+@media(max-width:480px){.task-summary-grid{gap:7px;margin:17px 0 14px}.task-summary-grid article{padding:11px 9px}.task-summary-grid article>span{font-size:20px}.task-summary-grid article>small{font-size:8px}.task-row{gap:9px;padding:9px}.task-row>img{width:49px;height:48px}.task-open{min-height:40px;padding:0 9px}.task-row-copy strong{font-size:10px}}
+@media(max-width:360px){.task-row>img{width:42px;height:42px}.task-open{font-size:9px;padding:0 7px}}
