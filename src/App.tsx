@@ -139,6 +139,10 @@ export default function App() {
   const [workspaceTheme, setWorkspaceTheme] = useState(() => localStorage.getItem('mshkur.workspace.theme') || 'sage');
   const [autoProcessAfterUpload, setAutoProcessAfterUpload] = useState(false);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'review' | 'ready' | 'failed'>('all');
+  const [taskQuery, setTaskQuery] = useState('');
+  const [libraryFilter, setLibraryFilter] = useState<'all' | 'results' | 'originals'>('all');
+  const [libraryQuery, setLibraryQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [background, setBackground] = useState<'white' | 'transparent'>('white');
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -162,6 +166,20 @@ export default function App() {
   const t = (key: Key) => messages[locale][key];
   const activePhoto = photos.find(photo => photo.id === activeId) ?? photos[0] ?? null;
   const isArabic = locale === 'ar';
+  const filteredTasks = photos.filter(photo => {
+    const matchesQuery = photo.file.name.toLocaleLowerCase().includes(taskQuery.trim().toLocaleLowerCase());
+    const matchesFilter = taskFilter === 'all'
+      || (taskFilter === 'active' && (photo.processingState === 'queued' || photo.processingState === 'processing'))
+      || (taskFilter === 'review' && photo.processingState === 'needs-review')
+      || (taskFilter === 'ready' && photo.processingState === 'ready')
+      || (taskFilter === 'failed' && photo.processingState === 'failed');
+    return matchesQuery && matchesFilter;
+  });
+  const filteredLibrary = photos.filter(photo => {
+    const matchesQuery = photo.file.name.toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase());
+    const matchesFilter = libraryFilter === 'all' || (libraryFilter === 'results' && Boolean(photo.processedBlob)) || (libraryFilter === 'originals' && !photo.processedBlob);
+    return matchesQuery && matchesFilter;
+  });
 
   useEffect(() => {
     localStorage.setItem('mshkur.locale', locale);
@@ -618,11 +636,17 @@ export default function App() {
             <article><span>{photos.filter(photo => photo.processingState === 'ready').length}</span><small>{isArabic ? 'نتائج جاهزة' : 'Ready results'}</small></article>
             <article><span>{photos.filter(photo => photo.processingState === 'needs-review').length}</span><small>{isArabic ? 'تحتاج مراجعة' : 'Need review'}</small></article>
           </div>
-          <div className="task-list">{photos.length ? photos.map(photo => <article className="task-row" key={photo.id}>
+          <div className="task-tools">
+            <label className="workspace-search"><span>{isArabic ? 'ابحث في المهام' : 'Search tasks'}</span><input type="search" value={taskQuery} onChange={event => setTaskQuery(event.target.value)} placeholder={isArabic ? 'اسم الصورة…' : 'Photo name…'}/></label>
+            <div className="workspace-filters" role="group" aria-label={isArabic ? 'تصفية المهام' : 'Filter tasks'}>
+              {([{id:'all',ar:'الكل',en:'All'},{id:'active',ar:'نشطة',en:'Active'},{id:'review',ar:'للمراجعة',en:'Review'},{id:'ready',ar:'جاهزة',en:'Ready'},{id:'failed',ar:'فشلت',en:'Failed'}] as const).map(filter => <button key={filter.id} className={taskFilter===filter.id?'selected':''} aria-pressed={taskFilter===filter.id} onClick={() => setTaskFilter(filter.id)}>{isArabic?filter.ar:filter.en}<span>{filter.id==='all'?photos.length:filter.id==='active'?photos.filter(photo=>photo.processingState==='queued'||photo.processingState==='processing').length:filter.id==='review'?photos.filter(photo=>photo.processingState==='needs-review').length:filter.id==='ready'?photos.filter(photo=>photo.processingState==='ready').length:photos.filter(photo=>photo.processingState==='failed').length}</span></button>)}
+            </div>
+          </div>
+          <div className="task-list">{filteredTasks.length ? filteredTasks.map(photo => <article className="task-row" key={photo.id}>
             <img src={photo.processedUrl || photo.url} alt={photo.file.name}/>
             <div className="task-row-copy"><strong>{photo.file.name}</strong><small>{photo.processingState === 'processing' ? (isArabic ? 'قيد المعالجة' : 'Processing') : photo.processingState === 'ready' ? (isArabic ? 'جاهزة للمراجعة والاعتماد' : 'Ready for review and approval') : photo.processingState === 'needs-review' ? (isArabic ? 'تحتاج مراجعة قبل التنزيل' : 'Review required before download') : photo.processingState === 'failed' ? (isArabic ? 'تعذرت المعالجة' : 'Processing failed') : (isArabic ? 'لم تبدأ المعالجة بعد' : 'Not processed yet')}</small></div>
             <button className="task-open" onClick={() => {setActiveId(photo.id);setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');goTo('studio')}}>{isArabic ? 'فتح' : 'Open'} <ArrowUpRight size={15}/></button>
-          </article>) : <div className="empty-state"><Images size={30}/><strong>{isArabic ? 'لا توجد مهام بعد' : 'No tasks yet'}</strong><p>{isArabic ? 'أضف صورة من الاستوديو لتظهر هنا مراحل عملها.' : 'Add a photo in the studio and its workflow will appear here.'}</p><button className="button-primary" onClick={() => goTo('studio')}>{isArabic ? 'افتح الاستوديو' : 'Open studio'}</button></div>}</div>
+          </article>) : <div className="empty-state"><Images size={30}/><strong>{photos.length ? (isArabic ? 'لا توجد نتائج مطابقة' : 'No matching tasks') : (isArabic ? 'لا توجد مهام بعد' : 'No tasks yet')}</strong><p>{photos.length ? (isArabic ? 'جرّب تغيير البحث أو التصفية.' : 'Try changing your search or filter.') : (isArabic ? 'أضف صورة من الاستوديو لتظهر هنا مراحل عملها.' : 'Add a photo in the studio and its workflow will appear here.')}</p>{!photos.length && <button className="button-primary" onClick={() => goTo('studio')}>{isArabic ? 'افتح الاستوديو' : 'Open studio'}</button>}</div>}</div>
           <div className="task-honesty-note"><Check size={16}/>{isArabic ? 'كل حالة مرتبطة بحالة الصورة الفعلية داخل الاستوديو.' : 'Every status reflects the actual photo state in the studio.'}</div>
         </section>}
 
@@ -636,7 +660,14 @@ export default function App() {
         </section>}
 
         {screen === 'library' && <section className="secondary-screen"><span className="eyebrow">YOUR WORKSPACE</span><h1>{t('libraryTitle')}</h1><p>{t('libraryHint')}</p>
-          {photos.length ? <div className="library-grid">{photos.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.url} alt={photo.file.name}/><span>{photo.file.name}</span></button>)}</div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
+          {photos.length > 0 && <div className="task-tools library-tools">
+            <label className="workspace-search"><span>{isArabic ? 'ابحث في أعمالك' : 'Search your work'}</span><input type="search" value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} placeholder={isArabic ? 'اسم الصورة…' : 'Photo name…'}/></label>
+            <div className="workspace-filters" role="group" aria-label={isArabic ? 'تصفية الأعمال' : 'Filter library'}>
+              {([{id:'all',ar:'الكل',en:'All'},{id:'results',ar:'نتائج معالجة',en:'With results'},{id:'originals',ar:'أصلية فقط',en:'Originals only'}] as const).map(filter => <button key={filter.id} className={libraryFilter===filter.id?'selected':''} aria-pressed={libraryFilter===filter.id} onClick={() => setLibraryFilter(filter.id)}>{isArabic?filter.ar:filter.en}</button>)}
+            </div>
+            <small className="library-count">{isArabic ? `${filteredLibrary.length} من ${photos.length} صورة` : `${filteredLibrary.length} of ${photos.length} photos`}</small>
+          </div>}
+          {filteredLibrary.length ? <div className="library-grid">{filteredLibrary.map(photo => <button className="library-item" key={photo.id} onClick={() => {setResultUrl(photo.processedUrl ?? null);setBackground(photo.processedBackground ?? 'white');setActiveId(photo.id);goTo('studio')}}><img src={photo.processedUrl || photo.url} alt={photo.file.name}/><span>{photo.file.name}</span><small>{photo.processedBlob ? (isArabic ? 'توجد نتيجة معالجة' : 'Processed result available') : (isArabic ? 'الصورة الأصلية' : 'Original image')}</small></button>)}</div> : photos.length ? <div className="empty-state"><Images size={30}/><strong>{isArabic ? 'لا توجد عناصر مطابقة' : 'No matching items'}</strong><p>{isArabic ? 'جرّب تغيير البحث أو التصفية.' : 'Try changing your search or filter.'}</p></div> : <div className="empty-state"><Images size={32}/><strong>{t('noPhotos')}</strong><p>{t('noPhotosHint')}</p><button className="button-primary" onClick={() => goTo('studio')}>{t('back')}</button></div>}
         </section>}
 
         {screen === 'team' && <section className="secondary-screen"><span className="eyebrow">MSHKUR AIBG ASSISTANTS</span><h1>{t('teamTitle')}</h1><p>{t('teamHint')}</p>
