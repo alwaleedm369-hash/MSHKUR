@@ -88,11 +88,6 @@ const messages = {
 
 type Key = Exclude<keyof typeof messages.en, 'tourSteps'>;
 
-function CarMark() {
-  return <span className="brand-mark"><CarFront size={20} strokeWidth={1.8} /></span>;
-}
-
-
 async function normalizeVehicleOutput(input: Blob, background: 'white' | 'transparent', composition: 'ground' | 'center' = 'ground') {
   const bitmap = await createImageBitmap(input);
   try {
@@ -472,9 +467,7 @@ export default function App() {
   return (
     <div className={`app-shell ${isArabic ? 'rtl' : ''}`} dir={isArabic ? 'rtl' : 'ltr'} data-theme={workspaceTheme}>
       <header className="topbar">
-        <button className="brand" onClick={() => goTo('studio')} aria-label="MSHKUR home">
-          <CarMark /><span>mshkur<span className="brand-period">.</span></span>
-        </button>
+        <span className="topbar-context">{screen === 'assistant' ? (isArabic ? 'مساحتك الذكية' : 'Your workspace') : t(screen as Key)}</span>
         <div className="top-actions">
           <button className="language-toggle" onClick={() => setLocale(isArabic ? 'en' : 'ar')} aria-label={t('language')}>
             <Globe2 size={17} /><span>{isArabic ? 'English' : 'العربية'}</span>
@@ -616,6 +609,8 @@ export default function App() {
               <button onClick={() => submitAssistantPrompt(isArabic ? 'أزل الخلفية' : 'Remove background')}>{isArabic ? 'إزالة الخلفية' : 'Remove background'}</button>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'اجعل الخلفية بيضاء' : 'Make the background white')}>{isArabic ? 'خلفية بيضاء' : 'White background'}</button>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'اجعل الخلفية شفافة' : 'Make the background transparent')}>{isArabic ? 'شفافة' : 'Transparent'}</button>
+              <button onClick={() => goTo('tasks')}>{isArabic ? 'متابعة المهام' : 'View tasks'}</button>
+              <button onClick={() => goTo('library')}>{isArabic ? 'افتح أعمالي' : 'Open my work'}</button>
             </div>
             {assistantReply && <p className="assistant-honest-reply" role="status">{assistantReply}</p>}
           </div>
