@@ -156,7 +156,6 @@ export default function App() {
     localStorage.setItem('mshkur.profile.name', profileName);
     localStorage.setItem('mshkur.workspace.theme', workspaceTheme);
   }, [locale, isArabic, profileName, workspaceTheme]);
-  }, [locale, isArabic]);
 
   useEffect(() => { photosRef.current = photos; }, [photos]);
   useEffect(() => {
