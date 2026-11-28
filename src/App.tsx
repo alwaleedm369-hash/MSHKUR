@@ -3,6 +3,7 @@ import { deletePhotoRecord, loadPhotoRecords, savePhotoRecord } from './photoSto
 import { applyAlphaRegion, getCenteredSubjectPlacement, getGroundedSubjectPlacement, inspectAlphaPlane, parseImageCommand, reviewVehicleMask } from './vehicleImageEngine.mjs';
 import { runVehicleBatch } from './vehicleBatchPipeline.mjs';
 import skillRegistry from '../skills/registry.json';
+import { extensionCandidates } from './extensionCandidates';
 import {
   ArrowDownToLine, ArrowLeft, ArrowRight, ArrowUpRight, Camera, CarFront, Check, ChevronDown,
   CircleHelp, Globe2, ImagePlus, Images, Menu, Play, RotateCcw,
@@ -138,7 +139,7 @@ export default function App() {
   const [taskFilter, setTaskFilter] = useState<'all' | 'active' | 'review' | 'ready' | 'failed'>('all');
   const [taskQuery, setTaskQuery] = useState('');
   const [libraryFilter, setLibraryFilter] = useState<'all' | 'results' | 'originals'>('all');
-  const [libraryView, setLibraryView] = useState<'photos' | 'skills'>('photos');
+  const [libraryView, setLibraryView] = useState<'photos' | 'skills' | 'apps'>('photos');
   const [libraryQuery, setLibraryQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [background, setBackground] = useState<'white' | 'transparent'>('white');
@@ -178,6 +179,7 @@ export default function App() {
     return matchesQuery && matchesFilter;
   });
   const filteredSkills = skillRegistry.filter(skill => `${skill.name} ${skill.description} ${skill.category}`.toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
+  const filteredExtensions = extensionCandidates.filter(extension => `${extension.name} ${extension.description} ${extension.category}`.toLocaleLowerCase().includes(libraryQuery.trim().toLocaleLowerCase()));
 
   useEffect(() => {
     localStorage.setItem('mshkur.locale', locale);
@@ -661,6 +663,7 @@ export default function App() {
           <div className="library-tabs" role="tablist" aria-label={isArabic ? 'أقسام المكتبة' : 'Library sections'}>
             <button type="button" role="tab" aria-selected={libraryView === 'photos'} className={libraryView === 'photos' ? 'selected' : ''} onClick={() => { setLibraryView('photos'); setLibraryQuery(''); }}>{isArabic ? 'الصور والأعمال' : 'Photos & work'} <span>{photos.length}</span></button>
             <button type="button" role="tab" aria-selected={libraryView === 'skills'} className={libraryView === 'skills' ? 'selected' : ''} onClick={() => { setLibraryView('skills'); setLibraryQuery(''); }}>{isArabic ? 'المهارات' : 'Skills'} <span>{skillRegistry.length}</span></button>
+            <button type="button" role="tab" aria-selected={libraryView === 'apps'} className={libraryView === 'apps' ? 'selected' : ''} onClick={() => { setLibraryView('apps'); setLibraryQuery(''); }}>{isArabic ? 'الإضافات' : 'Apps'} <span>{extensionCandidates.length}</span></button>
           </div>
           {libraryView === 'photos' && <>
             <div className="task-tools library-tools">
@@ -676,6 +679,11 @@ export default function App() {
             <div className="task-tools library-tools"><label className="workspace-search"><span>{isArabic ? 'ابحث في المهارات' : 'Search skills'}</span><input type="search" value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} placeholder={isArabic ? 'اسم المهارة أو وصفها…' : 'Skill name or description…'}/></label><small className="library-count">{isArabic ? `${filteredSkills.length} من ${skillRegistry.length} مهارة مسجلة` : `${filteredSkills.length} of ${skillRegistry.length} registered skills`}</small></div>
             <div className="skill-library-list">{filteredSkills.length ? filteredSkills.map(skill => <article className="skill-library-item" key={skill.id}><div className="skill-library-main"><span className="skill-category">{isArabic ? (skill.category === 'image' ? 'الصور' : skill.category === 'cars' ? 'السيارات' : skill.category === 'quality' ? 'الجودة' : 'الهندسة والتشغيل') : skill.category}</span><strong>{skill.name}</strong><p>{skill.description}</p><small>v{skill.version} · {skill.input} → {skill.output}</small></div><span className="skill-registry-status">{isArabic ? 'تعريف مسجل' : 'Registered'}</span></article>) : <div className="empty-state"><strong>{isArabic ? 'لا توجد مهارات مطابقة' : 'No matching skills'}</strong><p>{isArabic ? 'جرّب كلمة بحث أخرى.' : 'Try another search term.'}</p></div>}</div>
             <div className="profile-note"><CircleHelp size={16}/>{isArabic ? 'هذه قائمة تعريفات من سجل المشروع. عرضها لا يعني أن لكل مهارة زر تشغيل أو أن جميعها موصولة ومختبرة من هذه الشاشة.' : 'This catalogue is read from the project registry. Listing a skill does not mean it can be launched here or that every entry is connected and tested.'}</div>
+          </>}
+          {libraryView === 'apps' && <>
+            <div className="task-tools library-tools"><label className="workspace-search"><span>{isArabic ? 'ابحث في الإضافات' : 'Search apps'}</span><input type="search" value={libraryQuery} onChange={event => setLibraryQuery(event.target.value)} placeholder={isArabic ? 'اسم الإضافة أو وصفها…' : 'App name or description…'}/></label><small className="library-count">{isArabic ? `${filteredExtensions.length} من ${extensionCandidates.length} إضافات مرشحة` : `${filteredExtensions.length} of ${extensionCandidates.length} candidate apps`}</small></div>
+            <div className="skill-library-list">{filteredExtensions.length ? filteredExtensions.map(extension => <article className="skill-library-item" key={extension.id}><div className="skill-library-main"><span className="skill-category">{isArabic ? (extension.category === 'video' ? 'الفيديو' : extension.category === 'voice' ? 'الصوت' : extension.category === 'marketing' ? 'التسويق' : extension.category === 'knowledge' ? 'المعرفة' : extension.category === 'work' ? 'إدارة العمل' : extension.category === 'scheduling' ? 'المواعيد' : extension.category === 'support' ? 'خدمة العملاء' : 'التسجيل') : extension.category}</span><strong>{extension.name}</strong><p>{extension.description}</p></div><span className="skill-registry-status">{isArabic ? 'مرشح · غير متصل' : 'Candidate · Offline'}</span></article>) : <div className="empty-state"><strong>{isArabic ? 'لا توجد إضافات مطابقة' : 'No matching apps'}</strong><p>{isArabic ? 'جرّب كلمة بحث أخرى.' : 'Try another search term.'}</p></div>}</div>
+            <div className="profile-note"><CircleHelp size={16}/>{isArabic ? 'هذه إضافات مرشحة للتقييم فقط. لم يتم تثبيتها أو ربط حساباتها أو اختبار اتصالاتها، ولن تظهر كمتصلة قبل اجتياز الفحص والموافقة.' : 'These are evaluation candidates only. They are not installed, authenticated or connected, and will not be marked connected before verification and approval.'}</div>
           </>}
         </section>}
 
