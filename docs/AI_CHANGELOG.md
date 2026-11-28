@@ -97,3 +97,10 @@
 - commit `de8c6b577a31760740a6ef08e94c1eda0dd344e5`: verify #1038، وMSHKUR AIBG Verification #113، وVehicle Studio Production Gate #166، وSmart Graph Runtime Tests #79 — جميعها `success`.
 - verify وAIBG وVehicle Studio أكملت الاختبارات وTypeScript وبناء الإنتاج بنجاح.
 - لم يُجرَ اختبار متصفح أو جهاز فعلي؛ مراجعة RTL/LTR البصرية والإتاحة لا تزال مطلوبة.
+
+## 2026-11-28 — Gate 1: مكتبة المهارات والإضافات
+- ربط تبويب المهارات مباشرة بـ `skills/registry.json` وعرض 11 تعريفاً مسجلاً مع الفئة والوصف والإصدار والمدخلات والمخرجات؛ لا يوجد زر تشغيل وهمي.
+- إضافة `src/extensionCandidates.ts` وفيه 9 إضافات مرشحة من تصور المشروع، وعرضها في تبويب مستقل مع حالة صريحة «مرشح · غير متصل».
+- إضافة البحث في المهارات والإضافات، وتوضيح أن ظهور العنصر في المكتبة لا يعني اتصاله أو جاهزيته للتشغيل.
+- commit `e90c2be0f195333fb5d885560fc9e5652c2413a9`: verify #1044 وAIBG #119 وVehicle Studio #172 وSmart Graph #85 — جميعها `success`. شملت verify وAIBG الاختبارات وTypeScript وبناء الإنتاج.
+- اختبار المتصفح والجهاز الفعلي والمراجعة البصرية responsive لم تُنفذ؛ لا دمج ولا نشر.
