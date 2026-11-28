@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 type Locale = 'en' | 'ar';
-type Screen = 'studio' | 'assistant' | 'library' | 'tasks' | 'profile' | 'settings';
+type Screen = 'studio' | 'assistant' | 'library' | 'team' | 'tasks' | 'profile' | 'settings';
 type Photo = { id: string; file: File; url: string; processedBlob?: Blob; processedUrl?: string; processedBackground?: 'white' | 'transparent'; cutoutBlob?: Blob; processingState?: 'queued' | 'processing' | 'ready' | 'needs-review' | 'failed'; processingError?: string; approved?: boolean };
 
 const messages = {
