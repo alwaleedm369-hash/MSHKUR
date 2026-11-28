@@ -15,14 +15,15 @@
 - إضافة إدخال صوتي اختياري في iAI باستخدام Web Speech API عند توفر `SpeechRecognition` أو `webkitSpeechRecognition`.
 - ضبط لغة التعرف إلى `ar-SA` أو `en-US` حسب لغة الواجهة، وإضافة حالات الاستماع والإيقاف وعدم الدعم والخطأ.
 - النص الصوتي يُضاف إلى حقل الكتابة للمراجعة فقط؛ لا ينفذ الطلب قبل ضغط المستخدم على زر التنفيذ.
+- توضيح أن معالجة الصوت قد تتم عبر مزود المتصفح، مع إبقاء خطأ التعرف مرئياً وعدم إخفائه عند انتهاء جلسة الاستماع.
 - إضافة تنسيق responsive لأزرار الصوت وحالاته.
 
 ## أدلة CI
-على commit الكود `09aab7ceb818f6a24dbb4516024dc654ea3c6cf8` اكتملت المسارات الأربعة بنجاح:
-- `verify` run #1021 — الاختبارات وTypeScript وبناء الإنتاج: success.
-- `MSHKUR AIBG Verification` run #96 — الاختبارات الكاملة وTypeScript وبناء الإنتاج: success.
-- `Vehicle Studio Production Gate` run #149: success.
-- `Smart Graph Runtime Tests` run #62: success.
+على آخر commit للكود `74bb5bfb9d3b29c9e608a71276104df15d1c020d` اكتملت المسارات الأربعة بنجاح:
+- `verify` run #1023 — الاختبارات وTypeScript وبناء الإنتاج: success.
+- `MSHKUR AIBG Verification` run #98 — الاختبارات الكاملة وTypeScript وبناء الإنتاج: success.
+- `Vehicle Studio Production Gate` run #151: success.
+- `Smart Graph Runtime Tests` run #64: success.
 
 نجاح CI يثبت الاختبارات والبناء المحددين في workflows، ولا يثبت اختباراً بصرياً أو صوتياً على متصفح/جهاز فعلي.
 
