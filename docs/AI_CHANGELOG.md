@@ -92,3 +92,8 @@
 - إضافة `aria-pressed` وأزرار صريحة النوع لاختيارات الثيم، وإظهار الثيم الحالي في الإعدادات بدلاً من عرض وصف ثابت لا يعكس الاختيار.
 - CI على commit الكود `de8c6b577a31760740a6ef08e94c1eda0dd344e5`: Smart Graph #79 نجح؛ verify #1038 وAIBG #113 وVehicle Studio #166 كانت قيد التنفيذ عند آخر فحص.
 - لم يتم اختبار واجهة متصفح فعلية أو أجهزة فعلية؛ لا نشر ولا دمج.
+
+### تحقق CI لتعديلات iAI الأخيرة — 28 نوفمبر 2026
+- commit `de8c6b577a31760740a6ef08e94c1eda0dd344e5`: verify #1038، وMSHKUR AIBG Verification #113، وVehicle Studio Production Gate #166، وSmart Graph Runtime Tests #79 — جميعها `success`.
+- verify وAIBG وVehicle Studio أكملت الاختبارات وTypeScript وبناء الإنتاج بنجاح.
+- لم يُجرَ اختبار متصفح أو جهاز فعلي؛ مراجعة RTL/LTR البصرية والإتاحة لا تزال مطلوبة.
