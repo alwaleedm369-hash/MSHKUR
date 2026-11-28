@@ -328,3 +328,5 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .assistant-voice-status{margin:10px 0 0;padding:9px 11px;border-radius:10px;background:#f1f0ff;color:#5147a8;font-size:11px;line-height:1.6}
 .assistant-voice-status.is-warning{background:#fff6e9;color:#805b27}
 @media(max-width:420px){.assistant-composer-foot{align-items:flex-start;flex-direction:column}.assistant-composer-actions{width:100%}.assistant-composer-actions button{flex:1}}
+
+.assistant-voice-privacy{display:block;margin-top:8px;color:#85879a;font-size:10px;line-height:1.55}
