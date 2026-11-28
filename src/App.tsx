@@ -158,6 +158,7 @@ export default function App() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const photosRef = useRef<Photo[]>([]);
   const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const voiceFailedRef = useRef(false);
   const t = (key: Key) => messages[locale][key];
   const activePhoto = photos.find(photo => photo.id === activeId) ?? photos[0] ?? null;
   const isArabic = locale === 'ar';
@@ -174,6 +175,7 @@ export default function App() {
   useEffect(() => () => {
     speechRecognitionRef.current?.stop();
     speechRecognitionRef.current = null;
+    voiceFailedRef.current = false;
   }, []);
   useEffect(() => {
     if (!autoProcessAfterUpload || !photos.length || busy) return;
@@ -376,18 +378,20 @@ export default function App() {
       recognition.lang = isArabic ? 'ar-SA' : 'en-US';
       recognition.continuous = false;
       recognition.interimResults = false;
+      voiceFailedRef.current = false;
       recognition.onresult = event => {
         const transcript = Array.from(event.results).map(result => result[0]?.transcript ?? '').join(' ').trim();
         if (transcript) setAssistantPrompt(current => [current.trim(), transcript].filter(Boolean).join(' '));
         setVoiceMessage(transcript ? (isArabic ? 'تم تحويل الصوت إلى نص. راجع النص قبل التنفيذ.' : 'Speech converted to text. Review it before running the request.') : '');
       };
       recognition.onerror = event => {
+        voiceFailedRef.current = true;
         setVoiceStatus('error');
         setVoiceMessage(isArabic ? 'تعذر استخدام الميكروفون. تحقق من إذن المتصفح وحاول مجدداً.' : 'Microphone access failed. Check your browser permission and try again.');
         if (event.error) console.warn('Speech recognition error:', event.error);
       };
       recognition.onend = () => {
-        setVoiceStatus('idle');
+        if (!voiceFailedRef.current) setVoiceStatus('idle');
         speechRecognitionRef.current = null;
       };
       speechRecognitionRef.current = recognition;
@@ -587,6 +591,7 @@ export default function App() {
                 <button onClick={() => submitAssistantPrompt()} disabled={!assistantPrompt.trim()}><span>{isArabic ? 'نفّذ الطلب' : 'Run request'}</span><ArrowUpRight size={17}/></button>
               </div>
             </div>
+            <small className="assistant-voice-privacy">{isArabic ? 'الإدخال الصوتي يعتمد على المتصفح؛ وقد يعالج مزوده الصوت وفق سياساته.' : 'Voice input depends on your browser; its provider may process audio under its own policies.'}</small>
             {voiceMessage && <p className={`assistant-voice-status ${voiceStatus === 'error' || voiceStatus === 'unsupported' ? 'is-warning' : ''}`} role="status" aria-live="polite">{voiceMessage}</p>}
             <div className="assistant-quick-actions" aria-label={isArabic ? 'إجراءات سريعة' : 'Quick actions'}>
               <button onClick={() => submitAssistantPrompt(isArabic ? 'أضف صورة جديدة' : 'Upload a photo')}>{isArabic ? '＋ أضف صورة' : '＋ Add photo'}</button>
