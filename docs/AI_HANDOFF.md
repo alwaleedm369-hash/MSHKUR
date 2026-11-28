@@ -15,7 +15,7 @@
 
 ## التحقق
 - CI السابق لميزة الصوت على commit `74bb5bfb9d3b29c9e608a71276104df15d1c020d` اجتاز المسارات الأربعة.
-- تغييرات البحث والتصفية الحالية على commit `6fcf4d04b7845652ab7dcd0d5b90cbf39ced0e89` لها تشغيلات CI جديدة؛ راجعها قبل أي دمج.
+- تحسينات البحث والتصفية مع توضيح حالات الانتظار والفشل على commit `66d39563f132a75d4684f58a9dd60c2671bf2a60` اجتازت المسارات الأربعة: verify #1029 وAIBG #104 وVehicle Studio #157 وSmart Graph #70، وكلها success. شملت verify وAIBG الاختبارات وTypeScript وبناء الإنتاج.
 - لم يتم اختبار متصفح/جهاز فعلي أو اختبار مرئي responsive في هذه الجلسة.
 - لا يوجد دمج أو نشر مثبت.
 
@@ -27,4 +27,4 @@
 5. انتقل إلى Dealer Workspace المستقل فقط بعد إغلاق Gate 1 وتحديد API/تخزين حقيقيين.
 
 ## الحالة
-**PARTIAL / IMPLEMENTED — CI AND BROWSER QA PENDING FOR TASK/LIBRARY FILTERS.** لا تدّعِ نشر أو مزامنة سحابية أو مهام عامة غير موجودة.
+**PARTIAL / IMPLEMENTED — CI PASSED; BROWSER QA AND PR REVIEW PENDING.** لا تدّعِ نشر أو مزامنة سحابية أو مهام عامة غير موجودة.
